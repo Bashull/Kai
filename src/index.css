@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --kai-dark: #111827; /* gray-900 */
+    --kai-surface: #1f2937; /* gray-800 */
+    --kai-green: #39ff14;
+    --kai-primary: #4f46e5; /* indigo-600 */
+    --text-primary: #f3f4f6; /* gray-100 */
+    --text-secondary: #9ca3af; /* gray-400 */
+    --border-color: #374151; /* gray-700 */
+  }
+
+  html.light {
+    --kai-dark: #ffffff;
+    --kai-surface: #f3f4f6; /* gray-100 */
+    --text-primary: #111827; /* gray-900 */
+    --text-secondary: #4b5563; /* gray-600 */
+    --border-color: #e5e7eb; /* gray-200 */
+  }
+
+  body {
+    @apply bg-kai-dark text-text-primary;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--kai-surface);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #4b5563; /* gray-600 */
+  }
+}
+
+@layer components {
+  .form-input {
+    @apply w-full bg-gray-800/50 border border-gray-700 rounded-lg py-2.5 px-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-kai-primary focus:border-kai-primary transition-colors;
+  }
+  .form-textarea {
+     @apply w-full bg-gray-800/50 border border-gray-700 rounded-lg py-2.5 px-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-kai-primary focus:border-kai-primary transition-colors resize-none;
+  }
+  .form-label {
+    @apply block text-sm font-medium text-gray-300 mb-2;
+  }
+  .form-select {
+    @apply block w-full pl-3 pr-10 py-2 text-base border-gray-700 bg-gray-800/50 rounded-md focus:outline-none focus:ring-kai-primary focus:border-kai-primary sm:text-sm;
+  }
+  .panel-container {
+    @apply bg-gray-950/30 backdrop-blur-sm border border-gray-800/50 rounded-xl shadow-2xl p-6;
+  }
+  .h1-title {
+    @apply text-3xl font-bold tracking-tight text-white mb-1;
+  }
+  .p-subtitle {
+     @apply text-base text-gray-400 mb-6;
+  }
+}
