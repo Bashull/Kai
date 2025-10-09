@@ -1,26 +1,30 @@
 import { StateCreator } from 'zustand';
 
-// General Types
-export type Panel = 'chat' | 'kernel' | 'forge' | 'studio' | 'settings';
-export type Theme = 'dark' | 'light';
+// --- UI & App State ---
+export type Panel = 'chat' | 'kernel' | 'forge' | 'studio' | 'tasks' | 'settings';
+export type Theme = 'light' | 'dark';
 
-// UI Slice
 export interface UISlice {
   activePanel: Panel;
   sidebarCollapsed: boolean;
   theme: Theme;
+  dueTasks: Task[];
+  showNotifications: boolean;
   setActivePanel: (panel: Panel) => void;
   toggleSidebar: () => void;
   setTheme: (theme: Theme) => void;
+  setDueTasks: (tasks: Task[]) => void;
+  toggleNotifications: () => void;
 }
 
-// Chat Slice
+// --- Chat ---
 export interface ChatMessage {
   id: string;
+  timestamp: string;
   role: 'user' | 'model';
   content: string;
-  timestamp: string;
 }
+
 export interface ChatSlice {
   isTyping: boolean;
   chatHistory: ChatMessage[];
@@ -29,46 +33,99 @@ export interface ChatSlice {
   setTyping: (isTyping: boolean) => void;
 }
 
-// Kernel Slice
+// --- Kernel (Knowledge Base) ---
+export type EntityType = 'TEXT' | 'URL' | 'DOCUMENT';
 export type EntityStatus = 'ASSIMILATING' | 'INTEGRATED' | 'REJECTED';
+
 export interface Entity {
   id: string;
-  name: string;
   content: string;
+  type: EntityType;
+  source: string;
   status: EntityStatus;
   createdAt: string;
   updatedAt: string;
 }
+
 export interface KernelSlice {
   entities: Entity[];
-  addEntity: (entity: Pick<Entity, 'name' | 'content'>) => void;
+  addEntity: (entity: Pick<Entity, 'content' | 'type' | 'source'>) => void;
   updateEntityStatus: (entityId: string, status: EntityStatus) => void;
 }
 
-// Forge Slice
+// --- Constitution ---
+export interface Constitution {
+  masterDirective: string;
+  principles: string[];
+}
+export interface ConstitutionVersion {
+  version: number;
+  date: string;
+  constitution: Constitution;
+}
+export interface ConstitutionSlice {
+  constitution: Constitution;
+  versionHistory: ConstitutionVersion[];
+  updateConstitution: (newConstitution: Constitution) => void;
+  revertToVersion: (version: number) => void;
+}
+
+
+// --- Forge (Model Training) ---
 export type TrainingJobStatus = 'QUEUED' | 'TRAINING' | 'COMPLETED' | 'FAILED';
+
 export interface TrainingJob {
   id: string;
   modelName: string;
+  description: string;
   status: TrainingJobStatus;
   createdAt: string;
   updatedAt: string;
-  description: string;
 }
+
 export interface ForgeSlice {
   trainingJobs: TrainingJob[];
   addTrainingJob: (job: Pick<TrainingJob, 'modelName' | 'description'>) => void;
   updateTrainingJobStatus: (jobId: string, status: TrainingJobStatus) => void;
 }
 
-// Studio - Console Slice
-export type LogType = 'COMMAND' | 'RESPONSE' | 'ERROR' | 'INFO';
+// --- Studio (Tools) ---
+export type CodeLanguage = 'javascript' | 'typescript' | 'python' | 'html' | 'css' | 'json' | 'markdown';
+
+export interface GeneratedImage {
+  url: string;
+  prompt: string;
+}
+
+export interface CodeSlice {
+    codePrompt: string;
+    generatedCode: string;
+    codeLanguage: CodeLanguage;
+    isGeneratingCode: boolean;
+    setCodePrompt: (prompt: string) => void;
+    setGeneratedCode: (code: string) => void;
+    setCodeLanguage: (language: CodeLanguage) => void;
+    setIsGeneratingCode: (isGenerating: boolean) => void;
+}
+
+export interface ImageSlice {
+    imagePrompt: string;
+    generatedImages: GeneratedImage[];
+    isGeneratingImages: boolean;
+    setImagePrompt: (prompt: string) => void;
+    setGeneratedImages: (images: GeneratedImage[]) => void;
+    setIsGeneratingImages: (isGenerating: boolean) => void;
+}
+
+export type StudioLogType = 'COMMAND' | 'RESPONSE' | 'ERROR' | 'INFO';
+
 export interface StudioLog {
     id: string;
     timestamp: string;
-    type: LogType;
+    type: StudioLogType;
     content: string;
 }
+
 export interface StudioSlice {
     isChecking: boolean;
     studioLogs: StudioLog[];
@@ -77,104 +134,39 @@ export interface StudioSlice {
     clearStudioLogs: () => void;
 }
 
-// Studio - Code Slice
-export type CodeLanguage =
-  | 'javascript'
-  | 'typescript'
-  | 'python'
-  | 'html'
-  | 'css'
-  | 'json'
-  | 'markdown';
+// --- Tasks ---
+export type TaskStatus = 'PENDING' | 'COMPLETED';
 
-export interface CodeSlice {
-  codePrompt: string;
-  generatedCode: string;
-  codeLanguage: CodeLanguage;
-  isGeneratingCode: boolean;
-  setCodePrompt: (prompt: string) => void;
-  setGeneratedCode: (code: string) => void;
-  setCodeLanguage: (language: CodeLanguage) => void;
-  setIsGeneratingCode: (isGenerating: boolean) => void;
+export interface Task {
+  id: string;
+  title: string;
+  status: TaskStatus;
+  createdAt: string;
+  dueDate?: string;
 }
 
-// Studio - Image Slice
-export interface GeneratedImage {
-    prompt: string;
-    url: string;
-}
-export interface ImageSlice {
-  imagePrompt: string;
-  generatedImages: GeneratedImage[];
-  isGeneratingImages: boolean;
-  setImagePrompt: (prompt: string) => void;
-  setGeneratedImages: (images: GeneratedImage[]) => void;
-  setIsGeneratingImages: (isGenerating: boolean) => void;
+export interface TaskSlice {
+  tasks: Task[];
+  addTask: (title: string) => void;
+  toggleTask: (id: string) => void;
+  clearCompletedTasks: () => void;
+  setTaskDueDate: (id: string, dueDate: string | undefined) => void;
 }
 
-// Combined App State
-export type AppState = UISlice & ChatSlice & KernelSlice & ForgeSlice & StudioSlice & CodeSlice & ImageSlice;
+// --- Zustand App State ---
+export type AppState = UISlice &
+  ChatSlice &
+  KernelSlice &
+  ForgeSlice &
+  StudioSlice &
+  CodeSlice &
+  ImageSlice &
+  TaskSlice &
+  ConstitutionSlice;
 
-// Type for Zustand slice creators
 export type AppSlice<T> = StateCreator<
   AppState,
   [['zustand/persist', unknown]],
   [],
   T
 >;
-
-// FIX: Add missing types for Resume Builder
-export interface PersonalInfo {
-  fullName: string;
-  email: string;
-  phoneNumber: string;
-  address: string;
-}
-
-export interface Experience {
-  id: string;
-  company: string;
-  role: string;
-  startDate: string;
-  endDate: string;
-  description: string;
-}
-
-export interface Education {
-  id: string;
-  institution: string;
-  degree: string;
-  startDate: string;
-  endDate: string;
-}
-
-export type ResumeTemplate = 'classic' | 'modern';
-
-export interface ResumeData {
-  personalInfo: PersonalInfo;
-  experience: Experience[];
-  education: Education[];
-  skills: string[];
-  summary: string;
-  template: ResumeTemplate;
-  accentColor: string;
-}
-
-export interface ResumeStore extends ResumeData {
-  currentStep: number;
-  setPersonalInfo: (info: PersonalInfo) => void;
-  addExperience: () => void;
-  updateExperience: (index: number, field: keyof Omit<Experience, 'id'>, value: string) => void;
-  removeExperience: (id: string) => void;
-  addEducation: () => void;
-  updateEducation: (index: number, field: keyof Omit<Education, 'id'>, value: string) => void;
-  removeEducation: (id: string) => void;
-  setSkills: (skills: string[]) => void;
-  addSkill: (skill: string) => void;
-  removeSkill: (index: number) => void;
-  setSummary: (summary: string) => void;
-  setTemplate: (template: ResumeTemplate) => void;
-  setAccentColor: (color: string) => void;
-  nextStep: () => void;
-  prevStep: () => void;
-}

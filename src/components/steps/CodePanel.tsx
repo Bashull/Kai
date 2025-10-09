@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Editor from '@monaco-editor/react';
-import { useKaiStore } from '../../store/useKaiStore';
+// Fix: Replaced useKaiStore with useAppStore as it appears to be the correct global state store.
+import { useAppStore } from '../../store/useAppStore';
 import { generateCode } from '../../services/geminiService';
 import { CodeLanguage } from '../../types';
 import { Sparkles, Copy, Download } from 'lucide-react';
@@ -27,7 +28,8 @@ const CodePanel: React.FC = () => {
     setCodeLanguage,
     isGeneratingCode,
     setIsGeneratingCode
-  } = useKaiStore();
+    // Fix: Replaced useKaiStore with useAppStore.
+  } = useAppStore();
   const [copyStatus, setCopyStatus] = useState(false);
 
 

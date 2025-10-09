@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAppStore } from './store/useAppStore';
 import Sidebar from './components/layout/Sidebar';
@@ -8,6 +8,8 @@ import KernelPanel from './components/panels/KernelPanel';
 import ForgePanel from './components/panels/ForgePanel';
 import StudioPanel from './components/panels/StudioPanel';
 import KaiAvatar from './components/ui/KaiAvatar';
+import TasksPanel from './components/panels/TasksPanel';
+import { differenceInHours, parseISO } from 'date-fns';
 
 // Mapping of the main panels of the new architecture
 const panels: { [key: string]: React.ComponentType } = {
@@ -15,14 +17,43 @@ const panels: { [key: string]: React.ComponentType } = {
   kernel: KernelPanel,
   forge: ForgePanel,
   studio: StudioPanel,
+  tasks: TasksPanel,
   settings: SettingsPanel,
 };
 
 const App: React.FC = () => {
-  const { activePanel, sidebarCollapsed } = useAppStore((state) => ({
+  const { activePanel, sidebarCollapsed, tasks, setDueTasks } = useAppStore((state) => ({
     activePanel: state.activePanel,
     sidebarCollapsed: state.sidebarCollapsed,
+    tasks: state.tasks,
+    setDueTasks: state.setDueTasks,
   }));
+
+  // Effect to periodically check for tasks due within 24 hours
+  useEffect(() => {
+    const checkDueTasks = () => {
+        const now = new Date();
+        const upcomingTasks = tasks.filter(task => {
+            if (task.status !== 'PENDING' || !task.dueDate) return false;
+            try {
+              const dueDate = parseISO(task.dueDate);
+              const hoursUntilDue = differenceInHours(dueDate, now);
+              // Check for tasks due in the next 24 hours but not past due
+              return hoursUntilDue >= 0 && hoursUntilDue <= 24;
+            } catch (error) {
+              // Invalid date string
+              return false;
+            }
+        });
+        setDueTasks(upcomingTasks);
+    };
+
+    checkDueTasks(); // Initial check
+    const intervalId = setInterval(checkDueTasks, 60 * 1000 * 5); // Check every 5 minutes
+
+    return () => clearInterval(intervalId); // Cleanup on component unmount
+  }, [tasks, setDueTasks]);
+
 
   const ActivePanelComponent = panels[activePanel];
 

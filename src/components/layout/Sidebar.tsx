@@ -1,9 +1,10 @@
 import React from 'react';
-import { motion } from 'framer-motion';
-import { MessageSquare, BrainCircuit, Flame, Terminal, Settings, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { MessageSquare, BrainCircuit, Flame, Terminal, Settings, ChevronsLeft, ChevronsRight, CheckSquare, Bell } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { Panel } from '../../types';
 import Button from '../ui/Button';
+import NotificationPopover from '../ui/NotificationPopover';
 
 // Navigation items for the new Genesis Architecture
 const navItems: { panel: Panel; icon: React.ElementType; label: string }[] = [
@@ -11,11 +12,20 @@ const navItems: { panel: Panel; icon: React.ElementType; label: string }[] = [
   { panel: 'kernel', icon: BrainCircuit, label: 'Kernel' },
   { panel: 'forge', icon: Flame, label: 'La Forja' },
   { panel: 'studio', icon: Terminal, label: 'IA Studio' },
+  { panel: 'tasks', icon: CheckSquare, label: 'Misiones' },
   { panel: 'settings', icon: Settings, label: 'Ajustes' },
 ];
 
 const Sidebar: React.FC = () => {
-  const { activePanel, setActivePanel, sidebarCollapsed, toggleSidebar } = useAppStore();
+  const { 
+    activePanel, 
+    setActivePanel, 
+    sidebarCollapsed, 
+    toggleSidebar,
+    dueTasks,
+    showNotifications,
+    toggleNotifications,
+  } = useAppStore();
 
   const sidebarVariants = {
     open: { width: '16rem' },
@@ -54,7 +64,32 @@ const Sidebar: React.FC = () => {
           </Button>
         ))}
       </nav>
-      <div className="px-2 py-4 border-t border-border-color/50">
+      <div className="px-2 py-4 border-t border-border-color/50 space-y-2">
+        <div className="relative">
+            <Button
+              variant="ghost"
+              onClick={toggleNotifications}
+              className={`w-full !justify-start !text-sm ${sidebarCollapsed ? '!px-2 !justify-center' : '!px-2'}`}
+              title="Notificaciones"
+            >
+              <Bell className="h-5 w-5" />
+              {!sidebarCollapsed && <span className="ml-3">Notificaciones</span>}
+              {dueTasks.length > 0 && (
+                 <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold">
+                    {dueTasks.length}
+                </span>
+              )}
+            </Button>
+            <AnimatePresence>
+                {showNotifications && dueTasks.length > 0 && (
+                    <NotificationPopover
+                        tasks={dueTasks}
+                        onClose={toggleNotifications}
+                        isSidebarCollapsed={sidebarCollapsed}
+                    />
+                )}
+            </AnimatePresence>
+        </div>
         <Button
           variant="ghost"
           onClick={toggleSidebar}

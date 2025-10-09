@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { AppState } from '../types';
-
 import { createUISlice } from './slices/createUISlice';
 import { createChatSlice } from './slices/createChatSlice';
 import { createKernelSlice } from './slices/createKernelSlice';
@@ -9,27 +8,34 @@ import { createForgeSlice } from './slices/createForgeSlice';
 import { createStudioSlice } from './slices/createStudioSlice';
 import { createCodeSlice } from './slices/createCodeSlice';
 import { createImageSlice } from './slices/createImageSlice';
+import { createTaskSlice } from './slices/createTaskSlice';
+import { createConstitutionSlice } from './slices/createConstitutionSlice';
 
 export const useAppStore = create<AppState>()(
   persist(
-    (set, get, api) => ({
-      ...createUISlice(set, get, api),
-      ...createChatSlice(set, get, api),
-      ...createKernelSlice(set, get, api),
-      ...createForgeSlice(set, get, api),
-      ...createStudioSlice(set, get, api),
-      ...createCodeSlice(set, get, api),
-      ...createImageSlice(set, get, api),
+    (...a) => ({
+      ...createUISlice(...a),
+      ...createChatSlice(...a),
+      ...createKernelSlice(...a),
+      ...createForgeSlice(...a),
+      ...createStudioSlice(...a),
+      ...createCodeSlice(...a),
+      ...createImageSlice(...a),
+      ...createTaskSlice(...a),
+      ...createConstitutionSlice(...a),
     }),
     {
-      name: 'kai-genesis-storage',
+      name: 'kai-ultra-pro-storage',
       storage: createJSONStorage(() => localStorage),
-      // Persist only the UI settings and language preference
+      // Only persist non-sensitive UI settings and important data
       partialize: (state) => ({
         activePanel: state.activePanel,
         sidebarCollapsed: state.sidebarCollapsed,
         theme: state.theme,
         codeLanguage: state.codeLanguage,
+        tasks: state.tasks, // Persist user's tasks
+        constitution: state.constitution, // Persist constitution
+        versionHistory: state.versionHistory, // Persist history
       }),
     }
   )

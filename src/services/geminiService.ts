@@ -24,7 +24,7 @@ export const streamChat = async (history: { role: string, parts: { text: string 
  * @param prompt The user's prompt.
  * @returns The text response from the model.
  */
-// FIX: Add missing generateWithAI function.
+// FIX: Add missing generateWithAI function. - This is now fixed.
 export const generateWithAI = async (prompt: string): Promise<string> => {
     try {
         const response = await ai.models.generateContent({
