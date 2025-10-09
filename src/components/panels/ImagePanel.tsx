@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useKaiStore } from '../../store/useKaiStore';
+import { useAppStore } from '../../store/useAppStore';
 import { generateImages } from '../../services/geminiService';
 import { Image as ImageIcon, Sparkles, Download } from 'lucide-react';
 import { downloadFile, dataUrlToBlob } from '../../utils/helpers';
@@ -16,7 +16,7 @@ const ImagePanel: React.FC = () => {
     setGeneratedImages,
     isGeneratingImages,
     setIsGeneratingImages
-  } = useKaiStore();
+  } = useAppStore();
   const [selectedImage, setSelectedImage] = useState<GeneratedImage | null>(null);
 
 
@@ -29,6 +29,7 @@ const ImagePanel: React.FC = () => {
       setGeneratedImages(result);
     } catch (error) {
       console.error("Image generation failed:", error);
+      // Here you could add a user-facing error message, e.g., using a toast notification library
     } finally {
       setIsGeneratingImages(false);
     }
@@ -50,64 +51,58 @@ const ImagePanel: React.FC = () => {
   };
 
   return (
-    <div>
-      <h1 className="h1-title">Image Generator</h1>
-      <p className="p-subtitle">Bring your ideas to life. Describe an image and Kai will create it.</p>
-      
-      <div className="panel-container mb-6">
-        <label htmlFor="image-prompt" className="form-label">
-          Prompt
-        </label>
-        <div className="flex gap-4">
-          <input
-            id="image-prompt"
-            type="text"
-            value={imagePrompt}
-            onChange={(e) => setImagePrompt(e.target.value)}
-            placeholder="e.g., a photorealistic portrait of a robot holding a red skateboard"
-            className="form-input"
-          />
-          <Button onClick={handleGenerate} disabled={isGeneratingImages || !imagePrompt.trim()} loading={isGeneratingImages} icon={Sparkles}>
-            Generate
-          </Button>
-        </div>
+    <div className="flex flex-col h-full">
+      <div className="flex flex-col sm:flex-row gap-4 mb-4">
+        <input
+          id="image-prompt"
+          type="text"
+          value={imagePrompt}
+          onChange={(e) => setImagePrompt(e.target.value)}
+          placeholder="ej: un retrato fotorrealista de un robot sosteniendo un monopatín rojo"
+          className="form-input flex-grow"
+        />
+        <Button onClick={handleGenerate} disabled={isGeneratingImages || !imagePrompt.trim()} loading={isGeneratingImages} icon={Sparkles}>
+          Generar
+        </Button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {isGeneratingImages && (
-          Array.from({ length: 1 }).map((_, i) => (
-            <div key={i} className="aspect-square bg-kai-surface rounded-lg flex items-center justify-center animate-pulse">
-              <ImageIcon className="w-12 h-12 text-gray-500" />
+      <div className="flex-grow overflow-y-auto pr-2 -mr-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {isGeneratingImages && (
+            Array.from({ length: 1 }).map((_, i) => (
+              <div key={i} className="aspect-square bg-kai-surface rounded-lg flex items-center justify-center animate-pulse">
+                <ImageIcon className="w-12 h-12 text-gray-500" />
+              </div>
+            ))
+          )}
+          {generatedImages.map((image, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3, delay: index * 0.1 }}
+              className="aspect-square rounded-lg overflow-hidden border-2 border-transparent hover:border-kai-primary group relative cursor-pointer"
+              onClick={() => setSelectedImage(image)}
+            >
+              <img src={image.url} alt={image.prompt} className="w-full h-full object-cover" />
+               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-2">
+                  <p className='text-white text-center font-bold text-sm'>Ver Imagen</p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+        {!isGeneratingImages && generatedImages.length === 0 && (
+            <div className="col-span-full text-center py-16 text-gray-500">
+                <p>Las imágenes generadas aparecerán aquí.</p>
             </div>
-          ))
         )}
-        {generatedImages.map((image, index) => (
-          <motion.div
-            key={index}
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3, delay: index * 0.1 }}
-            className="aspect-square rounded-lg overflow-hidden border-2 border-transparent hover:border-kai-primary group relative cursor-pointer"
-            onClick={() => setSelectedImage(image)}
-          >
-            <img src={image.url} alt={image.prompt} className="w-full h-full object-cover" />
-             <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <p className='text-white font-bold'>Click to view</p>
-            </div>
-          </motion.div>
-        ))}
       </div>
-       {!isGeneratingImages && generatedImages.length === 0 && (
-          <div className="col-span-full text-center py-16 text-gray-500">
-              <p>Your generated images will appear here.</p>
-          </div>
-       )}
 
       {selectedImage && (
         <Modal 
           isOpen={!!selectedImage} 
           onClose={() => setSelectedImage(null)} 
-          title="Image Preview"
+          title="Vista Previa de Imagen"
           size="xl"
           footer={
             <div className="flex justify-between items-center w-full">
@@ -115,7 +110,7 @@ const ImagePanel: React.FC = () => {
                 <strong>Prompt:</strong> {selectedImage.prompt}
               </p>
               <Button onClick={() => handleDownload(selectedImage.url, selectedImage.prompt)} icon={Download}>
-                Download Image
+                Descargar Imagen
               </Button>
             </div>
           }

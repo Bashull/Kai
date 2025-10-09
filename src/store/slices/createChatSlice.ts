@@ -18,7 +18,7 @@ export const createChatSlice: AppSlice<ChatSlice> = (set) => ({
   updateLastChatMessage: (content: string) =>
     set((state) => {
       const newHistory = [...state.chatHistory];
-      if (newHistory.length > 0) {
+      if (newHistory.length > 0 && newHistory[newHistory.length - 1].role === 'model') {
         newHistory[newHistory.length - 1].content += content;
       }
       return { chatHistory: newHistory };

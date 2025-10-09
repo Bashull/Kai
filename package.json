@@ -1,6 +1,6 @@
 {
-  "name": "kai-ultra-pro-frontend",
-  "version": "1.0.0",
+  "name": "kai-os-genesis-frontend",
+  "version": "3.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -24,6 +24,7 @@
   "devDependencies": {
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",
+    "@types/react-syntax-highlighter": "^15.5.13",
     "@vitejs/plugin-react": "^4.2.1",
     "vite": "^5.0.8",
     "eslint": "^8.55.0",

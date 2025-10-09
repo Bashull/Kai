@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import { CodeLanguage, GeneratedImage } from "../types";
+import { GeneratedImage, CodeLanguage } from "../types";
 
 // Initialize the Google AI client
 // It is assumed that process.env.API_KEY is configured in the execution environment.
@@ -17,6 +17,28 @@ export const streamChat = async (history: { role: string, parts: { text: string 
         history: history,
     });
     return chat.sendMessageStream({ message: prompt });
+};
+
+/**
+ * Generates content with AI.
+ * @param prompt The user's prompt.
+ * @returns The text response from the model.
+ */
+// FIX: Add missing generateWithAI function.
+export const generateWithAI = async (prompt: string): Promise<string> => {
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+        });
+        return response.text;
+    } catch (error) {
+        console.error("AI Generation failed:", error);
+        if (error instanceof Error) {
+            return `Error: ${error.message}`;
+        }
+        return "An unknown error occurred during AI generation.";
+    }
 };
 
 /**
@@ -44,27 +66,6 @@ export const checkAIAccess = async (): Promise<string> => {
 };
 
 /**
- * Generates text content based on a prompt.
- * @param prompt The input prompt for the AI.
- * @returns The generated text.
- */
-export const generateWithAI = async (prompt: string): Promise<string> => {
-    try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
-        });
-        return response.text;
-    } catch (error) {
-        console.error("AI Generation failed:", error);
-        if (error instanceof Error) {
-            return `Error: ${error.message}`;
-        }
-        return "An unknown error occurred during AI generation.";
-    }
-};
-
-/**
  * Generates a code snippet.
  * @param prompt The description of the code to generate.
  * @param language The programming language.
@@ -81,7 +82,7 @@ export const generateCode = async (prompt: string, language: CodeLanguage): Prom
         const text = response.text;
         const codeBlockRegex = new RegExp("```" + language + "?\\n([\\s\\S]*?)\\n```", "s");
         const match = text.match(codeBlockRegex);
-        return match ? match[1] : text;
+        return match ? match[1] : text.replace(/^```(?:\w+\n)?/, '').replace(/```$/, '');
     } catch (error) {
         console.error("Code Generation failed:", error);
         if (error instanceof Error) {
@@ -99,11 +100,12 @@ export const generateCode = async (prompt: string, language: CodeLanguage): Prom
 export const generateImages = async (prompt: string): Promise<GeneratedImage[]> => {
     try {
         const response = await ai.models.generateImages({
-            model: 'imagen-3.0-generate-002',
+            model: 'imagen-4.0-generate-001',
             prompt: prompt,
             config: {
                 numberOfImages: 1,
                 outputMimeType: 'image/png',
+                aspectRatio: '1:1',
             },
         });
 

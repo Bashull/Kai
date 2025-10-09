@@ -1,11 +1,13 @@
 
 
+
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { KaiState, ChatMessage, GeneratedImage, Entity, EntityStatus, TrainingJob, TrainingJobStatus } from '../types';
+// FIX: Replace non-existent KaiState with AppState
+import { AppState, ChatMessage, GeneratedImage, Entity, EntityStatus, TrainingJob, TrainingJobStatus } from '../types';
 import { generateId } from '../utils/helpers';
 
-export const useKaiStore = create<KaiState>()(
+export const useKaiStore = create<AppState>()(
   persist(
     (set, get) => ({
       // App state

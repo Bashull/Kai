@@ -4,7 +4,7 @@ import { generateId } from '../../utils/helpers';
 export const createStudioSlice: AppSlice<StudioSlice> = (set) => ({
     isChecking: false,
     studioLogs: [],
-    setIsChecking: (isChecking) => set({ isChecking }),
+    setIsChecking: (isChecking: boolean) => set({ isChecking }),
     addStudioLog: (log) => set(state => ({
         studioLogs: [...state.studioLogs, {
             ...log,

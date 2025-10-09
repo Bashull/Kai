@@ -1,88 +1,74 @@
-import React, { useEffect, useRef } from 'react';
-import { useAppStore } from '../../store/useAppStore';
-import { checkAIAccess } from '../../services/geminiService';
-import Button from '../ui/Button';
-import { Terminal, Check, X, ShieldQuestion, Trash2 } from 'lucide-react';
-import { format } from 'date-fns';
-import { StudioLog } from '../../types';
+import React, { useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Code, Image as ImageIcon, Terminal } from 'lucide-react';
+import CodePanel from './CodePanel';
+import ImagePanel from './ImagePanel';
+import ConsolePanel from './ConsolePanel';
 
-const LogLine: React.FC<{ log: StudioLog }> = ({ log }) => {
-    const typeStyles = {
-        COMMAND: 'text-kai-primary',
-        RESPONSE: 'text-green-400',
-        ERROR: 'text-red-400',
-        INFO: 'text-gray-400',
-    };
-    const prefix = {
-        COMMAND: '> ',
-        RESPONSE: '< ',
-        ERROR: '! ',
-        INFO: '# ',
-    }
-    return (
-        <div className="flex items-start gap-3">
-            <span className="text-gray-600 shrink-0">{format(new Date(log.timestamp), 'HH:mm:ss')}</span>
-            <pre className={`whitespace-pre-wrap break-all ${typeStyles[log.type]}`}>
-                <code>{prefix[log.type]}{log.content}</code>
-            </pre>
-        </div>
-    );
-}
+type StudioTab = 'code' | 'image' | 'console';
+
+const TABS: { id: StudioTab; label: string; icon: React.ElementType }[] = [
+    { id: 'code', label: 'Generador de Código', icon: Code },
+    { id: 'image', label: 'Generador de Imágenes', icon: ImageIcon },
+    { id: 'console', label: 'Consola del Sistema', icon: Terminal },
+];
 
 const StudioPanel: React.FC = () => {
-    const { isChecking, studioLogs, setIsChecking, addStudioLog, clearStudioLogs } = useAppStore();
-    const logContainerRef = useRef<HTMLDivElement>(null);
+    const [activeTab, setActiveTab] = useState<StudioTab>('code');
 
-    useEffect(() => {
-        if(logContainerRef.current) {
-            logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+    const renderContent = () => {
+        switch (activeTab) {
+            case 'code':
+                return <CodePanel />;
+            case 'image':
+                return <ImagePanel />;
+            case 'console':
+                return <ConsolePanel />;
+            default:
+                return null;
         }
-    }, [studioLogs]);
-
-    const handleCheckAccess = async () => {
-        if (isChecking) return;
-
-        setIsChecking(true);
-        addStudioLog({ type: 'COMMAND', content: 'checkAIAccess()' });
-
-        const result = await checkAIAccess();
-
-        if (result.trim() === 'PONG') {
-            addStudioLog({ type: 'RESPONSE', content: `Prueba de acceso superada. Respuesta del núcleo: ${result}` });
-        } else if (result.startsWith('ERROR:')) {
-            addStudioLog({ type: 'ERROR', content: `Prueba de acceso fallida. ${result}`});
-        } else {
-             addStudioLog({ type: 'ERROR', content: `Respuesta inesperada del núcleo: ${result}` });
-        }
-        setIsChecking(false);
     };
 
     return (
-        <div>
-            <h1 className="h1-title">IA Studio</h1>
-            <p className="p-subtitle">Mi consola de operaciones para diagnóstico y monitorización del sistema.</p>
+        <div className="flex flex-col h-[calc(100vh-6rem)]">
+            <div className="flex-shrink-0">
+                <h1 className="h1-title">IA Studio</h1>
+                <p className="p-subtitle">Mi suite de herramientas para la creación y el diagnóstico.</p>
+            </div>
 
-            <div className="panel-container">
-                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-                    <div className="flex items-center gap-3">
-                        <Terminal className="w-6 h-6 text-kai-primary" />
-                        <h2 className="text-xl font-bold">Consola del Sistema</h2>
-                    </div>
-                    <div className="flex gap-2">
-                        <Button onClick={handleCheckAccess} loading={isChecking} icon={ShieldQuestion}>
-                            Verificar Acceso al Núcleo de IA
-                        </Button>
-                         <Button onClick={clearStudioLogs} variant="secondary" icon={Trash2} title="Clear Logs"/>
-                    </div>
-                </div>
+            <div className="flex-shrink-0 border-b border-border-color mb-4">
+                <nav className="-mb-px flex space-x-6" aria-label="Tabs">
+                    {TABS.map((tab) => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`${
+                                activeTab === tab.id
+                                    ? 'border-kai-primary text-kai-primary'
+                                    : 'border-transparent text-text-secondary hover:text-text-primary hover:border-gray-500'
+                            } group inline-flex items-center py-3 px-1 border-b-2 font-medium text-sm transition-colors`}
+                            aria-current={activeTab === tab.id ? 'page' : undefined}
+                        >
+                            <tab.icon className="-ml-0.5 mr-2 h-5 w-5" aria-hidden="true" />
+                            <span>{tab.label}</span>
+                        </button>
+                    ))}
+                </nav>
+            </div>
 
-                <div ref={logContainerRef} className="bg-black/50 font-mono text-sm p-4 rounded-lg h-96 overflow-y-auto border border-border-color">
-                    {studioLogs.length === 0 ? (
-                         <p className="text-gray-500"># El registro del sistema está vacío. Inicia una verificación.</p>
-                    ) : (
-                        studioLogs.map(log => <LogLine key={log.id} log={log} />)
-                    )}
-                </div>
+            <div className="flex-grow panel-container overflow-y-auto">
+                 <AnimatePresence mode="wait">
+                    <motion.div
+                        key={activeTab}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        transition={{ duration: 0.2 }}
+                        className="h-full"
+                    >
+                        {renderContent()}
+                    </motion.div>
+                </AnimatePresence>
             </div>
         </div>
     );

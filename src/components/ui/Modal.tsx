@@ -64,6 +64,9 @@ const Modal: React.FC<ModalProps> = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-title"
         >
           {/* Overlay */}
           <motion.div
@@ -85,7 +88,7 @@ const Modal: React.FC<ModalProps> = ({
             {(title || showCloseButton) && (
               <div className="flex items-center justify-between p-4 sm:p-6 border-b border-border-color">
                 {title && (
-                  <h2 className="text-xl font-semibold text-text-primary">
+                  <h2 id="modal-title" className="text-xl font-semibold text-text-primary">
                     {title}
                   </h2>
                 )}
@@ -95,6 +98,7 @@ const Modal: React.FC<ModalProps> = ({
                     size="sm"
                     onClick={onClose}
                     className="!p-2"
+                    aria-label="Cerrar modal"
                   >
                     <X className="w-5 h-5" />
                   </Button>

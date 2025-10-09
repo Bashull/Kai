@@ -9,7 +9,7 @@ import ForgePanel from './components/panels/ForgePanel';
 import StudioPanel from './components/panels/StudioPanel';
 import KaiAvatar from './components/ui/KaiAvatar';
 
-// Mapeo de los paneles principales de la nueva arquitectura
+// Mapping of the main panels of the new architecture
 const panels: { [key: string]: React.ComponentType } = {
   chat: ChatPanel,
   kernel: KernelPanel,

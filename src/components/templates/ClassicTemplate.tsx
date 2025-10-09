@@ -18,14 +18,16 @@ export const ClassicTemplate: React.FC<{ data: ResumeData }> = ({ data }) => {
             </div>
 
             {/* Summary */}
-            {summary && (
+            {/* FIX: Removed parentheses to fix children property missing error */}
+            {summary &&
                 <Section title="Summary">
                     <p className="text-sm text-gray-700 leading-relaxed">{summary}</p>
                 </Section>
-            )}
+            }
             
             {/* Experience */}
-            {experience.length > 0 && (
+            {/* FIX: Removed parentheses to fix children property missing error */}
+            {experience.length > 0 &&
                  <Section title="Experience">
                     {experience.map((exp) => (
                         <div key={exp.id} className="mb-4">
@@ -40,9 +42,10 @@ export const ClassicTemplate: React.FC<{ data: ResumeData }> = ({ data }) => {
                         </div>
                     ))}
                 </Section>
-            )}
+            }
             {/* Education */}
-            {education.length > 0 && (
+            {/* FIX: Removed parentheses to fix children property missing error */}
+            {education.length > 0 &&
                  <Section title="Education">
                     {education.map((edu) => (
                         <div key={edu.id} className="mb-3">
@@ -54,15 +57,16 @@ export const ClassicTemplate: React.FC<{ data: ResumeData }> = ({ data }) => {
                         </div>
                     ))}
                 </Section>
-            )}
+            }
             {/* Skills */}
-            {skills.length > 0 && (
+            {/* FIX: Removed parentheses to fix children property missing error */}
+            {skills.length > 0 &&
                 <Section title="Skills">
                     <p className="text-sm text-gray-700">
                         {skills.join(' · ')}
                     </p>
                 </Section>
-            )}
+            }
         </div>
     );
 };

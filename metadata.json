@@ -1,6 +1,6 @@
 {
-  "name": "Kai",
-  "description": "An advanced multi-modal AI assistant for chat, code, and image generation.",
+  "name": "KaiOS",
+  "description": "An advanced, relational AI companion featuring panels for chat, cognitive architecture management, model training, and an AI studio for development tasks.",
   "requestFramePermissions": [],
   "prompt": ""
 }

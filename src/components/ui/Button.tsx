@@ -26,7 +26,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
   className = '',
   ...props
 }, ref) => {
-  const baseClasses = 'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-kai-dark disabled:opacity-50 disabled:cursor-not-allowed';
+  const baseClasses = 'inline-flex items-center justify-center font-semibold rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-kai-dark disabled:opacity-50 disabled:cursor-not-allowed';
   
   const variants = {
     primary: 'bg-kai-primary hover:bg-indigo-500 text-white focus:ring-kai-primary',
@@ -47,6 +47,9 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
   
   const classes = `${baseClasses} ${variants[variant]} ${sizes[size]} ${className}`;
   
+  const iconSize = { sm: 14, md: 16, lg: 18, xl: 20 }[size];
+  const iconMargin = children ? (iconPosition === 'left' ? 'mr-2' : 'ml-2') : '';
+
   return (
     <motion.button
       ref={ref}
@@ -56,18 +59,16 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
       disabled={disabled || loading}
       {...props}
     >
-      {loading && (
-        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-      )}
-      
-      {Icon && iconPosition === 'left' && !loading && (
-        <Icon className="w-4 h-4 mr-2" />
+      {loading ? (
+        <Loader2 style={{ width: iconSize, height: iconSize }} className={`animate-spin ${iconMargin}`} />
+      ) : (
+        Icon && iconPosition === 'left' && <Icon style={{ width: iconSize, height: iconSize }} className={iconMargin} />
       )}
       
       {children}
       
-      {Icon && iconPosition === 'right' && !loading && (
-        <Icon className="w-4 h-4 ml-2" />
+      {!loading && Icon && iconPosition === 'right' && (
+        <Icon style={{ width: iconSize, height: iconSize }} className={iconMargin} />
       )}
     </motion.button>
   );

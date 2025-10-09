@@ -15,7 +15,7 @@ const ChatPanel: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  useEffect(scrollToBottom, [chatHistory]);
+  useEffect(scrollToBottom, [chatHistory, isTyping]);
 
   const handleSend = async () => {
     if (!input.trim() || isTyping) return;
@@ -62,7 +62,7 @@ const ChatPanel: React.FC = () => {
             <div className="space-y-6">
                 {chatHistory.map((msg) => (
                     <div key={msg.id} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
-                        {msg.role === 'model' && <span className="text-xl mt-1">🤖</span>}
+                        {msg.role === 'model' && <span className="text-xl mt-1" aria-hidden="true">🤖</span>}
                         <div className={`max-w-xl rounded-xl px-4 py-3 shadow-md ${msg.role === 'user' ? 'bg-kai-primary text-white' : 'bg-kai-surface'}`}>
                             <MarkdownRenderer content={msg.content} />
                             <div className="text-xs mt-2 opacity-60 text-right">
@@ -71,9 +71,9 @@ const ChatPanel: React.FC = () => {
                         </div>
                     </div>
                 ))}
-                 {isTyping && chatHistory[chatHistory.length - 1]?.role === 'model' && (
+                 {isTyping && chatHistory.length > 0 && chatHistory[chatHistory.length - 1]?.role === 'model' && chatHistory[chatHistory.length - 1]?.content === '' && (
                     <div className="flex items-start gap-3">
-                         <span className="text-xl mt-1">🤖</span>
+                         <span className="text-xl mt-1" aria-hidden="true">🤖</span>
                          <div className="max-w-xl rounded-xl px-4 py-3 bg-kai-surface flex items-center">
                             <span className="animate-pulse">...</span>
                          </div>
@@ -91,6 +91,7 @@ const ChatPanel: React.FC = () => {
             className="form-textarea w-full pr-16"
             rows={2}
             disabled={isTyping}
+            aria-label="Mensaje de chat"
           />
           <Button 
             onClick={handleSend} 

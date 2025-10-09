@@ -16,7 +16,7 @@ const KaiAvatar: React.FC = () => {
         }}
         transition={{ duration: 0.8, repeat: isTyping ? Infinity : 0 }}
         className="w-16 h-16 flex items-center justify-center text-3xl font-bold rounded-full bg-kai-primary shadow-xl border-4 border-gray-900 select-none"
-        aria-label="Kai Avatar"
+        aria-label="Avatar de Kai"
       >
         🤖
       </motion.div>

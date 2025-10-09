@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Loader2, CheckCircle, XCircle, Hourglass } from 'lucide-react';
 import { TrainingJobStatus } from '../../types';

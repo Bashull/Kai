@@ -23,7 +23,8 @@ const Sidebar: React.FC = () => {
   };
 
   return (
-    <motion.div
+    <motion.aside
+      aria-label="Sidebar"
       animate={sidebarCollapsed ? 'closed' : 'open'}
       variants={sidebarVariants}
       transition={{ duration: 0.3, ease: 'easeInOut' }}
@@ -34,7 +35,7 @@ const Sidebar: React.FC = () => {
             animate={{ rotate: sidebarCollapsed ? 0 : 360 }}
             transition={{ duration: 0.5 }}
         >
-            <span className="text-2xl">🤖</span>
+            <span className="text-2xl" aria-hidden="true">🤖</span>
         </motion.div>
         {!sidebarCollapsed && <span className="text-xl font-bold ml-2">KaiOS</span>}
       </div>
@@ -46,6 +47,7 @@ const Sidebar: React.FC = () => {
             onClick={() => setActivePanel(panel)}
             className={`w-full !justify-start !text-sm ${sidebarCollapsed ? '!px-2 !justify-center' : '!px-2'}`}
             title={label}
+            aria-current={activePanel === panel ? 'page' : undefined}
           >
             <Icon className="h-5 w-5" />
             {!sidebarCollapsed && <span className="ml-3">{label}</span>}
@@ -57,13 +59,14 @@ const Sidebar: React.FC = () => {
           variant="ghost"
           onClick={toggleSidebar}
           className={`w-full !justify-start !text-sm ${sidebarCollapsed ? '!px-2 !justify-center' : '!px-2'}`}
-          title={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+          title={sidebarCollapsed ? "Expandir Barra Lateral" : "Contraer Barra Lateral"}
+          aria-label={sidebarCollapsed ? "Expandir Barra Lateral" : "Contraer Barra Lateral"}
         >
           {sidebarCollapsed ? <ChevronsRight className="h-5 w-5" /> : <ChevronsLeft className="h-5 w-5" />}
           {!sidebarCollapsed && <span className="ml-3">Contraer</span>}
         </Button>
       </div>
-    </motion.div>
+    </motion.aside>
   );
 };
 

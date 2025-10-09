@@ -1,8 +1,18 @@
 import { StateCreator } from 'zustand';
 
 // General Types
-export type Panel = 'chat' | 'kernel' | 'forge' | 'studio' | 'settings' | 'code' | 'image' | 'resume';
+export type Panel = 'chat' | 'kernel' | 'forge' | 'studio' | 'settings';
 export type Theme = 'dark' | 'light';
+
+// UI Slice
+export interface UISlice {
+  activePanel: Panel;
+  sidebarCollapsed: boolean;
+  theme: Theme;
+  setActivePanel: (panel: Panel) => void;
+  toggleSidebar: () => void;
+  setTheme: (theme: Theme) => void;
+}
 
 // Chat Slice
 export interface ChatMessage {
@@ -51,7 +61,7 @@ export interface ForgeSlice {
   updateTrainingJobStatus: (jobId: string, status: TrainingJobStatus) => void;
 }
 
-// Studio Slice
+// Studio - Console Slice
 export type LogType = 'COMMAND' | 'RESPONSE' | 'ERROR' | 'INFO';
 export interface StudioLog {
     id: string;
@@ -67,19 +77,43 @@ export interface StudioSlice {
     clearStudioLogs: () => void;
 }
 
+// Studio - Code Slice
+export type CodeLanguage =
+  | 'javascript'
+  | 'typescript'
+  | 'python'
+  | 'html'
+  | 'css'
+  | 'json'
+  | 'markdown';
 
-// UI Slice
-export interface UISlice {
-  activePanel: Panel;
-  sidebarCollapsed: boolean;
-  theme: Theme;
-  setActivePanel: (panel: Panel) => void;
-  toggleSidebar: () => void;
-  setTheme: (theme: Theme) => void;
+export interface CodeSlice {
+  codePrompt: string;
+  generatedCode: string;
+  codeLanguage: CodeLanguage;
+  isGeneratingCode: boolean;
+  setCodePrompt: (prompt: string) => void;
+  setGeneratedCode: (code: string) => void;
+  setCodeLanguage: (language: CodeLanguage) => void;
+  setIsGeneratingCode: (isGenerating: boolean) => void;
+}
+
+// Studio - Image Slice
+export interface GeneratedImage {
+    prompt: string;
+    url: string;
+}
+export interface ImageSlice {
+  imagePrompt: string;
+  generatedImages: GeneratedImage[];
+  isGeneratingImages: boolean;
+  setImagePrompt: (prompt: string) => void;
+  setGeneratedImages: (images: GeneratedImage[]) => void;
+  setIsGeneratingImages: (isGenerating: boolean) => void;
 }
 
 // Combined App State
-export type AppState = UISlice & ChatSlice & KernelSlice & ForgeSlice & StudioSlice;
+export type AppState = UISlice & ChatSlice & KernelSlice & ForgeSlice & StudioSlice & CodeSlice & ImageSlice;
 
 // Type for Zustand slice creators
 export type AppSlice<T> = StateCreator<
@@ -89,8 +123,7 @@ export type AppSlice<T> = StateCreator<
   T
 >;
 
-// --- Resume Builder Types ---
-
+// FIX: Add missing types for Resume Builder
 export interface PersonalInfo {
   fullName: string;
   email: string;
@@ -131,10 +164,10 @@ export interface ResumeStore extends ResumeData {
   currentStep: number;
   setPersonalInfo: (info: PersonalInfo) => void;
   addExperience: () => void;
-  updateExperience: (index: number, field: keyof Experience, value: string) => void;
+  updateExperience: (index: number, field: keyof Omit<Experience, 'id'>, value: string) => void;
   removeExperience: (id: string) => void;
   addEducation: () => void;
-  updateEducation: (index: number, field: keyof Education, value: string) => void;
+  updateEducation: (index: number, field: keyof Omit<Education, 'id'>, value: string) => void;
   removeEducation: (id: string) => void;
   setSkills: (skills: string[]) => void;
   addSkill: (skill: string) => void;
@@ -144,59 +177,4 @@ export interface ResumeStore extends ResumeData {
   setAccentColor: (color: string) => void;
   nextStep: () => void;
   prevStep: () => void;
-}
-
-
-// --- Code & Image Generation Types ---
-
-export type CodeLanguage =
-  | 'javascript'
-  | 'typescript'
-  | 'python'
-  | 'html'
-  | 'css'
-  | 'json'
-  | 'markdown';
-
-export interface GeneratedImage {
-    prompt: string;
-    url: string;
-}
-
-// --- Legacy KaiState for useKaiStore ---
-// This is to fix errors in unused files. It combines properties from the new slices with image/code generation state.
-export interface KaiState {
-  activePanel: Panel | string;
-  sidebarCollapsed: boolean;
-  theme: Theme;
-  isTyping: boolean;
-  chatHistory: ChatMessage[];
-  codePrompt: string;
-  generatedCode: string;
-  codeLanguage: CodeLanguage;
-  isGeneratingCode: boolean;
-  imagePrompt: string;
-  generatedImages: GeneratedImage[];
-  isGeneratingImages: boolean;
-  entities: Entity[];
-  trainingJobs: TrainingJob[];
-
-  // Actions
-  setActivePanel: (panel: Panel | string) => void;
-  toggleSidebar: () => void;
-  setTheme: (theme: Theme) => void;
-  addChatMessage: (message: Pick<ChatMessage, 'role' | 'content'>) => void;
-  updateLastChatMessage: (content: string) => void;
-  setTyping: (isTyping: boolean) => void;
-  setCodePrompt: (prompt: string) => void;
-  setGeneratedCode: (code: string) => void;
-  setCodeLanguage: (language: CodeLanguage) => void;
-  setIsGeneratingCode: (isGenerating: boolean) => void;
-  setImagePrompt: (prompt: string) => void;
-  setGeneratedImages: (images: GeneratedImage[]) => void;
-  setIsGeneratingImages: (isGenerating: boolean) => void;
-  addEntity: (entity: Pick<Entity, 'name' | 'content'>) => void;
-  updateEntityStatus: (entityId: string, status: EntityStatus) => void;
-  addTrainingJob: (job: Pick<TrainingJob, 'modelName' | 'description'>) => void;
-  updateTrainingJobStatus: (jobId: string, status: TrainingJobStatus) => void;
 }
