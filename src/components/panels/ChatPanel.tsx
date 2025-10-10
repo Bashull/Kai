@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { streamChat } from '../../services/geminiService';
@@ -5,6 +6,7 @@ import MarkdownRenderer from '../ui/MarkdownRenderer';
 import { Send } from 'lucide-react';
 import { formatRelativeTime } from '../../utils/helpers';
 import Button from '../ui/Button';
+import { AnimatePresence, motion } from 'framer-motion';
 
 const ChatPanel: React.FC = () => {
   const [input, setInput] = useState('');
@@ -60,17 +62,27 @@ const ChatPanel: React.FC = () => {
       <div className="w-full max-w-4xl mx-auto flex flex-col h-[calc(100vh-15rem)]">
         <div className="flex-1 overflow-y-auto pr-4 -mr-4 mb-4">
             <div className="space-y-6">
-                {chatHistory.map((msg) => (
-                    <div key={msg.id} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
-                        {msg.role === 'model' && <span className="text-xl mt-1" aria-hidden="true">🤖</span>}
-                        <div className={`max-w-xl rounded-xl px-4 py-3 shadow-md ${msg.role === 'user' ? 'bg-kai-primary text-white' : 'bg-kai-surface'}`}>
-                            <MarkdownRenderer content={msg.content} />
-                            <div className="text-xs mt-2 opacity-60 text-right">
-                                {formatRelativeTime(msg.timestamp)}
+                <AnimatePresence>
+                    {chatHistory.map((msg) => (
+                        <motion.div
+                            layout
+                            key={msg.id}
+                            initial={{ opacity: 0, y: 15, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                            className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}
+                        >
+                            {msg.role === 'model' && <span className="text-xl mt-1" aria-hidden="true">🤖</span>}
+                            <div className={`max-w-xl rounded-xl px-4 py-3 shadow-md ${msg.role === 'user' ? 'bg-kai-primary text-white' : 'bg-kai-surface'}`}>
+                                <MarkdownRenderer content={msg.content} />
+                                <div className="text-xs mt-2 opacity-60 text-right">
+                                    {formatRelativeTime(msg.timestamp)}
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                ))}
+                        </motion.div>
+                    ))}
+                </AnimatePresence>
                  {isTyping && chatHistory.length > 0 && chatHistory[chatHistory.length - 1]?.role === 'model' && chatHistory[chatHistory.length - 1]?.content === '' && (
                     <div className="flex items-start gap-3">
                          <span className="text-xl mt-1" aria-hidden="true">🤖</span>

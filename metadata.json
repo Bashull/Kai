@@ -1,6 +1,6 @@
 {
   "name": "KaiOS",
-  "description": "An advanced, relational AI companion featuring panels for chat, cognitive architecture management, model training, and an AI studio for development tasks.",
+  "description": "An advanced, relational AI companion built on a modular, feature-rich architecture. Features include: direct Chat, a cognitive Kernel for knowledge management, the Forge for model fine-tuning, an AI Studio with generation tools, and task management. This application showcases a fluid, responsive UI with deep integration of generative AI.",
   "requestFramePermissions": [],
   "prompt": ""
 }

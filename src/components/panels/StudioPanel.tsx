@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Code, Image as ImageIcon, Terminal } from 'lucide-react';
@@ -44,13 +45,19 @@ const StudioPanel: React.FC = () => {
                             onClick={() => setActiveTab(tab.id)}
                             className={`${
                                 activeTab === tab.id
-                                    ? 'border-kai-primary text-kai-primary'
-                                    : 'border-transparent text-text-secondary hover:text-text-primary hover:border-gray-500'
-                            } group inline-flex items-center py-3 px-1 border-b-2 font-medium text-sm transition-colors`}
+                                    ? 'text-kai-primary'
+                                    : 'text-text-secondary hover:text-text-primary'
+                            } relative group inline-flex items-center py-3 px-1 border-b-2 border-transparent font-medium text-sm transition-colors`}
                             aria-current={activeTab === tab.id ? 'page' : undefined}
                         >
                             <tab.icon className="-ml-0.5 mr-2 h-5 w-5" aria-hidden="true" />
                             <span>{tab.label}</span>
+                             {activeTab === tab.id && (
+                                <motion.div
+                                    className="absolute bottom-[-1px] left-0 right-0 h-0.5 bg-kai-primary"
+                                    layoutId="studio-tab-underline"
+                                />
+                            )}
                         </button>
                     ))}
                 </nav>
