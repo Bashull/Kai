@@ -9,6 +9,7 @@ import ForgePanel from './components/panels/ForgePanel';
 import StudioPanel from './components/panels/StudioPanel';
 import KaiAvatar from './components/ui/KaiAvatar';
 import TasksPanel from './components/panels/TasksPanel';
+import ResumeBuilderPanel from './components/panels/ResumeBuilderPanel';
 import { differenceInHours, parseISO } from 'date-fns';
 
 // Mapping of the main panels of the new architecture
@@ -18,6 +19,7 @@ const panels: { [key: string]: React.ComponentType } = {
   forge: ForgePanel,
   studio: StudioPanel,
   tasks: TasksPanel,
+  resume: ResumeBuilderPanel,
   settings: SettingsPanel,
 };
 

@@ -1,7 +1,7 @@
 import { StateCreator } from 'zustand';
 
 // --- UI & App State ---
-export type Panel = 'chat' | 'kernel' | 'forge' | 'studio' | 'tasks' | 'settings';
+export type Panel = 'chat' | 'kernel' | 'forge' | 'studio' | 'tasks' | 'settings' | 'resume';
 export type Theme = 'light' | 'dark';
 
 export interface UISlice {
@@ -153,6 +153,68 @@ export interface TaskSlice {
   setTaskDueDate: (id: string, dueDate: string | undefined) => void;
 }
 
+// --- Resume Builder ---
+export interface PersonalInfo {
+  fullName: string;
+  email: string;
+  phoneNumber: string;
+  address: string;
+  website: string;
+}
+
+export interface Experience {
+  id: string;
+  jobTitle: string;
+  company: string;
+  location: string;
+  startDate: string;
+  endDate: string;
+  isCurrent: boolean;
+  description: string;
+}
+
+export interface Education {
+  id: string;
+  institution: string;
+  degree: string;
+  fieldOfStudy: string;
+  startDate: string;
+  endDate: string;
+}
+
+export interface Skill {
+  id: string;
+  name: string;
+}
+
+export interface ResumeData {
+  personalInfo: PersonalInfo;
+  experience: Experience[];
+  education: Education[];
+  skills: Skill[];
+  summary: string;
+}
+
+export interface ResumeSlice {
+  currentStep: number;
+  resumeData: ResumeData;
+  isGenerating: boolean;
+  setCurrentStep: (step: number) => void;
+  setResumeData: (data: Partial<ResumeData>) => void;
+  updatePersonalInfo: (field: keyof PersonalInfo, value: string) => void;
+  addExperience: () => void;
+  updateExperience: (index: number, field: keyof Experience, value: string | boolean) => void;
+  removeExperience: (id: string) => void;
+  addEducation: () => void;
+  updateEducation: (index: number, field: keyof Education, value: string) => void;
+  removeEducation: (id: string) => void;
+  addSkill: (name: string) => void;
+  removeSkill: (id: string) => void;
+  setSummary: (summary: string) => void;
+  setIsGenerating: (isGenerating: boolean) => void;
+}
+
+
 // --- Zustand App State ---
 export type AppState = UISlice &
   ChatSlice &
@@ -162,7 +224,8 @@ export type AppState = UISlice &
   CodeSlice &
   ImageSlice &
   TaskSlice &
-  ConstitutionSlice;
+  ConstitutionSlice &
+  ResumeSlice;
 
 export type AppSlice<T> = StateCreator<
   AppState,

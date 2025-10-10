@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, BrainCircuit, Flame, Terminal, Settings, ChevronsLeft, ChevronsRight, CheckSquare, Bell } from 'lucide-react';
+import { MessageSquare, BrainCircuit, Flame, Terminal, Settings, ChevronsLeft, ChevronsRight, CheckSquare, Bell, ClipboardList } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { Panel } from '../../types';
 import Button from '../ui/Button';
@@ -13,6 +13,7 @@ const navItems: { panel: Panel; icon: React.ElementType; label: string }[] = [
   { panel: 'forge', icon: Flame, label: 'La Forja' },
   { panel: 'studio', icon: Terminal, label: 'IA Studio' },
   { panel: 'tasks', icon: CheckSquare, label: 'Misiones' },
+  { panel: 'resume', icon: ClipboardList, label: 'Constructor de CV' },
   { panel: 'settings', icon: Settings, label: 'Ajustes' },
 ];
 

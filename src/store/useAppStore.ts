@@ -10,6 +10,7 @@ import { createCodeSlice } from './slices/createCodeSlice';
 import { createImageSlice } from './slices/createImageSlice';
 import { createTaskSlice } from './slices/createTaskSlice';
 import { createConstitutionSlice } from './slices/createConstitutionSlice';
+import { createResumeSlice } from './slices/createResumeSlice';
 
 export const useAppStore = create<AppState>()(
   persist(
@@ -23,6 +24,7 @@ export const useAppStore = create<AppState>()(
       ...createImageSlice(...a),
       ...createTaskSlice(...a),
       ...createConstitutionSlice(...a),
+      ...createResumeSlice(...a),
     }),
     {
       name: 'kai-ultra-pro-storage',
@@ -36,6 +38,7 @@ export const useAppStore = create<AppState>()(
         tasks: state.tasks, // Persist user's tasks
         constitution: state.constitution, // Persist constitution
         versionHistory: state.versionHistory, // Persist history
+        resumeData: state.resumeData, // Persist resume data
       }),
     }
   )

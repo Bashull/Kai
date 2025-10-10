@@ -79,7 +79,7 @@ body {
 
 
 /* Custom styles for date input */
-input[type="date"] {
+input[type="date"], input[type="month"] {
   position: relative;
   padding: 0.5rem;
   background-color: var(--kai-surface);
@@ -92,20 +92,54 @@ input[type="date"] {
 }
 
 /* Style for the calendar picker indicator */
-input[type="date"]::-webkit-calendar-picker-indicator {
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="month"]::-webkit-calendar-picker-indicator {
   cursor: pointer;
   filter: invert(0.8) brightness(0.8);
   transition: filter 0.2s;
 }
 
-input[type="date"]::-webkit-calendar-picker-indicator:hover {
+input[type="date"]::-webkit-calendar-picker-indicator:hover,
+input[type="month"]::-webkit-calendar-picker-indicator:hover {
   filter: invert(1) brightness(1);
 }
 
 /* Hide the text until a date is chosen */
-input[type="date"]:not(:valid) {
+input[type="date"]:not(:valid),
+input[type="month"]:not(:valid) {
   color: transparent;
 }
-input[type="date"]:not(:valid)::-webkit-calendar-picker-indicator {
+input[type="date"]:not(:valid)::-webkit-calendar-picker-indicator,
+input[type="month"]:not(:valid)::-webkit-calendar-picker-indicator {
   opacity: 0.5;
+}
+
+/* Print styles for Resume PDF export */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #resume-preview, #resume-preview * {
+    visibility: visible;
+  }
+  #resume-preview {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    border: none;
+    box-shadow: none;
+    transform: scale(1);
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  /* Ensure templates are full width/height */
+  #resume-preview > div {
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+  }
 }
