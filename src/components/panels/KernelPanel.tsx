@@ -22,7 +22,7 @@ const EntityCard: React.FC<{ entity: Entity }> = ({ entity }) => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, scale: 0.5, transition: { duration: 0.2 } }}
             transition={{ type: 'spring', stiffness: 500, damping: 50, mass: 0.7 }}
-            className="bg-kai-surface/50 border border-border-color rounded-lg p-4"
+            className="bg-kai-surface/50 border border-border-color rounded-lg p-4 transition-colors duration-200 hover:bg-kai-surface"
         >
             <div className="flex justify-between items-start gap-4">
                 <div className="flex-grow">

@@ -1,22 +1,91 @@
-<script type="importmap">
-{
-  "imports": {
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "framer-motion": "https://aistudiocdn.com/framer-motion@^12.23.22",
-    "date-fns": "https://aistudiocdn.com/date-fns@^4.1.0",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.23.0",
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.545.0",
-    "@monaco-editor/react": "https://aistudiocdn.com/@monaco-editor/react@^4.7.0",
-    "react-markdown": "https://aistudiocdn.com/react-markdown@^10.1.0",
-    "react-syntax-highlighter": "https://aistudiocdn.com/react-syntax-highlighter@^15.6.6",
-    "react-syntax-highlighter/": "https://aistudiocdn.com/react-syntax-highlighter@^15.6.6/",
-    "react-dom": "https://aistudiocdn.com/react-dom@^19.2.0",
-    "zustand": "https://aistudiocdn.com/zustand@^5.0.8",
-    "zustand/": "https://aistudiocdn.com/zustand@^5.0.8/",
-    "date-fns/": "https://aistudiocdn.com/date-fns@^4.1.0/"
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🤖</text></svg>">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KaiOS</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="/src/index.css">
+
+  <!-- Import Map -->
+  <script type="importmap">
+  {
+    "imports": {
+      "react": "https://aistudiocdn.com/react@^19.2.0",
+      "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+      "react/": "https://aistudiocdn.com/react@^19.2.0/",
+      "framer-motion": "https://aistudiocdn.com/framer-motion@^12.23.22",
+      "date-fns": "https://aistudiocdn.com/date-fns@^4.1.0",
+      "@google/genai": "https://aistudiocdn.com/@google/genai@^1.23.0",
+      "lucide-react": "https://aistudiocdn.com/lucide-react@^0.545.0",
+      "@monaco-editor/react": "https://aistudiocdn.com/@monaco-editor/react@^4.7.0",
+      "react-markdown": "https://aistudiocdn.com/react-markdown@^10.1.0",
+      "react-syntax-highlighter": "https://aistudiocdn.com/react-syntax-highlighter@^15.6.6",
+      "react-syntax-highlighter/": "https://aistudiocdn.com/react-syntax-highlighter@^15.6.6/",
+      "react-dom": "https://aistudiocdn.com/react-dom@^19.2.0",
+      "zustand": "https://aistudiocdn.com/zustand@^5.0.8",
+      "zustand/": "https://aistudiocdn.com/zustand@^5.0.8/",
+      "date-fns/": "https://aistudiocdn.com/date-fns@^4.1.0/"
+    }
   }
-}
-</script>
-full contents of index.html
+  </script>
+  
+  <style>
+    /* Basic Loading Screen Styles */
+    #loading-screen {
+      position: fixed;
+      inset: 0;
+      background-color: #111827; /* --kai-dark */
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #f3f4f6; /* --text-primary */
+      font-family: 'Inter', sans-serif;
+      transition: opacity 0.5s ease-out;
+    }
+    #loading-screen[data-loaded="true"] {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .loader-spinner {
+      width: 48px;
+      height: 48px;
+      border: 5px solid #374151; /* --border-color */
+      border-bottom-color: #4f46e5; /* --kai-primary */
+      border-radius: 50%;
+      display: inline-block;
+      box-sizing: border-box;
+      animation: rotation 1s linear infinite;
+    }
+    @keyframes rotation {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .loader-text {
+        margin-top: 1.5rem;
+        font-size: 1.125rem;
+        font-weight: 500;
+        letter-spacing: 0.05em;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  
+  <!-- Loading Screen -->
+  <div id="loading-screen">
+    <div class="loader-spinner"></div>
+    <p class="loader-text">INICIALIZANDO KAIOS...</p>
+  </div>
+  
+  <script type="module" src="/src/index.tsx"></script>
+</body>
+</html>

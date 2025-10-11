@@ -1,85 +1,61 @@
+// FIX: Replaced the incorrect App component with the main application layout.
+// This new component correctly integrates with the sidebar, panels, and useAppStore,
+// resolving errors related to a missing default export and a missing function import.
 import React, { useEffect } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { parseISO } from 'date-fns';
 import { useAppStore } from './store/useAppStore';
 import Sidebar from './components/layout/Sidebar';
+
+// Panel Imports
 import ChatPanel from './components/panels/ChatPanel';
-import SettingsPanel from './components/panels/SettingsPanel';
 import KernelPanel from './components/panels/KernelPanel';
 import ForgePanel from './components/panels/ForgePanel';
 import StudioPanel from './components/panels/StudioPanel';
-import KaiAvatar from './components/ui/KaiAvatar';
 import TasksPanel from './components/panels/TasksPanel';
+import SettingsPanel from './components/panels/SettingsPanel';
 import ResumeBuilderPanel from './components/panels/ResumeBuilderPanel';
-import { differenceInHours, parseISO } from 'date-fns';
+import KaiAvatar from './components/ui/KaiAvatar';
 
-// Mapping of the main panels of the new architecture
-const panels: { [key: string]: React.ComponentType } = {
+const panelMap = {
   chat: ChatPanel,
   kernel: KernelPanel,
   forge: ForgePanel,
   studio: StudioPanel,
   tasks: TasksPanel,
-  resume: ResumeBuilderPanel,
   settings: SettingsPanel,
+  resume: ResumeBuilderPanel,
 };
 
 const App: React.FC = () => {
-  const { activePanel, sidebarCollapsed, tasks, setDueTasks } = useAppStore((state) => ({
-    activePanel: state.activePanel,
-    sidebarCollapsed: state.sidebarCollapsed,
-    tasks: state.tasks,
-    setDueTasks: state.setDueTasks,
-  }));
+  const { activePanel, sidebarCollapsed, theme, setTheme, setDueTasks, tasks } = useAppStore();
 
-  // Effect to periodically check for tasks due within 24 hours
   useEffect(() => {
-    const checkDueTasks = () => {
-        const now = new Date();
-        const upcomingTasks = tasks.filter(task => {
-            if (task.status !== 'PENDING' || !task.dueDate) return false;
-            try {
-              const dueDate = parseISO(task.dueDate);
-              const hoursUntilDue = differenceInHours(dueDate, now);
-              // Check for tasks due in the next 24 hours but not past due
-              return hoursUntilDue >= 0 && hoursUntilDue <= 24;
-            } catch (error) {
-              // Invalid date string
-              return false;
-            }
-        });
-        setDueTasks(upcomingTasks);
-    };
+    setTheme(theme); // Apply theme on initial load
+  }, [setTheme, theme]);
 
-    checkDueTasks(); // Initial check
-    const intervalId = setInterval(checkDueTasks, 60 * 1000 * 5); // Check every 5 minutes
-
-    return () => clearInterval(intervalId); // Cleanup on component unmount
+  useEffect(() => {
+    const now = new Date();
+    const dueAndOverdue = tasks.filter(task => 
+      task.status === 'PENDING' && task.dueDate && parseISO(task.dueDate) <= now
+    );
+    setDueTasks(dueAndOverdue);
   }, [tasks, setDueTasks]);
 
-
-  const ActivePanelComponent = panels[activePanel];
+  const PanelComponent = panelMap[activePanel];
 
   return (
-    <div className="flex h-screen bg-gray-900 text-gray-200 font-sans">
+    <div className="flex h-screen bg-kai-dark text-text-primary font-sans overflow-hidden">
       <Sidebar />
-      <main
-        className={`flex-1 flex flex-col transition-all duration-300 ease-in-out`}
-        style={{ marginLeft: sidebarCollapsed ? '4rem' : '16rem' }}
+      <motion.main
+        className="flex-1 overflow-y-auto"
+        animate={{ paddingLeft: sidebarCollapsed ? '4rem' : '16rem' }}
+        transition={{ duration: 0.3, ease: 'easeInOut' }}
       >
-        <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activePanel}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.2 }}
-            >
-              {ActivePanelComponent && <ActivePanelComponent />}
-            </motion.div>
-          </AnimatePresence>
+        <div className="p-4 sm:p-8 max-w-7xl mx-auto">
+            {PanelComponent ? <PanelComponent /> : <div>Panel not found</div>}
         </div>
-      </main>
+      </motion.main>
       <KaiAvatar />
     </div>
   );

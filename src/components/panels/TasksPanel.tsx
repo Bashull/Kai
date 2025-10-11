@@ -37,7 +37,7 @@ const TaskItem: React.FC<{ task: Task }> = ({ task }) => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, x: -20 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="flex items-center gap-4 p-4 bg-kai-surface/50 border border-border-color rounded-lg"
+            className="flex items-center gap-4 p-4 bg-kai-surface/50 border border-border-color rounded-lg transition-colors duration-200 hover:bg-kai-surface"
         >
             <Checkbox
                 id={task.id}
