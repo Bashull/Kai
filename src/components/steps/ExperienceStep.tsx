@@ -1,15 +1,11 @@
 import React from 'react';
-// FIX: Corrected import path for useAppStore.
-import { useAppStore } from '../store/useAppStore';
-// FIX: Corrected import path for geminiService.
-import { generateWithAI } from '../services/geminiService';
-// FIX: Corrected import path for AIButton.
-import { AIButton } from './common';
-// FIX: Corrected import path for Button.
-import Button from './ui/Button';
+// FIX: Corrected relative import paths after moving to 'steps' directory.
+import { useAppStore } from '../../store/useAppStore';
+import { generateWithAI } from '../../services/geminiService';
+import { AIButton } from '../common';
+import Button from '../ui/Button';
 import { Plus, Trash2 } from 'lucide-react';
-// FIX: Corrected import path for Experience type.
-import { Experience } from '../types';
+import { Experience } from '../../types';
 
 const ExperienceItem: React.FC<{ item: Experience; index: number }> = ({ item, index }) => {
   const { updateExperience, removeExperience, setIsGenerating } = useAppStore();
