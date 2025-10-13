@@ -96,3 +96,16 @@ body {
 .file-dropzone {
     @apply flex flex-col items-center justify-center w-full h-32 px-4 transition bg-kai-surface border-2 border-dashed rounded-lg appearance-none cursor-pointer border-border-color hover:border-kai-primary focus:outline-none;
 }
+
+.live-glowing {
+  animation: live-glow 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes live-glow {
+  from {
+    box-shadow: 0 0 10px rgba(79, 70, 229, 0.6), 0 0 20px rgba(79, 70, 229, 0.4);
+  }
+  to {
+    box-shadow: 0 0 20px rgba(79, 70, 229, 0.8), 0 0 40px rgba(79, 70, 229, 0.6);
+  }
+}

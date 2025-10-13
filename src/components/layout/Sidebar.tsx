@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '../../store/useAppStore';
 import {
     MessageSquare, BrainCircuit, Flame, Bot, CheckSquare, Settings,
-    FileText, Star, BookOpen, Camera, Search, Bell, Menu, X
+    FileText, Star, BookOpen, Camera, Search, Bell, Menu, X, Radio
 } from 'lucide-react';
 import KaiAvatar from '../ui/KaiAvatar';
 import NotificationPopover from '../ui/NotificationPopover';
@@ -11,6 +11,7 @@ import { isToday, parseISO } from 'date-fns';
 
 const navItems = [
     { id: 'chat', label: 'Chat', icon: MessageSquare },
+    { id: 'live', label: 'Live', icon: Radio },
     { id: 'kernel', label: 'Kernel', icon: BrainCircuit },
     { id: 'forge', label: 'La Forja', icon: Flame },
     { id: 'studio', label: 'IA Studio', icon: Bot },

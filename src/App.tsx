@@ -11,6 +11,7 @@ import SearchResultsModal from './components/ui/SearchResultsModal';
 
 // Panels
 import ChatPanel from './components/panels/ChatPanel';
+import LivePanel from './components/panels/LivePanel';
 import KernelPanel from './components/panels/KernelPanel';
 import ForgePanel from './components/panels/ForgePanel';
 import StudioPanel from './components/panels/StudioPanel';
@@ -23,6 +24,7 @@ import SnapshotsPanel from './components/panels/SnapshotsPanel';
 
 const panelComponents = {
   chat: ChatPanel,
+  live: LivePanel,
   kernel: KernelPanel,
   forge: ForgePanel,
   studio: StudioPanel,

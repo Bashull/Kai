@@ -1,7 +1,7 @@
 import { StateCreator } from 'zustand';
 
 // --- UI & App State ---
-export type Panel = 'chat' | 'kernel' | 'forge' | 'studio' | 'tasks' | 'settings' | 'resume' | 'awesome' | 'diary' | 'snapshots';
+export type Panel = 'chat' | 'live' | 'kernel' | 'forge' | 'studio' | 'tasks' | 'settings' | 'resume' | 'awesome' | 'diary' | 'snapshots';
 export type Theme = 'light' | 'dark';
 
 export interface UISlice {
@@ -44,6 +44,24 @@ export interface VoiceSlice {
     stopRecording: (callback: (transcript: string) => void) => void;
     speakMessage: (messageId: string, text: string) => void;
     stopSpeaking: () => void;
+}
+
+// --- Live Conversation ---
+export interface LiveTranscriptionEntry {
+  id: string;
+  speaker: 'user' | 'model';
+  text: string;
+}
+
+export interface LiveSlice {
+  isConnecting: boolean;
+  isConnected: boolean;
+  session: any | null;
+  transcriptionHistory: LiveTranscriptionEntry[];
+  currentInputTranscription: string;
+  currentOutputTranscription: string;
+  connectToLive: () => Promise<void>;
+  disconnectFromLive: () => void;
 }
 
 
@@ -337,6 +355,7 @@ export interface SnapshotSlice {
 export type AppState = UISlice &
   ChatSlice &
   VoiceSlice &
+  LiveSlice &
   KernelSlice &
   ForgeSlice &
   StudioSlice &

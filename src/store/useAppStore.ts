@@ -17,6 +17,7 @@ import { createAwesomeResourceSlice } from './slices/createAwesomeResourceSlice'
 import { createDiarySlice } from './slices/createDiarySlice';
 import { createSnapshotSlice } from './slices/createSnapshotSlice';
 import { createVoiceSlice } from './slices/createVoiceSlice';
+import { createLiveSlice } from './slices/createLiveSlice';
 
 export const useAppStore = create<AppState>()(
   persist(
@@ -24,6 +25,7 @@ export const useAppStore = create<AppState>()(
       ...createUISlice(...a),
       ...createChatSlice(...a),
       ...createVoiceSlice(...a),
+      ...createLiveSlice(...a),
       ...createKernelSlice(...a),
       ...createForgeSlice(...a),
       ...createStudioSlice(...a),
