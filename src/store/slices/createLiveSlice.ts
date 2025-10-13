@@ -7,6 +7,7 @@ let inputAudioContext: AudioContext | null = null;
 let outputAudioContext: AudioContext | null = null;
 let scriptProcessor: ScriptProcessorNode | null = null;
 let stream: MediaStream | null = null;
+let analyserNode: AnalyserNode | null = null;
 let nextStartTime = 0;
 const sources = new Set<AudioBufferSourceNode>();
 
@@ -14,6 +15,7 @@ export const createLiveSlice: AppSlice<LiveSlice> = (set, get) => ({
     isConnecting: false,
     isConnected: false,
     session: null,
+    analyserNode: null,
     transcriptionHistory: [],
     currentInputTranscription: '',
     currentOutputTranscription: '',
@@ -38,6 +40,14 @@ export const createLiveSlice: AppSlice<LiveSlice> = (set, get) => ({
                         set({ isConnecting: false, isConnected: true });
                         stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                         const source = inputAudioContext!.createMediaStreamSource(stream);
+
+                        // Create and connect analyser for visualization
+                        analyserNode = inputAudioContext!.createAnalyser();
+                        analyserNode.fftSize = 256;
+                        source.connect(analyserNode);
+                        set({ analyserNode }); // Store in state
+
+                        // Create script processor for sending audio to API
                         scriptProcessor = inputAudioContext!.createScriptProcessor(4096, 1, 1);
                         scriptProcessor.onaudioprocess = (audioProcessingEvent) => {
                             const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
@@ -134,6 +144,8 @@ export const createLiveSlice: AppSlice<LiveSlice> = (set, get) => ({
         
         scriptProcessor?.disconnect();
         scriptProcessor = null;
+        analyserNode?.disconnect();
+        analyserNode = null;
         
         stream?.getTracks().forEach(track => track.stop());
         stream = null;
@@ -151,6 +163,7 @@ export const createLiveSlice: AppSlice<LiveSlice> = (set, get) => ({
             isConnecting: false,
             isConnected: false,
             session: null,
+            analyserNode: null,
             currentInputTranscription: '',
             currentOutputTranscription: '',
         });

@@ -57,6 +57,7 @@ export interface LiveSlice {
   isConnecting: boolean;
   isConnected: boolean;
   session: any | null;
+  analyserNode: AnalyserNode | null;
   transcriptionHistory: LiveTranscriptionEntry[];
   currentInputTranscription: string;
   currentOutputTranscription: string;

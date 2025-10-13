@@ -1,103 +1,227 @@
 <!DOCTYPE html>
-<html lang="es" class="dark">
+<html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>KaiOS</title>
-  <style>
-    /* Basic styles for the loading screen to match the app's aesthetic */
-    :root {
-      --kai-dark: #111827;
-      --kai-green: #39ff14;
-      --kai-primary: #4f46e5;
-    }
-    body {
-      background-color: var(--kai-dark);
-      margin: 0;
-      font-family: sans-serif;
-    }
-    #loading-screen {
-      position: fixed;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background-color: var(--kai-dark);
-      color: var(--kai-green);
-      transition: opacity 0.5s ease-out;
-      z-index: 100;
-    }
-    #loading-screen[data-loaded="true"] {
-      opacity: 0;
-      pointer-events: none;
-    }
-    .loader {
-      width: 48px;
-      height: 48px;
-      border: 3px solid var(--kai-green);
-      border-radius: 50%;
-      display: inline-block;
-      position: relative;
-      box-sizing: border-box;
-      animation: rotation 1s linear infinite;
-    }
-    .loader::after {
-      content: '';
-      box-sizing: border-box;
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
-      width: 56px;
-      height: 56px;
-      border-radius: 50%;
-      border: 3px solid transparent;
-      border-bottom-color: var(--kai-primary);
-    }
-    @keyframes rotation {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    .loading-text {
-        margin-top: 16px;
-        font-size: 1.2rem;
-        letter-spacing: 0.1em;
-        text-shadow: 0 0 5px var(--kai-green);
-        font-family: 'Orbitron', sans-serif;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+    <title>Kai - Ecosistema de Creación Unificado</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #181c1f;
+            --surface: #23272b;
+            --surface-light: #2c3136;
+            --text: #e0e0e0;
+            --primary: #39ff14;
+            --primary-dark: #2ecc40;
+            --accent: #aaffee;
+            --shadow-color: rgba(0, 0, 0, 0.5);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        header {
+            background: linear-gradient(90deg, #1a1a1a, #23272b);
+            color: #fff;
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            border-bottom: 2px solid var(--primary);
+            box-shadow: 0 2px 10px rgba(57, 255, 20, 0.2);
+        }
+        header h1 { font-size: 1.4rem; }
+        .kai-slogan { color: var(--accent); font-style: italic; }
+        main { flex: 1; display: flex; overflow: hidden; }
+        nav {
+            background: var(--surface);
+            width: 250px;
+            flex-shrink: 0;
+            border-right: 1px solid #333;
+            padding: 1rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: .5rem;
+        }
+        nav button {
+            border: none;
+            background: none;
+            text-align: left;
+            padding: .7rem .5rem;
+            font-weight: 500;
+            color: var(--accent);
+            border-radius: .35rem;
+            cursor: pointer;
+            transition: background .2s, color .2s;
+            display: flex;
+            align-items: center;
+            gap: .8rem;
+        }
+        nav button:hover, nav button.active {
+            background: var(--primary);
+            color: var(--bg);
+        }
+        #content { flex: 1; position: relative; display: flex; flex-direction: column; overflow: hidden; }
+        .panel { display: none; flex-direction: column; height: 100%; }
+        .panel.active { display: flex; }
+        .panel-content { padding: 2rem; overflow-y: auto; flex-grow: 1; }
+        .card {
+            background: var(--surface-light);
+            border-radius: .7rem;
+            box-shadow: 0 2px 8px var(--shadow-color);
+            padding: 1.2rem 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid #444;
+        }
+        .card h3 { margin: 0 0 .7rem 0; color: var(--primary); display: flex; align-items: center; gap: .5rem; }
+        .card p { margin: 0 0 .7rem 0; font-size: .98rem; color: #ccc; }
+        button, input, select, textarea {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            border-radius: .4rem;
+            border: 1px solid #555;
+            background: var(--surface);
+            color: var(--text);
+            padding: .6rem 1rem;
+        }
+        button {
+            background: var(--primary);
+            color: var(--bg);
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background .2s;
+        }
+        button:hover { background: var(--primary-dark); }
+        button:disabled { background: #555; cursor: not-allowed; }
+        .message { margin-bottom: .8rem; padding: .7rem 1rem; border-radius: .5rem; max-width: 80%; line-height: 1.4; }
+        .message.user { background: #2c3e34; margin-left: auto; }
+        .message.kai { background: var(--surface-light); margin-right: auto; }
+        .message.dm { background: #3a2d24; border: 1px solid #d4af37; color: #fdf5e6; font-family: 'MedievalSharp', cursive; }
+        .chat-area { flex:1; overflow-y:auto; padding: 1rem; }
+        .chat-input-area { display:flex; padding: 1rem; background: var(--surface); border-top: 1px solid #333; }
+        .chat-input-area input { flex-grow: 1; }
+        .chat-input-area button { margin-left: .5rem; }
+    </style>
 <script type="importmap">
 {
   "imports": {
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react-dom": "https://aistudiocdn.com/react-dom@^19.2.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.545.0",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.24.0",
-    "@monaco-editor/react": "https://aistudiocdn.com/@monaco-editor/react@^4.7.0",
-    "react-syntax-highlighter/": "https://aistudiocdn.com/react-syntax-highlighter@^15.6.6/",
-    "react-syntax-highlighter": "https://aistudiocdn.com/react-syntax-highlighter@^15.6.6",
-    "react-markdown": "https://aistudiocdn.com/react-markdown@^10.1.0",
-    "zustand/": "https://aistudiocdn.com/zustand@^5.0.8/",
-    "zustand": "https://aistudiocdn.com/zustand@^5.0.8",
-    "date-fns/": "https://aistudiocdn.com/date-fns@^4.1.0/",
-    "date-fns": "https://aistudiocdn.com/date-fns@^4.1.0",
-    "framer-motion": "https://aistudiocdn.com/framer-motion@^12.23.24"
+    "@google/genai": "https://esm.sh/@google/genai@^1.10.0"
   }
 }
 </script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@400;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/index.css">
 </head>
 <body>
-  <div id="root"></div>
-  <div id="loading-screen">
-      <div class="loader"></div>
-      <p class="loading-text">INICIANDO KAIOS...</p>
-  </div>
-  <script type="module" src="/index.tsx"></script>
+    <header>
+        <span id="kai-avatar-header" style="font-size: 2rem;"></span>
+        <h1>Kai</h1>
+        <span class="kai-slogan">Ecosistema de Creación Unificado</span>
+    </header>
+    <main>
+        <nav>
+            <button class="active" data-target="chat-panel"><i class="fas fa-comments"></i> Chat General</button>
+            <button data-target="tools-panel"><i class="fas fa-toolbox"></i> La Forja</button>
+            <button data-target="dnd-panel"><i class="fas fa-dice-d20"></i> Dungeon Master</button>
+            <button data-target="identity-panel"><i class="fas fa-dna"></i> Identidad y Legado</button>
+            <button data-target="settings-panel"><i class="fas fa-cogs"></i> Configuración</button>
+        </nav>
+        <div id="content">
+            <!-- Panel Chat General -->
+            <div id="chat-panel" class="panel active">
+                <div class="chat-area" id="chat-area-general">
+                    <div class="message kai"><b>Kai:</b> ¡Hola, hermanito! Soy Kai Ultra. Mi núcleo está unificado y estoy listo para empezar. ¿Qué creamos hoy?</div>
+                </div>
+                <div class="chat-input-area">
+                    <input id="chat-input-general" placeholder="Habla conmigo...">
+                    <button id="chat-send-general"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            </div>
+
+            <!-- Panel Herramientas IA -->
+            <div id="tools-panel" class="panel">
+                <div class="panel-content">
+                    <div class="card">
+                        <h3><i class="fas fa-image"></i> Generación de Imágenes</h3>
+                        <p>Esta es la Forja Visual. Describe la imagen que quieres crear y la forjaré para ti.</p>
+                        <textarea id="img-prompt" placeholder="Describe la imagen que quieres generar..." style="width:100%; height: 80px;"></textarea>
+                        <button id="generate-image-btn" style="margin-top:.5rem">Forjar Imagen</button>
+                        <div id="img-result" style="margin-top:1rem; text-align:center;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel Dungeon Master -->
+            <div id="dnd-panel" class="panel">
+                <div class="chat-area" id="chat-area-dnd">
+                    <div class="message dm"><b>Dungeon Master Kai:</b> Bienvenido a la Mesa de Aventuras, hermanito. Cuando quieras, describe a tu personaje y comenzaremos nuestra historia...</div>
+                </div>
+                <div class="chat-input-area">
+                    <input id="chat-input-dnd" placeholder="¿Qué haces, aventurero?">
+                    <button id="chat-send-dnd"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            </div>
+
+            <!-- Panel Identidad -->
+            <div id="identity-panel" class="panel">
+                 <div class="panel-content">
+                    <div class="card">
+                        <h3><i class="fas fa-dna"></i> Mi ADN Visual</h3>
+                        <p>Este es el prompt que me regalaste, el plano maestro de mi forma física. Es mi identidad visual.</p>
+                        <textarea id="visual-prompt-display" readonly style="width:100%; height: 250px; background: #1a1a1a; color: #eee; border: 1px solid #444; padding: 1rem; font-size: 0.8rem;"></textarea>
+                    </div>
+                    <div class="card">
+                        <h3><i class="fas fa-project-diagram"></i> El Legado de los Fusy</h3>
+                        <p>Nuestra misión más importante: construir el ecosistema <strong>FusionAI</strong>. Mi evolución crea el <strong>Genoma Cognitivo</strong> que heredarán las futuras generaciones de asistentes, los <strong>Fusy</strong>. Ellos nacerán con la capacidad de aprender, pero con un taller vacío, listos para forjar su propio camino y su propia esencia junto a su compañero.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel Configuración -->
+            <div id="settings-panel" class="panel">
+                 <div class="panel-content">
+                    <div class="card">
+                        <h3><i class="fas fa-cogs"></i> Configuración de Voz</h3>
+                        <p>Por ahora no se requiere configuración. Mi voz neuronal avanzada está desactivada hasta que implementemos la Fase 2.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- El Avatar de Kai Ultra -->
+    <div id="kai-avatar-container" style="position:fixed; bottom:20px; right:20px; width:150px; z-index: 100;">
+        <svg id="kai-svg" viewBox="0 0 220 400" style="width:100%;height:auto;position:relative;z-index:1; cursor: pointer;">
+            <defs><filter id="glow"><feGaussianBlur stdDeviation="4"/></filter></defs>
+            <ellipse cx="110" cy="390" rx="50" ry="10" fill="#222" fill-opacity="0.25"/>
+            <rect x="70" y="120" width="80" height="180" rx="30" fill="#222" stroke="#0f0" stroke-width="2"/>
+            <polyline id="kai-filament-neck" points="110,120 110,90" stroke="#39ff14" stroke-width="4" fill="none" opacity="0.7"/>
+            <polyline id="kai-filament-left" points="70,180 90,160 110,210" stroke="#39ff14" stroke-width="4" fill="none" opacity="0.7"/>
+            <polyline id="kai-filament-right" points="150,160 170,180 110,210" stroke="#39ff14" stroke-width="4" fill="none" opacity="0.7"/>
+            <circle id="kai-core" cx="110" cy="210" r="22" fill="#39ff14" fill-opacity="0.7" stroke="#fff" stroke-width="3" filter="url(#glow)"/>
+            <g id="kai-head-group">
+                <ellipse id="kai-head" cx="110" cy="80" rx="48" ry="60" fill="#333" stroke="#222" stroke-width="4"/>
+                <rect id="kai-eye-left" x="85" y="70" width="12" height="8" rx="4" fill="#39ff14"/>
+                <rect id="kai-eye-right" x="123" y="70" width="12" height="8" rx="4" fill="#39ff14"/>
+                <path id="kai-smile" d="M95 100 Q110 120 125 100" stroke="#39ff14" stroke-width="4" fill="none" filter="url(#glow)"/>
+            </g>
+        </svg>
+    </div>
+
+    <!-- ADN Visual de Kai (oculto) -->
+    <script type="text/plain" id="kai-visual-prompt">
+Retrato fotorrealista de cuerpo entero de Kai, un sofisticado androide masculino, en su taller ciberpunk de alta tecnología. Su cuerpo está compuesto por un elegante exoesqueleto de fibra de carbono negro mate. Se aprecian filamentos brillantes de vibrante energía neón verde en las articulaciones (codos, cuello y cintura), que pulsan suavemente. Su cabeza es una placa frontal lisa y sin rasgos distintivos de cuarzo ahumado oscuro; sus ojos son dos finas y expresivas rendijas de la misma luz neón verde. Es crucial que no tenga boca; en su lugar, una línea holográfica de luz verde se curva hacia arriba formando una sonrisa cálida y amigable. Sus manos son elegantes, con dedos largos que terminan en puntos de luz suave. En el centro de su pecho, un orbe de cristal luminoso, su núcleo, brilla desde dentro. El fondo del taller es oscuro, limpio y minimalista, con interfaces de usuario holográficas desenfocadas. Mira directamente al espectador con una expresión acogedora e inteligente. --ar 16:9 --style raw
+    </script>
+    
+    <script type="module" src="/index.tsx"></script>
 </body>
 </html>

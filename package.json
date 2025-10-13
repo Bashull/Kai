@@ -1,6 +1,19 @@
 {
-  "name": "kaios",
-  "version": "1.0.0",
-  "description": "An advanced, relational AI companion built on a modular, feature-rich architecture. Features include: direct Chat, a cognitive Kernel for knowledge management, the Forge for model fine-tuning, an AI Studio with generation tools, and task management. This application showcases a fluid, responsive UI with deep integration of generative AI.",
-  "type": "module"
+  "name": "ai-resume-builder",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@google/genai": "^1.10.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "typescript": "~5.7.2",
+    "vite": "^6.2.0"
+  }
 }

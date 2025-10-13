@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { AnimatePresence, motion } from 'framer-motion';
 import Button from '../ui/Button';
-import { BrainCircuit, Link, FileText, Type as TypeIcon, BookOpen, Edit, Save, Plus, Trash2, History, FileUp, Search } from 'lucide-react';
+import { BrainCircuit, Link, FileText, Type as TypeIcon, BookOpen, Edit, Save, Plus, Trash2, History, RotateCcw, Search } from 'lucide-react';
 import { Entity, EntityType, Constitution } from '../../types';
 import EntityStatusBadge from '../ui/EntityStatusBadge';
 import { formatRelativeTime } from '../../utils/helpers';
@@ -44,16 +44,14 @@ const EntityCard: React.FC<{ entity: Entity }> = ({ entity }) => {
 
 const KernelPanel: React.FC = () => {
     // Entity State
-    const { entities, addEntity, isUploading } = useAppStore(state => ({
+    const { entities, addEntity } = useAppStore(state => ({
         entities: state.entities,
         addEntity: state.addEntity,
-        isUploading: state.isUploading,
     }));
     const [content, setContent] = useState('');
     const [type, setType] = useState<EntityType>('TEXT');
-    const [file, setFile] = useState<File | null>(null);
-
-     // Search state and actions
+    
+    // Search state and actions
     const { searchQuery, setSearchQuery, executeSearch } = useAppStore();
 
     const handleSearchSubmit = (e: React.FormEvent) => {
@@ -63,24 +61,10 @@ const KernelPanel: React.FC = () => {
 
     const handleEntitySubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (type === 'DOCUMENT') {
-            if (file) {
-                addEntity({ content: file.name, type, source: 'File Upload', fileName: file.name });
-                setFile(null);
-            }
-        } else {
-            if(!content.trim()) return;
-            addEntity({ content, type, source: 'Manual Input' });
-            setContent('');
-        }
+        if(!content.trim()) return;
+        addEntity({ content, type, source: 'Manual Input' });
+        setContent('');
     };
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            setFile(e.target.files[0]);
-        }
-    };
-
 
     // Constitution State
     const { constitution, versionHistory, updateConstitution, revertToVersion } = useAppStore();
@@ -130,7 +114,7 @@ const KernelPanel: React.FC = () => {
             <p className="p-subtitle">Mi memoria central, base de conocimientos y principios fundamentales.</p>
             
             <div className="mt-8 space-y-12">
-                {/* Search Section */}
+                 {/* Search Section */}
                 <section>
                     <div className="panel-container">
                         <div className="flex items-center gap-3 mb-4">
@@ -152,7 +136,6 @@ const KernelPanel: React.FC = () => {
                         </form>
                     </div>
                 </section>
-
                 {/* Constitution Section */}
                 <section>
                     <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-4">
@@ -165,7 +148,7 @@ const KernelPanel: React.FC = () => {
                                 <div className="flex items-center gap-2">
                                      <History size={16} className="text-text-secondary"/>
                                      <select onChange={handleRevert} className="form-select !py-1 !text-xs" value="">
-                                        <option value="">Ver Historial (V{versionHistory.length > 0 ? versionHistory[0].version : 0})</option>
+                                        <option value="">Ver Historial (V{versionHistory[0].version})</option>
                                         {versionHistory.map(v => (
                                             <option key={v.version} value={v.version}>
                                                 V{v.version} - {format(new Date(v.date), 'dd MMM yyyy, HH:mm')}
@@ -244,7 +227,7 @@ const KernelPanel: React.FC = () => {
                                 <form onSubmit={handleEntitySubmit} className="space-y-4">
                                     <div>
                                         <label className="form-label">Tipo de Entidad</label>
-                                        <select value={type} onChange={e => { setType(e.target.value as EntityType); setFile(null); setContent(''); }} className="form-select">
+                                        <select value={type} onChange={e => setType(e.target.value as EntityType)} className="form-select">
                                             <option value="TEXT">Texto</option>
                                             <option value="URL">URL</option>
                                             <option value="DOCUMENT">Documento</option>
@@ -252,35 +235,16 @@ const KernelPanel: React.FC = () => {
                                     </div>
                                     <div>
                                         <label className="form-label">Contenido</label>
-                                        {type === 'DOCUMENT' ? (
-                                            <label htmlFor="file-upload" className="file-dropzone">
-                                                <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
-                                                    <FileUp className="w-8 h-8 mb-3 text-gray-400" />
-                                                    {file ? (
-                                                        <p className="text-sm text-gray-400"><span className="font-semibold">{file.name}</span> seleccionado</p>
-                                                    ) : (
-                                                        <>
-                                                        <p className="mb-2 text-sm text-gray-400">
-                                                            <span className="font-semibold">Haz clic para subir</span> o arrastra y suelta
-                                                        </p>
-                                                        <p className="text-xs text-gray-500">PDF, DOCX, TXT, etc.</p>
-                                                        </>
-                                                    )}
-                                                </div>
-                                                <input id="file-upload" type="file" className="hidden" onChange={handleFileChange} />
-                                            </label>
-                                        ) : (
-                                            <textarea 
-                                                value={content}
-                                                onChange={e => setContent(e.target.value)}
-                                                placeholder={type === 'URL' ? 'https://...' : 'Ingresa texto o referencia...'}
-                                                className="form-textarea"
-                                                rows={5}
-                                            />
-                                        )}
+                                        <textarea 
+                                            value={content}
+                                            onChange={e => setContent(e.target.value)}
+                                            placeholder={type === 'URL' ? 'https://...' : 'Ingresa texto o referencia...'}
+                                            className="form-textarea"
+                                            rows={5}
+                                        />
                                     </div>
-                                    <Button type="submit" className="w-full" disabled={isUploading || (type === 'DOCUMENT' ? !file : !content.trim())} loading={isUploading}>
-                                        {isUploading ? 'Asimilando...' : 'Asimilar en el Kernel'}
+                                    <Button type="submit" className="w-full" disabled={!content.trim()}>
+                                        Asimilar en el Kernel
                                     </Button>
                                 </form>
                             </div>

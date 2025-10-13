@@ -13,9 +13,12 @@ const LivePanel: React.FC = () => {
         disconnectFromLive,
         transcriptionHistory,
         currentInputTranscription,
-        currentOutputTranscription
+        currentOutputTranscription,
+        analyserNode
     } = useAppStore();
     const transcriptionEndRef = useRef<HTMLDivElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const animationFrameIdRef = useRef<number | null>(null);
 
     useEffect(() => {
         // Cleanup on unmount
@@ -27,6 +30,74 @@ const LivePanel: React.FC = () => {
     useEffect(() => {
         transcriptionEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [transcriptionHistory, currentInputTranscription, currentOutputTranscription]);
+
+    useEffect(() => {
+        if (!isConnected || !analyserNode || !canvasRef.current) {
+            if (animationFrameIdRef.current) {
+                cancelAnimationFrame(animationFrameIdRef.current);
+                animationFrameIdRef.current = null;
+            }
+            return;
+        }
+
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        const bufferLength = analyserNode.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+
+        const draw = () => {
+            animationFrameIdRef.current = requestAnimationFrame(draw);
+
+            analyserNode.getByteFrequencyData(dataArray);
+
+            const width = canvas.width;
+            const height = canvas.height;
+            const centerX = width / 2;
+            const centerY = height / 2;
+            
+            let sum = 0;
+            for(let i = 0; i < bufferLength; i++) {
+                sum += dataArray[i];
+            }
+            const avg = sum / bufferLength;
+
+            ctx.clearRect(0, 0, width, height);
+
+            const baseRadius = 40;
+            const maxRadius = 75;
+            const radius = Math.min(baseRadius + (avg / 255) * (maxRadius - baseRadius) * 2, maxRadius);
+
+            // Draw pulsating outer circles
+            for (let i = 1; i <= 3; i++) {
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius + i * 20, 0, 2 * Math.PI);
+                const opacity = Math.max(0, (avg / 128) - (i * 0.2));
+                ctx.strokeStyle = `rgba(79, 70, 229, ${opacity * 0.5})`;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+
+            // Draw central orb
+            const grd = ctx.createRadialGradient(centerX, centerY, radius * 0.5, centerX, centerY, radius);
+            grd.addColorStop(0, '#4f46e5');
+            grd.addColorStop(1, '#39ff14');
+            
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+            ctx.fillStyle = grd;
+            ctx.fill();
+        };
+
+        draw();
+
+        return () => {
+            if (animationFrameIdRef.current) {
+                cancelAnimationFrame(animationFrameIdRef.current);
+            }
+        };
+    }, [isConnected, analyserNode]);
 
     const handleToggleConnection = () => {
         if (isConnected) {
@@ -48,18 +119,27 @@ const LivePanel: React.FC = () => {
             <p className="p-subtitle">Habla con Kai en tiempo real.</p>
             
             <div className="flex-grow flex flex-col items-center justify-center my-6">
-                <Button
+                 <div
                     onClick={handleToggleConnection}
-                    disabled={isConnecting}
-                    loading={isConnecting}
-                    className={`relative w-40 h-40 rounded-full !p-0 transition-all duration-300 ${isConnected ? 'bg-red-500/50 hover:bg-red-600/50 live-glowing' : 'bg-kai-primary/50 hover:bg-kai-primary/60'}`}
+                    className="relative w-40 h-40 flex items-center justify-center cursor-pointer group"
+                    role="button"
+                    aria-label={isConnected ? "Detener conversación" : "Iniciar conversación"}
                 >
-                    {isConnected ? (
-                        <StopCircle className="w-20 h-20 text-white" />
-                    ) : (
-                        <Mic className="w-20 h-20 text-white" />
-                    )}
-                </Button>
+                    <canvas ref={canvasRef} width="160" height="160" className="absolute inset-0"></canvas>
+                    <div className={`relative z-10 w-24 h-24 rounded-full flex items-center justify-center transition-all duration-300 ${isConnected ? 'bg-red-500/80 group-hover:bg-red-600/80' : 'bg-kai-primary/80 group-hover:bg-kai-primary/90'}`}>
+                         {isConnecting ? (
+                            <div className="w-12 h-12 border-4 border-white/50 border-t-white rounded-full animate-spin"></div>
+                         ) : (
+                            <>
+                                {isConnected ? (
+                                    <StopCircle className="w-12 h-12 text-white" />
+                                ) : (
+                                    <Mic className="w-12 h-12 text-white" />
+                                )}
+                            </>
+                         )}
+                    </div>
+                </div>
                 <p className="mt-6 text-lg font-semibold text-text-secondary">{getStatusText()}</p>
             </div>
             

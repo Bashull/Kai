@@ -1,8 +1,5 @@
 {
-  "name": "Kai",
-  "description": "An advanced, relational AI companion built on a modular, feature-rich architecture. Features include: direct Chat, a cognitive Kernel for knowledge management, the Forge for model fine-tuning, an AI Studio with generation tools, and task management. This application showcases a fluid, responsive UI with deep integration of generative AI.",
-  "requestFramePermissions": [
-    "microphone"
-  ],
-  "prompt": ""
+  "name": "AI Resume Builder",
+  "description": "An application that helps you create a professional resume with the assistance of AI. Enter your details, choose a template, and let Gemini help you craft the perfect descriptions and summary for your career profile.",
+  "requestFramePermissions": []
 }
