@@ -35,13 +35,22 @@ const panelComponents = {
 };
 
 const App: React.FC = () => {
-  const { activePanel, theme, sidebarCollapsed } = useAppStore();
+  const { activePanel, theme, sidebarCollapsed, pollJobs } = useAppStore();
 
   useEffect(() => {
     const root = window.document.documentElement;
     root.classList.remove('light', 'dark');
     root.classList.add(theme);
   }, [theme]);
+
+  useEffect(() => {
+    // Set up a global poller for training jobs
+    const intervalId = setInterval(() => {
+      pollJobs();
+    }, 5000); // Poll every 5 seconds
+
+    return () => clearInterval(intervalId); // Cleanup on unmount
+  }, [pollJobs]);
   
   const ActivePanelComponent = panelComponents[activePanel];
 

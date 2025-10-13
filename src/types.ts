@@ -103,6 +103,7 @@ export interface ForgeSlice {
   addTrainingJob: (job: Pick<TrainingJob, 'modelName' | 'description'>) => void;
   updateTrainingJobStatus: (jobId: string, status: TrainingJobStatus) => void;
   addTrainingLog: (jobId: string, message: string) => void;
+  pollJobs: () => void;
 }
 
 // --- Studio (Tools) ---

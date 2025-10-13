@@ -31,4 +31,25 @@ export const apiClient: { [key: string]: (args: any) => Promise<any> } = {
     });
     return handleResponse(response);
   },
+  startTraining: async (jobData: { modelName: string; description: string }) => {
+    // In a real scenario, this would POST to a /api/forge/start-training endpoint
+    console.log("Simulating startTraining API call with:", jobData);
+    // Simulate a successful response with a job ID
+    return Promise.resolve({
+      jobId: `job_${Date.now()}`,
+      status: 'QUEUED',
+      message: 'Training job successfully queued.'
+    });
+  },
+  getTrainingJobStatus: async ({ jobId }: { jobId: string }) => {
+    // In a real scenario, this would GET from /api/forge/jobs/{jobId}
+    console.log(`Simulating getTrainingJobStatus API call for job: ${jobId}`);
+    // This is a mock response. A real backend would manage the state transitions.
+    // For now, we'll just return a placeholder or you could add complex mock logic here.
+     return Promise.resolve({
+      jobId: jobId,
+      status: 'TRAINING', // Mock: assume it's always training for polling demo
+      logs: [{ timestamp: new Date().toISOString(), message: 'Polling status...' }],
+    });
+  },
 };

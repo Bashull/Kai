@@ -86,6 +86,54 @@ paths:
               schema:
                 type: object
 
+  /api/forge/start-training:
+    post:
+      operationId: startTraining
+      summary: Iniciar un nuevo trabajo de fine-tuning
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                modelName:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '202':
+          description: Trabajo de entrenamiento aceptado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jobId:
+                    type: string
+                  status:
+                    type: string
+                  message:
+                    type: string
+
+  /api/forge/jobs/{jobId}:
+    get:
+      operationId: getTrainingJobStatus
+      summary: Obtener el estado de un trabajo de entrenamiento
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Estado y logs del trabajo
+          content:
+            application/json:
+              schema:
+                type: object # Refers to the TrainingJob type in the app
+                
   /drive/v3/files:
     get:
       operationId: listPublicDriveFiles

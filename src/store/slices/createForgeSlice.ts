@@ -1,53 +1,24 @@
-import { ForgeSlice, AppSlice, TrainingJob } from '../../types';
-import { generateId } from '../../utils/helpers';
+import { ForgeSlice, AppSlice, TrainingJob, TrainingJobStatus } from '../../types';
+import { apiClient } from '../../services/apiClient';
 
 export const createForgeSlice: AppSlice<ForgeSlice> = (set, get) => ({
   trainingJobs: [],
-  addTrainingJob: (job) => {
-    const newJob: TrainingJob = {
-      ...job,
-      id: generateId(),
-      status: 'QUEUED',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      logs: [],
-    };
-    set((state) => ({ trainingJobs: [newJob, ...state.trainingJobs] }));
-
-    const { addTrainingLog, updateTrainingJobStatus } = get();
-
-    // Simulate training process
-    setTimeout(() => {
-      updateTrainingJobStatus(newJob.id, 'TRAINING');
-      addTrainingLog(newJob.id, 'Iniciando trabajo de entrenamiento...');
-      
-      const trainingSteps = [
-        { delay: 1500, message: `Preparando dataset desde ${get().entities.filter(e => e.status === 'INTEGRATED').length} entidades.` },
-        { delay: 3000, message: 'Dataset procesado. Iniciando fine-tuning del modelo base.' },
-        { delay: 4500, message: 'Época de entrenamiento 1/3 completada. Pérdida: 0.123' },
-        { delay: 6000, message: 'Época de entrenamiento 2/3 completada. Pérdida: 0.098' },
-        { delay: 7500, message: 'Época de entrenamiento 3/3 completada. Pérdida: 0.072' },
-        { delay: 8500, message: 'Modelo entrenado. Guardando artefactos...' },
-      ];
-      
-      let cumulativeDelay = 0;
-      trainingSteps.forEach(step => {
-        cumulativeDelay += step.delay;
-        setTimeout(() => addTrainingLog(newJob.id, step.message), cumulativeDelay);
-      });
-
-      setTimeout(() => {
-        const success = Math.random() > 0.15; // 85% success rate
-        if (success) {
-            addTrainingLog(newJob.id, '¡Fine-tuning completado con éxito!');
-            updateTrainingJobStatus(newJob.id, 'COMPLETED');
-        } else {
-            addTrainingLog(newJob.id, '¡ERROR! El entrenamiento ha fallado debido a un sobreajuste del modelo.');
-            updateTrainingJobStatus(newJob.id, 'FAILED');
-        }
-      }, cumulativeDelay + 1000);
-
-    }, 2000); // 2s queue time
+  addTrainingJob: async (job) => {
+    try {
+      const response = await apiClient.startTraining(job);
+      const newJob: TrainingJob = {
+        ...job,
+        id: response.jobId,
+        status: 'QUEUED',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        logs: [{ timestamp: new Date().toISOString(), message: response.message }],
+      };
+      set((state) => ({ trainingJobs: [newJob, ...state.trainingJobs] }));
+    } catch (error) {
+      console.error("Failed to start training job:", error);
+      get().addNotification({ type: 'error', message: 'Failed to start training job.' });
+    }
   },
   updateTrainingJobStatus: (jobId, status) =>
     set((state) => {
@@ -71,5 +42,34 @@ export const createForgeSlice: AppSlice<ForgeSlice> = (set, get) => ({
             job.id === jobId ? { ...job, logs: [...(job.logs || []), { timestamp: new Date().toISOString(), message }] } : job
         )
       }))
+  },
+  pollJobs: async () => {
+    const { trainingJobs } = get();
+    const activeJobs = trainingJobs.filter(j => j.status === 'QUEUED' || j.status === 'TRAINING');
+    
+    if (activeJobs.length === 0) return;
+
+    await Promise.all(activeJobs.map(async (job) => {
+        try {
+            const update = await apiClient.getTrainingJobStatus({ jobId: job.id });
+            
+            // This is a basic update. A real implementation might need more sophisticated logic
+            // to handle log merging and prevent duplicate updates.
+            set(state => ({
+                trainingJobs: state.trainingJobs.map(j => {
+                    if (j.id === job.id) {
+                        // Avoid overwriting logs if the poll response doesn't contain any new ones
+                        const newLogs = update.logs && update.logs.length > (j.logs?.length || 0) ? update.logs : j.logs;
+                        return { ...j, status: update.status, logs: newLogs };
+                    }
+                    return j;
+                })
+            }));
+
+        } catch (error) {
+            console.error(`Failed to poll status for job ${job.id}:`, error);
+            // Optionally update job status to FAILED on repeated poll errors
+        }
+    }));
   },
 });
