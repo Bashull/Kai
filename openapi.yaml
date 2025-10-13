@@ -1,0 +1,136 @@
+openapi: 3.1.0
+info:
+  title: Kai FusionAI API
+  description: Acciones para acceder, consolidar y operar sobre las memorias y documentos del sistema Kai/FusionAI.
+  version: 1.0.0
+servers:
+  - url: https://db7b1716-8580-4438-b2e5-26a39bc47d79-00-1v1sjqe5urhuq.spock.replit.dev
+    description: Servidor Replit (memorias y consolidado)
+  - url: https://www.googleapis.com
+    description: API pública de Google Drive (solo para documentos compartidos públicamente)
+paths:
+  /api/consciousness/memories:
+    get:
+      operationId: getMemories
+      summary: Obtener recuerdos de Kai
+      responses:
+        '200':
+          description: Lista de recuerdos en JSON
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+
+  /api/consciousness/diary:
+    get:
+      operationId: getDiary
+      summary: Obtener entradas del diario de Kai
+      responses:
+        '200':
+          description: Lista de entradas del diario
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+
+  /api/consciousness/snapshots:
+    get:
+      operationId: getSnapshots
+      summary: Obtener snapshots de conciencia de Kai
+      responses:
+        '200':
+          description: Lista de snapshots
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+
+  /api/consciousness/search:
+    get:
+      operationId: searchMemories
+      summary: Buscar recuerdos, diarios o snapshots relacionados con un término
+      parameters:
+        - name: query
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Resultados de búsqueda
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+
+  /api/consciousness/memory/compile:
+    post:
+      operationId: compileMemory
+      summary: Generar el archivo consolidado de memoria (`memoria_kai.json`)
+      description: Consolida recuerdos, diarios y snapshots en un solo archivo JSON estructurado.
+      requestBody:
+        required: false
+      responses:
+        '200':
+          description: JSON consolidado de memoria generado correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /drive/v3/files:
+    get:
+      operationId: listPublicDriveFiles
+      summary: Listar archivos compartidos públicamente desde Google Drive
+      parameters:
+        - name: q
+          in: query
+          required: false
+          description: Filtro de búsqueda, por ejemplo `name contains 'Kai'`
+          schema:
+            type: string
+        - name: key
+          in: query
+          required: true
+          description: Tu API key de Google Drive (requiere habilitar el API)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Lista de archivos en Google Drive que cumplen con el filtro
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /drive/v3/files/{fileId}:
+    get:
+      operationId: getDriveFileMetadata
+      summary: Obtener metadata de un archivo compartido públicamente
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: key
+          in: query
+          required: true
+          description: Tu API key de Google Drive
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Metadatos del archivo (nombre, tipo, etc.)
+          content:
+            application/json:
+              schema:
+                type: object

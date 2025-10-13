@@ -46,14 +46,14 @@ const ChatPanel: React.FC = () => {
     addChatMessage({ role: 'model', content: '' });
 
     try {
-        const historyForAPI = useAppStore.getState().chatHistory.slice(0, -1).map(msg => ({
+        const historyForAPI = useAppStore.getState().chatHistory.slice(0, -2).map(msg => ({
             role: msg.role,
             parts: [{ text: msg.content }]
         }));
 
-        const stream = await streamChat(historyForAPI, userMessageContent);
+        const stream = streamChat(historyForAPI, userMessageContent);
         for await (const chunk of stream) {
-            updateLastChatMessage(chunk.text);
+            updateLastChatMessage(chunk);
         }
     } catch (error) {
       console.error(error);

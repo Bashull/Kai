@@ -1,23 +1,77 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, FunctionCall } from "@google/genai";
 import { GeneratedImage, CodeLanguage, Entity } from "../types";
+import { kaiTools } from './kaiTools';
+import { apiClient } from './apiClient';
+
 
 // Initialize the Google AI client
 // It is assumed that process.env.API_KEY is configured in the execution environment.
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 /**
- * Creates a streaming chat session with the Gemini model.
+ * Creates a streaming chat session with the Gemini model, with function calling enabled.
  * @param history The chat history to provide context.
  * @param prompt The user's new prompt.
- * @returns An async iterable stream of chat responses.
+ * @returns An async iterable stream of chat response text chunks.
  */
-export const streamChat = async (history: { role: string, parts: { text: string }[] }[], prompt: string) => {
+export const streamChat = async function* (history: { role: string, parts: { text: string }[] }[], prompt: string) {
     const chat = ai.chats.create({
         model: 'gemini-2.5-flash',
         history: history,
+        config: {
+            tools: [{ functionDeclarations: kaiTools }]
+        }
     });
-    return chat.sendMessageStream({ message: prompt });
+
+    const result = await chat.sendMessageStream({ message: prompt });
+
+    const functionCalls: FunctionCall[] = [];
+
+    for await (const chunk of result) {
+        if (chunk.text) {
+            yield chunk.text;
+        }
+        if (chunk.functionCalls) {
+            functionCalls.push(...chunk.functionCalls);
+        }
+    }
+
+    if (functionCalls.length > 0) {
+        yield `\n\n*Llamando herramientas: ${functionCalls.map(fc => fc.name).join(', ')}...*\n\n`;
+
+        const toolResponses = await Promise.all(
+            functionCalls.map(async (call) => {
+                try {
+                    const apiResult = await apiClient[call.name](call.args);
+                    return {
+                        functionResponse: {
+                            name: call.name,
+                            response: { result: apiResult },
+                        },
+                    };
+                } catch (e) {
+                    console.error(`Error calling tool ${call.name}:`, e);
+                    const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+                    return {
+                        functionResponse: {
+                            name: call.name,
+                            response: { error: errorMessage },
+                        }
+                    };
+                }
+            })
+        );
+
+        const finalResult = await chat.sendMessageStream({ parts: toolResponses });
+
+        for await (const chunk of finalResult) {
+            if (chunk.text) {
+                yield chunk.text;
+            }
+        }
+    }
 };
+
 
 /**
  * Generates content with AI.
