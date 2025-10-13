@@ -84,9 +84,9 @@ const ImagePanel: React.FC = () => {
               className="aspect-square rounded-lg overflow-hidden border-2 border-transparent hover:border-kai-primary group relative cursor-pointer"
               onClick={() => setSelectedImage(image)}
             >
-              <img src={image.url} alt={image.prompt} className="w-full h-full object-cover" />
-               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-2">
-                  <p className='text-white text-center font-bold text-sm'>Ver Imagen</p>
+              <img src={image.url} alt={image.prompt} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-4">
+                  <p className='text-white text-center font-bold text-sm drop-shadow-lg'>Ver Imagen</p>
               </div>
             </motion.div>
           ))}

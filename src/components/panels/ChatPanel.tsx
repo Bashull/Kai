@@ -74,7 +74,11 @@ const ChatPanel: React.FC = () => {
                             className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}
                         >
                             {msg.role === 'model' && <span className="text-xl mt-1" aria-hidden="true">🤖</span>}
-                            <div className={`max-w-xl rounded-xl px-4 py-3 shadow-md ${msg.role === 'user' ? 'bg-kai-primary text-white' : 'bg-kai-surface'}`}>
+                            <div className={`max-w-xl rounded-xl px-4 py-3 shadow-md ${
+                                msg.role === 'user' 
+                                    ? 'bg-gradient-to-br from-kai-primary to-indigo-600 text-white chat-bubble-user' 
+                                    : 'bg-kai-surface chat-bubble-model'
+                            }`}>
                                 <MarkdownRenderer content={msg.content} />
                                 <div className="text-xs mt-2 opacity-60 text-right">
                                     {formatRelativeTime(msg.timestamp)}

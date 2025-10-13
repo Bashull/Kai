@@ -22,18 +22,38 @@ html {
 
 body {
   @apply bg-kai-dark text-text-primary antialiased;
+  background-image: radial-gradient(circle at top right, rgba(79, 70, 229, 0.15), transparent 30%), radial-gradient(circle at bottom left, rgba(57, 255, 20, 0.1), transparent 40%);
 }
 
 .h1-title {
-    @apply text-3xl font-bold tracking-tight text-text-primary mb-1;
+    @apply text-3xl font-bold tracking-wider text-text-primary mb-1 relative pb-4;
+    font-family: 'Orbitron', sans-serif;
+    animation: text-glow 2s ease-in-out infinite alternate;
 }
 
+.h1-title::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 4rem;
+    height: 2px;
+    background: linear-gradient(90deg, var(--kai-primary), var(--kai-green));
+    box-shadow: 0 0 8px var(--kai-green);
+}
+
+
 .p-subtitle {
-    @apply text-text-secondary max-w-2xl mb-6;
+    @apply max-w-2xl mb-6;
+    letter-spacing: 0.025em;
+    color: #b0b8c4;
 }
 
 .panel-container {
-    @apply bg-kai-surface/50 border border-border-color rounded-xl p-4 sm:p-6 shadow-lg;
+    @apply bg-kai-surface/70 backdrop-blur-sm border border-transparent rounded-xl p-4 sm:p-6 shadow-2xl;
+    background-image: linear-gradient(rgba(31, 41, 55, 0.7), rgba(31, 41, 55, 0.7)), linear-gradient(135deg, var(--kai-primary), var(--kai-green));
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
 }
 
 .form-label {
@@ -43,15 +63,54 @@ body {
 .form-input,
 .form-select,
 .form-textarea {
-    @apply w-full bg-kai-dark/60 border border-border-color rounded-lg shadow-sm
+    @apply w-full bg-kai-dark/60 backdrop-blur-sm border-2 border-border-color rounded-lg shadow-inner shadow-black/20
            px-4 py-2 text-text-primary placeholder-text-secondary/60
-           focus:outline-none focus:ring-2 focus:ring-kai-primary focus:border-kai-primary
-           transition-all duration-200 ease-in-out;
+           focus:outline-none focus:ring-0
+           transition-all duration-300 ease-in-out;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+    animation: border-glow 1.5s ease-in-out infinite alternate;
+    box-shadow: 0 0 10px rgba(79, 70, 229, 0.4), inset 0 0 5px rgba(0,0,0,0.3);
 }
 
 .form-textarea {
     @apply min-h-[80px];
 }
+
+/* Chat bubble styles */
+.chat-bubble-model {
+  position: relative;
+}
+.chat-bubble-model::before {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 0;
+  bottom: 8px;
+  left: -8px;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-right: 8px solid var(--kai-surface);
+}
+
+.chat-bubble-user {
+  position: relative;
+}
+.chat-bubble-user::before {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 0;
+  bottom: 8px;
+  right: -8px;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-left: 8px solid var(--kai-primary);
+}
+
 
 /* Custom animated strikethrough */
 .line-through {

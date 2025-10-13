@@ -48,18 +48,24 @@ const Sidebar: React.FC = () => {
         >
             <span className="text-2xl" aria-hidden="true">🤖</span>
         </motion.div>
-        {!sidebarCollapsed && <span className="text-xl font-bold ml-2">KaiOS</span>}
+        {!sidebarCollapsed && <span className="text-xl font-bold ml-2 font-orbitron">KaiOS</span>}
       </div>
       <nav className="flex-1 px-2 py-4 space-y-2">
         {navItems.map(({ panel, icon: Icon, label }) => (
           <Button
             key={panel}
-            variant={activePanel === panel ? 'primary' : 'ghost'}
+            variant={activePanel === panel ? 'secondary' : 'ghost'}
             onClick={() => setActivePanel(panel)}
-            className={`w-full !justify-start !text-sm ${sidebarCollapsed ? '!px-2 !justify-center' : '!px-2'}`}
+            className={`w-full !justify-start !text-sm relative ${sidebarCollapsed ? '!px-2 !justify-center' : '!px-2'}`}
             title={label}
             aria-current={activePanel === panel ? 'page' : undefined}
           >
+            {activePanel === panel && (
+                <motion.div 
+                    layoutId="sidebar-active-indicator"
+                    className="absolute left-0 top-0 bottom-0 w-1 bg-kai-green rounded-r-full"
+                />
+            )}
             <Icon className="h-5 w-5" />
             {!sidebarCollapsed && <span className="ml-3">{label}</span>}
           </Button>

@@ -18,17 +18,28 @@ export default {
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
-        mono: ['JetBrains Mono', 'monospace']
+        mono: ['JetBrains Mono', 'monospace'],
+        orbitron: ['Orbitron', 'sans-serif'],
       },
       animation: {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'bounce-slow': 'bounce 2s infinite',
-        'glow': 'glow 2s ease-in-out infinite alternate'
+        'glow': 'glow 2s ease-in-out infinite alternate',
+        'text-glow': 'text-glow 2s ease-in-out infinite alternate',
+        'border-glow': 'border-glow 1.5s ease-in-out infinite alternate'
       },
       keyframes: {
         glow: {
           '0%': { boxShadow: '0 0 5px var(--kai-green)' },
           '100%': { boxShadow: '0 0 20px var(--kai-green), 0 0 30px var(--kai-green)' }
+        },
+        'text-glow': {
+          'from': { textShadow: '0 0 4px rgba(57, 255, 20, 0.5), 0 0 8px rgba(57, 255, 20, 0.4)' },
+          'to': { textShadow: '0 0 8px rgba(57, 255, 20, 0.5), 0 0 16px rgba(79, 70, 229, 0.4)' }
+        },
+        'border-glow': {
+          'from': { borderColor: 'rgba(79, 70, 229, 0.8)' },
+          'to': { borderColor: 'rgba(57, 255, 20, 0.8)' }
         }
       }
     },
