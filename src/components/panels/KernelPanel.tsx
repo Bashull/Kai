@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { AnimatePresence, motion } from 'framer-motion';
 import Button from '../ui/Button';
-import { BrainCircuit, Link, FileText, Type as TypeIcon, BookOpen, Edit, Save, Plus, Trash2, History, FileUp } from 'lucide-react';
+import { BrainCircuit, Link, FileText, Type as TypeIcon, BookOpen, Edit, Save, Plus, Trash2, History, FileUp, Search } from 'lucide-react';
 import { Entity, EntityType, Constitution } from '../../types';
 import EntityStatusBadge from '../ui/EntityStatusBadge';
 import { formatRelativeTime } from '../../utils/helpers';
@@ -52,6 +52,14 @@ const KernelPanel: React.FC = () => {
     const [content, setContent] = useState('');
     const [type, setType] = useState<EntityType>('TEXT');
     const [file, setFile] = useState<File | null>(null);
+
+     // Search state and actions
+    const { searchQuery, setSearchQuery, executeSearch } = useAppStore();
+
+    const handleSearchSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        executeSearch();
+    };
 
     const handleEntitySubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -122,6 +130,29 @@ const KernelPanel: React.FC = () => {
             <p className="p-subtitle">Mi memoria central, base de conocimientos y principios fundamentales.</p>
             
             <div className="mt-8 space-y-12">
+                {/* Search Section */}
+                <section>
+                    <div className="panel-container">
+                        <div className="flex items-center gap-3 mb-4">
+                            <Search className="w-6 h-6 text-kai-primary" />
+                            <h2 className="text-xl font-bold">Buscar en el Kernel</h2>
+                        </div>
+                        <form onSubmit={handleSearchSubmit} className="flex flex-col sm:flex-row gap-2">
+                            <div className="relative flex-grow">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-secondary pointer-events-none" />
+                                <input
+                                    type="text"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    placeholder="Pregúntale al Kernel sobre tus datos..."
+                                    className="form-input w-full pl-10"
+                                />
+                            </div>
+                            <Button type="submit" className="w-full sm:w-auto">Buscar</Button>
+                        </form>
+                    </div>
+                </section>
+
                 {/* Constitution Section */}
                 <section>
                     <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-4">
