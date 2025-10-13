@@ -29,6 +29,7 @@ export const createLiveSlice: AppSlice<LiveSlice> = (set, get) => ({
             inputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
             outputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
             const outputNode = outputAudioContext.createGain();
+            outputNode.connect(outputAudioContext.destination);
 
             const sessionPromise = ai.live.connect({
                 model: 'gemini-2.5-flash-native-audio-preview-09-2025',
@@ -42,7 +43,7 @@ export const createLiveSlice: AppSlice<LiveSlice> = (set, get) => ({
                             const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
                             const pcmBlob = createBlob(inputData);
                             sessionPromise.then((session) => {
-                                session.sendRealtimeInput({ media: pcmBlob as unknown as Blob });
+                                session.sendRealtimeInput({ media: pcmBlob });
                             });
                         };
                         source.connect(scriptProcessor);
@@ -54,13 +55,13 @@ export const createLiveSlice: AppSlice<LiveSlice> = (set, get) => ({
                         if (base64Audio && outputAudioContext) {
                             nextStartTime = Math.max(nextStartTime, outputAudioContext.currentTime);
                             const audioBuffer = await decodeAudioData(decode(base64Audio), outputAudioContext, 24000, 1);
-                            const source = outputAudioContext.createBufferSource();
-                            source.buffer = audioBuffer;
-                            source.connect(outputNode);
-                            source.addEventListener('ended', () => sources.delete(source));
-                            source.start(nextStartTime);
+                            const sourceNode = outputAudioContext.createBufferSource();
+                            sourceNode.buffer = audioBuffer;
+                            sourceNode.connect(outputNode);
+                            sourceNode.addEventListener('ended', () => sources.delete(sourceNode));
+                            sourceNode.start(nextStartTime);
                             nextStartTime += audioBuffer.duration;
-                            sources.add(source);
+                            sources.add(sourceNode);
                         }
 
                         // Handle transcriptions
@@ -125,7 +126,11 @@ export const createLiveSlice: AppSlice<LiveSlice> = (set, get) => ({
         const { session, isConnected } = get();
         if (!isConnected && !get().isConnecting) return;
 
-        session?.close();
+        try {
+            session?.close();
+        } catch (e) {
+            console.error("Error closing session:", e);
+        }
         
         scriptProcessor?.disconnect();
         scriptProcessor = null;
@@ -133,8 +138,8 @@ export const createLiveSlice: AppSlice<LiveSlice> = (set, get) => ({
         stream?.getTracks().forEach(track => track.stop());
         stream = null;
 
-        inputAudioContext?.close();
-        outputAudioContext?.close();
+        inputAudioContext?.close().catch(console.error);
+        outputAudioContext?.close().catch(console.error);
         inputAudioContext = null;
         outputAudioContext = null;
 

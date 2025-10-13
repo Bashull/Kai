@@ -1,5 +1,6 @@
 import { formatDistanceToNow, format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { Blob } from '@google/genai';
 
 export const formatRelativeTime = (date: string | number | Date): string => {
   try {
@@ -39,8 +40,8 @@ export const copyToClipboard = async (text: string): Promise<boolean> => {
   }
 };
 
-export const downloadFile = (data: string | Blob, filename: string) => {
-  const blob = data instanceof Blob ? data : new Blob([data], { type: 'text/plain' });
+export const downloadFile = (data: string | globalThis.Blob, filename: string) => {
+  const blob = data instanceof globalThis.Blob ? data : new globalThis.Blob([data], { type: 'text/plain' });
   const url = window.URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
@@ -52,7 +53,7 @@ export const downloadFile = (data: string | Blob, filename: string) => {
 };
 
 
-export const dataUrlToBlob = async (dataUrl: string): Promise<Blob> => {
+export const dataUrlToBlob = async (dataUrl: string): Promise<globalThis.Blob> => {
     const res = await fetch(dataUrl);
     return await res.blob();
 }
@@ -96,7 +97,7 @@ export async function decodeAudioData(
   return buffer;
 }
 
-export const createBlob = (data: Float32Array): { data: string, mimeType: string } => {
+export function createBlob(data: Float32Array): Blob {
   const l = data.length;
   const int16 = new Int16Array(l);
   for (let i = 0; i < l; i++) {
