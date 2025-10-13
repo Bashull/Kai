@@ -1,10 +1,15 @@
 import React, { useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { parseISO } from 'date-fns';
 import { useAppStore } from './store/useAppStore';
-import Sidebar from './components/layout/Sidebar';
+import { AnimatePresence, motion } from 'framer-motion';
 
-// Panel Imports
+// Layout & UI
+import Sidebar from './components/layout/Sidebar';
+import DynamicBackground from './components/ui/DynamicBackground';
+import CustomCursor from './components/ui/CustomCursor';
+import { ToastContainer } from './components/ui/Toast';
+import SearchResultsModal from './components/ui/SearchResultsModal';
+
+// Panels
 import ChatPanel from './components/panels/ChatPanel';
 import KernelPanel from './components/panels/KernelPanel';
 import ForgePanel from './components/panels/ForgePanel';
@@ -15,11 +20,8 @@ import ResumeBuilderPanel from './components/panels/ResumeBuilderPanel';
 import AwesomeResourcesPanel from './components/panels/AwesomeResourcesPanel';
 import DiaryPanel from './components/panels/DiaryPanel';
 import SnapshotsPanel from './components/panels/SnapshotsPanel';
-import KaiAvatar from './components/ui/KaiAvatar';
-import { ToastContainer } from './components/ui/Toast';
-import SearchResultsModal from './components/ui/SearchResultsModal';
 
-const panelMap = {
+const panelComponents = {
   chat: ChatPanel,
   kernel: KernelPanel,
   forge: ForgePanel,
@@ -33,50 +35,40 @@ const panelMap = {
 };
 
 const App: React.FC = () => {
-  const { activePanel, sidebarCollapsed, theme, setDueTasks, tasks } = useAppStore();
+  const { activePanel, theme, sidebarCollapsed } = useAppStore();
 
   useEffect(() => {
-    const root = document.documentElement;
-    if (theme === 'light') {
-      root.classList.remove('dark');
-    } else {
-      root.classList.add('dark');
-    }
+    const root = window.document.documentElement;
+    root.classList.remove('light', 'dark');
+    root.classList.add(theme);
   }, [theme]);
-
-  useEffect(() => {
-    const now = new Date();
-    const dueAndOverdue = tasks.filter(task => 
-      task.status === 'PENDING' && task.dueDate && parseISO(task.dueDate) <= now
-    );
-    setDueTasks(dueAndOverdue);
-  }, [tasks, setDueTasks]);
-
-  const PanelComponent = panelMap[activePanel];
+  
+  const ActivePanelComponent = panelComponents[activePanel];
 
   return (
-    <div className="flex h-screen bg-kai-dark text-text-primary font-sans overflow-hidden">
+    <div className={`theme-${theme} font-sans bg-kai-dark text-text-primary min-h-screen flex`}>
+      <DynamicBackground />
+      <CustomCursor />
+      
       <Sidebar />
-      <motion.main
-        className="flex-1 overflow-y-auto"
-        animate={{ paddingLeft: sidebarCollapsed ? '4rem' : '16rem' }}
-        transition={{ duration: 0.3, ease: 'easeInOut' }}
-      >
-        <div className="p-4 sm:p-8 max-w-7xl mx-auto">
+      
+      <main className={`flex-1 transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'pl-20' : 'pl-64'}`}>
+        <div className="p-4 sm:p-6 lg:p-8 h-full">
             <AnimatePresence mode="wait">
-              <motion.div
-                  key={activePanel}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-              >
-                {PanelComponent ? <PanelComponent /> : <div>Panel not found</div>}
-              </motion.div>
+                 <motion.div
+                    key={activePanel}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                    className="h-full"
+                 >
+                    {ActivePanelComponent && <ActivePanelComponent />}
+                 </motion.div>
             </AnimatePresence>
         </div>
       </main>
-      <KaiAvatar />
+
       <ToastContainer />
       <SearchResultsModal />
     </div>

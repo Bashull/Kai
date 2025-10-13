@@ -34,7 +34,7 @@ const CodePanel: React.FC = () => {
   const handleGenerate = async () => {
     if (!codePrompt.trim()) return;
     setIsGeneratingCode(true);
-    setGeneratedCode(`// Generando código para: ${codePrompt}...`);
+    setGeneratedCode(`// Generating code for: ${codePrompt}...`);
     try {
       const result = await generateCode(codePrompt, codeLanguage);
       setGeneratedCode(result);

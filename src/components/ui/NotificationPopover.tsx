@@ -41,8 +41,8 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({ tasks, onClos
     };
 
     const positionClasses = isSidebarCollapsed
-        ? 'left-[4.5rem] bottom-20' // Position when sidebar is collapsed
-        : 'left-4 bottom-20'; // Position when sidebar is open
+        ? 'left-[5rem] bottom-[5rem]' // Position when sidebar is collapsed
+        : 'left-4 bottom-[5rem]'; // Position when sidebar is open
 
     return (
         <motion.div
@@ -67,10 +67,12 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({ tasks, onClos
                             className="block px-3 py-2 text-sm hover:bg-kai-dark/50 group"
                         >
                             <p className="font-medium text-text-primary truncate group-hover:text-white">{task.title}</p>
-                            <p className="text-xs text-kai-primary flex items-center gap-1 mt-1">
-                                <Clock size={12} />
-                                <span>Vence {formatDistanceToNow(parseISO(task.dueDate!), { locale: es, addSuffix: true })}</span>
-                            </p>
+                            {task.dueDate && (
+                                <p className="text-xs text-kai-primary flex items-center gap-1 mt-1">
+                                    <Clock size={12} />
+                                    <span>Vence {formatDistanceToNow(parseISO(task.dueDate), { locale: es, addSuffix: true })}</span>
+                                </p>
+                            )}
                         </a>
                     </li>
                 ))}

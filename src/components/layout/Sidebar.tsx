@@ -1,166 +1,179 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, BrainCircuit, Flame, Terminal, Settings, ChevronsLeft, ChevronsRight, CheckSquare, Bell, ClipboardList, Search, Star, BookText, Camera } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
-import { Panel } from '../../types';
-import Button from '../ui/Button';
+import {
+    MessageSquare, BrainCircuit, Flame, Bot, CheckSquare, Settings,
+    FileText, Star, BookOpen, Camera, Search, Bell, Menu, X
+} from 'lucide-react';
+import KaiAvatar from '../ui/KaiAvatar';
 import NotificationPopover from '../ui/NotificationPopover';
+import { isToday, parseISO } from 'date-fns';
 
-// Navigation items for the new Genesis Architecture
-const navItems: { panel: Panel; icon: React.ElementType; label: string }[] = [
-  { panel: 'chat', icon: MessageSquare, label: 'Chat' },
-  { panel: 'kernel', icon: BrainCircuit, label: 'Kernel' },
-  { panel: 'forge', icon: Flame, label: 'La Forja' },
-  { panel: 'studio', icon: Terminal, label: 'IA Studio' },
-  { panel: 'tasks', icon: CheckSquare, label: 'Misiones' },
-  { panel: 'resume', icon: ClipboardList, label: 'Constructor de CV' },
-  { panel: 'awesome', icon: Star, label: 'Awesome Resources' },
-  { panel: 'diary', icon: BookText, label: 'Diario' },
-  { panel: 'snapshots', icon: Camera, label: 'Snapshots' },
-  { panel: 'settings', icon: Settings, label: 'Ajustes' },
+const navItems = [
+    { id: 'chat', label: 'Chat', icon: MessageSquare },
+    { id: 'kernel', label: 'Kernel', icon: BrainCircuit },
+    { id: 'forge', label: 'La Forja', icon: Flame },
+    { id: 'studio', label: 'IA Studio', icon: Bot },
+    { id: 'tasks', label: 'Misiones', icon: CheckSquare },
+    { id: 'resume', label: 'Constructor CV', icon: FileText },
 ];
 
-const Sidebar: React.FC = () => {
-  const { 
-    activePanel, 
-    setActivePanel, 
-    sidebarCollapsed, 
-    toggleSidebar,
-    dueTasks,
-    showNotifications,
-    toggleNotifications,
-    searchQuery,
-    setSearchQuery,
-    executeSearch,
-  } = useAppStore();
-  const searchInputRef = useRef<HTMLInputElement>(null);
+const secondaryNavItems = [
+    { id: 'awesome', label: 'Recursos', icon: Star },
+    { id: 'diary', label: 'Diario', icon: BookOpen },
+    { id: 'snapshots', label: 'Snapshots', icon: Camera },
+];
 
-  const sidebarVariants = {
-    open: { width: '16rem' },
-    closed: { width: '4rem' },
-  };
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    executeSearch();
-    searchInputRef.current?.blur();
-  };
-
-  const handleSearchIconClick = () => {
-    if (sidebarCollapsed) {
-        toggleSidebar();
-        // Wait for sidebar animation to finish before focusing
-        setTimeout(() => {
-            searchInputRef.current?.focus();
-        }, 300); 
-    }
-  };
-
-
-  return (
-    <motion.aside
-      aria-label="Sidebar"
-      animate={sidebarCollapsed ? 'closed' : 'open'}
-      variants={sidebarVariants}
-      transition={{ duration: 0.3, ease: 'easeInOut' }}
-      className="bg-gray-950/70 backdrop-blur-xl border-r border-border-color/50 h-screen flex flex-col fixed left-0 top-0 z-20"
-    >
-      <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'px-4'} h-16 border-b border-border-color/50`}>
-        <motion.div
-            animate={{ rotate: sidebarCollapsed ? 0 : 360 }}
-            transition={{ duration: 0.5 }}
-        >
-            <span className="text-2xl" aria-hidden="true">🤖</span>
-        </motion.div>
-        {!sidebarCollapsed && <span className="text-xl font-bold ml-2 font-orbitron">KaiOS</span>}
-      </div>
-
-       {/* Search Bar */}
-      <div className={`py-3 ${sidebarCollapsed ? 'px-2' : 'px-4'}`}>
-        {!sidebarCollapsed ? (
-            <form onSubmit={handleSearchSubmit} className="relative">
-                <input
-                    ref={searchInputRef}
-                    type="text"
-                    placeholder="Búsqueda Inteligente..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-kai-dark/60 border-2 border-border-color rounded-lg pl-10 pr-4 py-2 text-sm text-text-primary placeholder-text-secondary/60 focus:outline-none focus:ring-1 focus:ring-kai-primary transition-all"
-                />
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-secondary pointer-events-none" />
-            </form>
-        ) : (
-            <Button
-                variant="ghost"
-                onClick={handleSearchIconClick}
-                className="w-full !px-2 !justify-center"
-                title="Búsqueda Inteligente"
+const NavButton: React.FC<{ item: typeof navItems[0]; isActive: boolean; isCollapsed: boolean; onClick: () => void; badgeCount?: number }> =
+    ({ item, isActive, isCollapsed, onClick, badgeCount = 0 }) => {
+        return (
+            <button
+                onClick={onClick}
+                title={item.label}
+                className={`flex items-center w-full text-sm font-medium rounded-lg transition-colors duration-200 ${
+                    isActive
+                        ? 'bg-kai-primary/20 text-kai-primary'
+                        : 'text-text-secondary hover:text-text-primary hover:bg-kai-surface'
+                } ${isCollapsed ? 'justify-center h-12' : 'px-4 h-11'}`}
             >
-                <Search className="h-5 w-5" />
-            </Button>
-        )}
-      </div>
-
-      <nav className="flex-1 px-2 py-4 space-y-2 border-t border-border-color/50">
-        {navItems.map(({ panel, icon: Icon, label }) => (
-          <Button
-            key={panel}
-            variant={activePanel === panel ? 'secondary' : 'ghost'}
-            onClick={() => setActivePanel(panel)}
-            className={`w-full !justify-start !text-sm relative ${sidebarCollapsed ? '!px-2 !justify-center' : '!px-2'}`}
-            title={label}
-            aria-current={activePanel === panel ? 'page' : undefined}
-          >
-            {activePanel === panel && (
-                <motion.div 
-                    layoutId="sidebar-active-indicator"
-                    className="absolute left-0 top-0 bottom-0 w-1 bg-kai-green rounded-r-full"
-                />
-            )}
-            <Icon className="h-5 w-5" />
-            {!sidebarCollapsed && <span className="ml-3">{label}</span>}
-          </Button>
-        ))}
-      </nav>
-      <div className="px-2 py-4 border-t border-border-color/50 space-y-2">
-        <div className="relative">
-            <Button
-              variant="ghost"
-              onClick={toggleNotifications}
-              className={`w-full !justify-start !text-sm ${sidebarCollapsed ? '!px-2 !justify-center' : '!px-2'}`}
-              title="Notificaciones"
-            >
-              <Bell className="h-5 w-5" />
-              {!sidebarCollapsed && <span className="ml-3">Notificaciones</span>}
-              {dueTasks.length > 0 && (
-                 <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold">
-                    {dueTasks.length}
-                </span>
-              )}
-            </Button>
-            <AnimatePresence>
-                {showNotifications && dueTasks.length > 0 && (
-                    <NotificationPopover
-                        tasks={dueTasks}
-                        onClose={toggleNotifications}
-                        isSidebarCollapsed={sidebarCollapsed}
-                    />
+                <item.icon className={`h-5 w-5 ${isCollapsed ? '' : 'mr-3'}`} />
+                <AnimatePresence>
+                    {!isCollapsed && (
+                        <motion.span
+                            initial={{ opacity: 0, width: 0 }}
+                            animate={{ opacity: 1, width: 'auto' }}
+                            exit={{ opacity: 0, width: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="flex-1 text-left whitespace-nowrap"
+                        >
+                            {item.label}
+                        </motion.span>
+                    )}
+                </AnimatePresence>
+                 {badgeCount > 0 && (
+                    <span className="bg-red-500 text-white text-xs rounded-full min-w-[1.25rem] h-5 flex items-center justify-center px-1">
+                        {badgeCount}
+                    </span>
                 )}
-            </AnimatePresence>
-        </div>
-        <Button
-          variant="ghost"
-          onClick={toggleSidebar}
-          className={`w-full !justify-start !text-sm ${sidebarCollapsed ? '!px-2 !justify-center' : '!px-2'}`}
-          title={sidebarCollapsed ? "Expandir Barra Lateral" : "Contraer Barra Lateral"}
-          aria-label={sidebarCollapsed ? "Expandir Barra Lateral" : "Contraer Barra Lateral"}
+            </button>
+        );
+    };
+
+const Sidebar: React.FC = () => {
+    const { 
+        activePanel, 
+        setActivePanel, 
+        sidebarCollapsed, 
+        toggleSidebar,
+        searchQuery,
+        setSearchQuery,
+        executeSearch,
+        tasks,
+        showNotifications,
+        toggleNotifications,
+    } = useAppStore();
+
+    const [dueTasks, setDueTasks] = useState([]);
+
+    useEffect(() => {
+        const todayTasks = tasks.filter(task => task.dueDate && task.status === 'PENDING' && isToday(parseISO(task.dueDate)));
+        setDueTasks(todayTasks);
+    }, [tasks]);
+
+    const handleSearchSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        executeSearch();
+    };
+
+    return (
+        <aside
+            className={`fixed top-0 left-0 h-full bg-kai-dark/50 backdrop-blur-lg border-r border-border-color z-40 flex flex-col transition-all duration-300 ease-in-out ${
+                sidebarCollapsed ? 'w-20' : 'w-64'
+            }`}
         >
-          {sidebarCollapsed ? <ChevronsRight className="h-5 w-5" /> : <ChevronsLeft className="h-5 w-5" />}
-          {!sidebarCollapsed && <span className="ml-3">Contraer</span>}
-        </Button>
-      </div>
-    </motion.aside>
-  );
+            <div className={`flex items-center border-b border-border-color transition-all duration-300 ${sidebarCollapsed ? 'h-20 justify-center' : 'h-20 px-6'}`}>
+                {sidebarCollapsed ? (
+                     <button onClick={toggleSidebar} className="text-text-secondary hover:text-text-primary p-2">
+                         <Menu/>
+                    </button>
+                ) : (
+                    <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center gap-2">
+                             <KaiAvatar size="sm"/>
+                             <h1 className="text-xl font-bold font-orbitron">KaiOS</h1>
+                        </div>
+                        <button onClick={toggleSidebar} className="text-text-secondary hover:text-text-primary p-2">
+                            <X size={20}/>
+                        </button>
+                    </div>
+                )}
+            </div>
+
+            <div className="flex-1 flex flex-col p-4 space-y-4 overflow-y-auto">
+                <form onSubmit={handleSearchSubmit}>
+                    <div className="relative">
+                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-secondary pointer-events-none" />
+                         <input
+                            type="text"
+                            placeholder={sidebarCollapsed ? '' : "Buscar..."}
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className={`w-full form-input bg-kai-surface border-transparent focus:border-kai-primary transition-all ${sidebarCollapsed ? 'pl-10' : 'pl-10'}`}
+                         />
+                    </div>
+                </form>
+                
+                <nav className="space-y-2">
+                    {navItems.map(item => (
+                        <NavButton
+                            key={item.id}
+                            item={item}
+                            isActive={activePanel === item.id}
+                            isCollapsed={sidebarCollapsed}
+                            onClick={() => setActivePanel(item.id)}
+                        />
+                    ))}
+                </nav>
+                <div className="pt-2">
+                    <h3 className={`text-xs font-semibold text-text-secondary uppercase tracking-wider ${sidebarCollapsed ? 'text-center' : 'px-4'}`}>
+                        {sidebarCollapsed ? '·' : 'Memoria'}
+                    </h3>
+                    <nav className="space-y-2 mt-2">
+                        {secondaryNavItems.map(item => (
+                             <NavButton
+                                key={item.id}
+                                item={item}
+                                isActive={activePanel === item.id}
+                                isCollapsed={sidebarCollapsed}
+                                onClick={() => setActivePanel(item.id)}
+                            />
+                        ))}
+                    </nav>
+                </div>
+            </div>
+
+            <div className="p-4 border-t border-border-color space-y-2">
+                <NavButton
+                    item={{ id: 'settings', label: 'Ajustes', icon: Settings }}
+                    isActive={activePanel === 'settings'}
+                    isCollapsed={sidebarCollapsed}
+                    onClick={() => setActivePanel('settings')}
+                />
+                 <div className="relative">
+                    <NavButton
+                        item={{ id: 'notifications', label: 'Notificaciones', icon: Bell }}
+                        isActive={showNotifications}
+                        isCollapsed={sidebarCollapsed}
+                        onClick={toggleNotifications}
+                        badgeCount={dueTasks.length}
+                    />
+                    <AnimatePresence>
+                       {showNotifications && dueTasks.length > 0 && <NotificationPopover tasks={dueTasks} onClose={toggleNotifications} isSidebarCollapsed={sidebarCollapsed} />}
+                    </AnimatePresence>
+                </div>
+            </div>
+        </aside>
+    );
 };
 
 export default Sidebar;

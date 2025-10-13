@@ -15,7 +15,8 @@ const ImagePanel: React.FC = () => {
     generatedImages,
     setGeneratedImages,
     isGeneratingImages,
-    setIsGeneratingImages
+    setIsGeneratingImages,
+    addNotification
   } = useAppStore();
   const [selectedImage, setSelectedImage] = useState<GeneratedImage | null>(null);
 
@@ -29,7 +30,7 @@ const ImagePanel: React.FC = () => {
       setGeneratedImages(result);
     } catch (error) {
       console.error("Image generation failed:", error);
-      // Here you could add a user-facing error message, e.g., using a toast notification library
+      addNotification({ type: 'error', message: 'La generación de imágenes falló.' });
     } finally {
       setIsGeneratingImages(false);
     }

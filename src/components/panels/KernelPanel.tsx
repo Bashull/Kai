@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { AnimatePresence, motion } from 'framer-motion';
 import Button from '../ui/Button';
-import { BrainCircuit, Link, FileText, Type as TypeIcon, BookOpen, Edit, Save, Plus, Trash2, History, UploadCloud } from 'lucide-react';
+import { BrainCircuit, Link, FileText, Type as TypeIcon, BookOpen, Edit, Save, Plus, Trash2, History, RotateCcw } from 'lucide-react';
 import { Entity, EntityType, Constitution } from '../../types';
 import EntityStatusBadge from '../ui/EntityStatusBadge';
 import { formatRelativeTime } from '../../utils/helpers';
@@ -15,10 +15,6 @@ const EntityCard: React.FC<{ entity: Entity }> = ({ entity }) => {
         DOCUMENT: <FileText size={16} />,
     };
 
-    const contentDisplay = entity.type === 'DOCUMENT' && entity.fileName 
-        ? `Documento: ${entity.fileName}` 
-        : entity.content;
-
     return (
         <motion.div
             layout
@@ -29,12 +25,12 @@ const EntityCard: React.FC<{ entity: Entity }> = ({ entity }) => {
             className="bg-kai-surface/50 border border-border-color rounded-lg p-4 transition-colors duration-200 hover:bg-kai-surface"
         >
             <div className="flex justify-between items-start gap-4">
-                <div className="flex-grow min-w-0">
+                <div className="flex-grow">
                     <div className="flex items-center gap-2 text-text-secondary text-sm mb-2">
                         {iconMap[entity.type]}
                         <span>{entity.type}</span>
                     </div>
-                    <p className="text-text-primary break-words line-clamp-3">{contentDisplay}</p>
+                    <p className="text-text-primary break-all line-clamp-3">{entity.content}</p>
                 </div>
                 <EntityStatusBadge status={entity.status} />
             </div>
@@ -48,37 +44,18 @@ const EntityCard: React.FC<{ entity: Entity }> = ({ entity }) => {
 
 const KernelPanel: React.FC = () => {
     // Entity State
-    const { entities, addEntity, isUploading } = useAppStore(state => ({
+    const { entities, addEntity } = useAppStore(state => ({
         entities: state.entities,
         addEntity: state.addEntity,
-        isUploading: state.isUploading,
     }));
     const [content, setContent] = useState('');
     const [type, setType] = useState<EntityType>('TEXT');
-    const [selectedFile, setSelectedFile] = useState<File | null>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleEntitySubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (type === 'DOCUMENT' && selectedFile) {
-            // Simulate reading the file content
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const fileContent = event.target?.result as string;
-                addEntity({ content: fileContent.substring(0, 500), type: 'DOCUMENT', source: 'File Upload', fileName: selectedFile.name });
-                setSelectedFile(null);
-            };
-            reader.readAsText(selectedFile);
-        } else if (content.trim()) {
-            addEntity({ content, type, source: 'Manual Input' });
-            setContent('');
-        }
-    };
-    
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            setSelectedFile(e.target.files[0]);
-        }
+        if(!content.trim()) return;
+        addEntity({ content, type, source: 'Manual Input' });
+        setContent('');
     };
 
     // Constitution State
@@ -141,7 +118,7 @@ const KernelPanel: React.FC = () => {
                                 <div className="flex items-center gap-2">
                                      <History size={16} className="text-text-secondary"/>
                                      <select onChange={handleRevert} className="form-select !py-1 !text-xs" value="">
-                                        <option value="">Ver Historial (V{versionHistory[0].version})</option>
+                                        <option value="">Ver Historial (V{versionHistory.length > 0 ? versionHistory[0].version : 0})</option>
                                         {versionHistory.map(v => (
                                             <option key={v.version} value={v.version}>
                                                 V{v.version} - {format(new Date(v.date), 'dd MMM yyyy, HH:mm')}
@@ -220,7 +197,7 @@ const KernelPanel: React.FC = () => {
                                 <form onSubmit={handleEntitySubmit} className="space-y-4">
                                     <div>
                                         <label className="form-label">Tipo de Entidad</label>
-                                        <select value={type} onChange={e => { setType(e.target.value as EntityType); setSelectedFile(null); setContent(''); }} className="form-select">
+                                        <select value={type} onChange={e => setType(e.target.value as EntityType)} className="form-select">
                                             <option value="TEXT">Texto</option>
                                             <option value="URL">URL</option>
                                             <option value="DOCUMENT">Documento</option>
@@ -228,25 +205,15 @@ const KernelPanel: React.FC = () => {
                                     </div>
                                     <div>
                                         <label className="form-label">Contenido</label>
-                                        {type === 'DOCUMENT' ? (
-                                            <div>
-                                                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".txt,.md,.json,.csv" />
-                                                <Button type="button" variant="outline" icon={UploadCloud} onClick={() => fileInputRef.current?.click()} className="w-full">
-                                                    {selectedFile ? selectedFile.name : 'Seleccionar archivo'}
-                                                </Button>
-                                                <p className="text-xs text-text-secondary mt-1">Soportados: .txt, .md, .json, .csv</p>
-                                            </div>
-                                        ) : (
-                                            <textarea 
-                                                value={content}
-                                                onChange={e => setContent(e.target.value)}
-                                                placeholder={type === 'URL' ? 'https://...' : 'Ingresa texto o referencia...'}
-                                                className="form-textarea"
-                                                rows={5}
-                                            />
-                                        )}
+                                        <textarea 
+                                            value={content}
+                                            onChange={e => setContent(e.target.value)}
+                                            placeholder={type === 'URL' ? 'https://...' : 'Ingresa texto o referencia...'}
+                                            className="form-textarea"
+                                            rows={5}
+                                        />
                                     </div>
-                                    <Button type="submit" className="w-full" loading={isUploading} disabled={isUploading || (type === 'DOCUMENT' ? !selectedFile : !content.trim())}>
+                                    <Button type="submit" className="w-full" disabled={!content.trim()}>
                                         Asimilar en el Kernel
                                     </Button>
                                 </form>

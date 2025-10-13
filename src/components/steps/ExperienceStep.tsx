@@ -1,12 +1,18 @@
 import React from 'react';
+// FIX: Corrected import path for useAppStore.
 import { useAppStore } from '../../store/useAppStore';
+// FIX: Corrected import path for geminiService.
 import { generateWithAI } from '../../services/geminiService';
+// FIX: Corrected import path for AIButton to point to the correct module.
 import { AIButton } from '../ui/AIButton';
+// FIX: Corrected import path for Button.
 import Button from '../ui/Button';
 import { Plus, Trash2 } from 'lucide-react';
+// FIX: Corrected import path for Experience type.
 import { Experience } from '../../types';
 
 const ExperienceItem: React.FC<{ item: Experience; index: number }> = ({ item, index }) => {
+  // FIX: Destructured addNotification to replace alerts with a better UX.
   const { updateExperience, removeExperience, setIsGenerating, addNotification } = useAppStore();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -19,6 +25,7 @@ const ExperienceItem: React.FC<{ item: Experience; index: number }> = ({ item, i
 
   const handleAIDescription = async () => {
     if (!item.jobTitle || !item.company) {
+      // FIX: Replaced alert with a more user-friendly notification.
       addNotification({ type: 'error', message: "Por favor, introduce un Puesto y una Empresa para la asistencia de IA." });
       return;
     }
@@ -29,6 +36,7 @@ const ExperienceItem: React.FC<{ item: Experience; index: number }> = ({ item, i
       updateExperience(index, 'description', result);
     } catch (error) {
       console.error(error);
+      // FIX: Replaced alert with a more user-friendly notification.
       addNotification({ type: 'error', message: "No se pudo generar la descripción." });
     } finally {
       setIsGenerating(false);

@@ -5,8 +5,9 @@ import { Loader2 } from 'lucide-react';
 type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'success' | 'kai';
 type ButtonSize = 'sm' | 'md' | 'lg' | 'xl';
 
-interface ButtonProps extends Omit<ComponentPropsWithRef<typeof motion.button>, 'children'> {
+interface ButtonProps extends Omit<ComponentPropsWithRef<'button'>, 'children'> {
   children?: ReactNode;
+  as?: ElementType;
   variant?: ButtonVariant;
   size?: ButtonSize;
   loading?: boolean;
@@ -17,6 +18,7 @@ interface ButtonProps extends Omit<ComponentPropsWithRef<typeof motion.button>, 
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
   children,
+  as: Component = 'button',
   variant = 'primary',
   size = 'md',
   loading = false,
@@ -50,8 +52,10 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
   const iconSize = { sm: 14, md: 16, lg: 18, xl: 20 }[size];
   const iconMargin = children ? (iconPosition === 'left' ? 'mr-2' : 'ml-2') : '';
 
+  const MotionComponent = motion(Component);
+
   return (
-    <motion.button
+    <MotionComponent
       ref={ref}
       whileHover={{ scale: disabled || loading ? 1 : 1.02 }}
       whileTap={{ scale: disabled || loading ? 1 : 0.98 }}
@@ -70,7 +74,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
       {!loading && Icon && iconPosition === 'right' && (
         <Icon style={{ width: iconSize, height: iconSize }} className={iconMargin} />
       )}
-    </motion.button>
+    </MotionComponent>
   );
 });
 
