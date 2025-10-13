@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useAppStore } from '../../store/useAppStore';
+import { useAppStore } from '../store/useAppStore';
 import { AnimatePresence, motion } from 'framer-motion';
 import Button from '../ui/Button';
 import { BrainCircuit, Link, FileText, Type as TypeIcon, BookOpen, Edit, Save, Plus, Trash2, History, RotateCcw } from 'lucide-react';
-import { Entity, EntityType, Constitution } from '../../types';
+// FIX: Corrected import path for types.
+import { Entity, EntityType, Constitution } from '../types';
 import EntityStatusBadge from '../ui/EntityStatusBadge';
 import { formatRelativeTime } from '../../utils/helpers';
 import { format } from 'date-fns';

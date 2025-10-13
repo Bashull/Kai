@@ -1,3 +1,4 @@
+
 // FIX: Replaced the incorrect App component with the main application layout.
 // This new component correctly integrates with the sidebar, panels, and useAppStore,
 // resolving errors related to a missing default export and a missing function import.
@@ -9,7 +10,7 @@ import Sidebar from './components/layout/Sidebar';
 
 // Panel Imports
 import ChatPanel from './components/panels/ChatPanel';
-import KernelPanel from './components/panels/KernelPanel';
+import KernelPanel from './components/KernelPanel';
 import ForgePanel from './components/panels/ForgePanel';
 import StudioPanel from './components/panels/StudioPanel';
 import TasksPanel from './components/panels/TasksPanel';
