@@ -28,9 +28,11 @@ export interface ChatMessage {
 export interface ChatSlice {
   isTyping: boolean;
   chatHistory: ChatMessage[];
+  isSummarizing: boolean;
   addChatMessage: (message: Pick<ChatMessage, 'role' | 'content'>) => void;
   updateLastChatMessage: (content: string) => void;
   setTyping: (isTyping: boolean) => void;
+  summarizeAndSaveChat: () => Promise<void>;
 }
 
 // --- Voice ---
@@ -96,11 +98,12 @@ export interface TrainingJob {
   createdAt: string;
   updatedAt: string;
   logs?: { timestamp: string; message: string }[];
+  datasetEntityIds?: string[];
 }
 
 export interface ForgeSlice {
   trainingJobs: TrainingJob[];
-  addTrainingJob: (job: Pick<TrainingJob, 'modelName' | 'description'>) => void;
+  addTrainingJob: (job: Pick<TrainingJob, 'modelName' | 'description' | 'datasetEntityIds'>) => void;
   updateTrainingJobStatus: (jobId: string, status: TrainingJobStatus) => void;
   addTrainingLog: (jobId: string, message: string) => void;
   pollJobs: () => void;

@@ -1,12 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { AnimatePresence, motion } from 'framer-motion';
 import Button from '../ui/Button';
-import { Flame, Cpu, ShieldCheck, FileCode } from 'lucide-react';
+import { Flame, Cpu, ShieldCheck, FileCode, Database } from 'lucide-react';
 import TrainingJobStatusBadge from '../ui/TrainingJobStatusBadge';
 import { formatRelativeTime } from '../../utils/helpers';
 import { TrainingJob } from '../../types';
 import { format } from 'date-fns';
+import Modal from '../ui/Modal';
+import Checkbox from '../ui/Checkbox';
 
 
 const TrainingLogViewer: React.FC<{ logs: TrainingJob['logs'] }> = ({ logs }) => {
@@ -33,15 +35,26 @@ const ForgePanel: React.FC = () => {
         entities: state.entities,
     }));
     
-    const integratedEntitiesCount = entities.filter(e => e.status === 'INTEGRATED').length;
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedEntityIds, setSelectedEntityIds] = useState<string[]>([]);
+
+    const integratedEntities = entities.filter(e => e.status === 'INTEGRATED');
     const isTraining = trainingJobs.some(j => j.status === 'TRAINING' || j.status === 'QUEUED');
 
     const handleStartTraining = () => {
-        if (isTraining || integratedEntitiesCount === 0) return;
+        if (isTraining || selectedEntityIds.length === 0) return;
         addTrainingJob({
             modelName: `kai-os-v3.${Date.now()}`,
-            description: `Fine-tuning con ${integratedEntitiesCount} nuevas entidades integradas.`,
+            description: `Fine-tuning con ${selectedEntityIds.length} entidades seleccionadas del Kernel.`,
+            datasetEntityIds: selectedEntityIds,
         });
+        setSelectedEntityIds([]);
+    };
+
+    const toggleEntitySelection = (id: string) => {
+        setSelectedEntityIds(prev =>
+            prev.includes(id) ? prev.filter(eid => eid !== id) : [...prev, id]
+        );
     };
     
     return (
@@ -69,22 +82,37 @@ const ForgePanel: React.FC = () => {
                             <span className="font-bold text-green-400">CONECTADO</span>
                         </div>
                         <div className="flex justify-between items-center">
-                            <span className="text-text-secondary font-medium flex items-center gap-2"><ShieldCheck size={16}/>Entidades Listas</span>
-                            <span className="font-bold text-kai-primary">{integratedEntitiesCount}</span>
+                            <span className="text-text-secondary font-medium flex items-center gap-2"><ShieldCheck size={16}/>Entidades Disponibles</span>
+                            <span className="font-bold text-kai-primary">{integratedEntities.length}</span>
                         </div>
+                    </div>
+
+                    <div className="pt-4 border-t border-border-color space-y-4">
+                        <div className="flex justify-between items-center text-sm">
+                            <span className="text-text-secondary font-medium flex items-center gap-2"><Database size={16}/>Dataset Seleccionado</span>
+                            <span className="font-bold">{selectedEntityIds.length} entidades</span>
+                        </div>
+                        <Button 
+                            onClick={() => setIsModalOpen(true)}
+                            variant="outline"
+                            className="w-full"
+                            disabled={integratedEntities.length === 0}
+                        >
+                            Seleccionar Datos del Kernel
+                        </Button>
                     </div>
                     
                     <Button 
                         onClick={handleStartTraining} 
-                        disabled={isTraining || integratedEntitiesCount === 0}
+                        disabled={isTraining || selectedEntityIds.length === 0}
                         className="w-full"
                         variant="kai"
                     >
-                        {isTraining ? 'Entrenamiento en Progreso...' : 'Iniciar Nuevo Fine-Tuning'}
+                        {isTraining ? 'Entrenamiento en Progreso...' : 'Iniciar Fine-Tuning'}
                     </Button>
-                     {integratedEntitiesCount === 0 && !isTraining &&
+                     {selectedEntityIds.length === 0 && !isTraining &&
                         <p className="text-xs text-center text-text-secondary/70">
-                            No hay nuevas entidades integradas en el Kernel para entrenar.
+                            Selecciona entidades del Kernel para crear un dataset de entrenamiento.
                         </p>
                      }
                   </motion.div>
@@ -137,6 +165,31 @@ const ForgePanel: React.FC = () => {
                  </div>
             </div>
         </div>
+        <Modal 
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            title={`Seleccionar Entidades para Dataset (${selectedEntityIds.length}/${integratedEntities.length})`}
+            size="lg"
+            footer={
+                <Button onClick={() => setIsModalOpen(false)}>Confirmar Selección</Button>
+            }
+        >
+            <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
+                {integratedEntities.map(entity => (
+                    <div 
+                        key={entity.id} 
+                        className="flex items-center gap-3 p-3 rounded-lg hover:bg-kai-dark/50 cursor-pointer"
+                        onClick={() => toggleEntitySelection(entity.id)}
+                    >
+                        <Checkbox id={`entity-${entity.id}`} checked={selectedEntityIds.includes(entity.id)} onChange={() => {}} />
+                        <label htmlFor={`entity-${entity.id}`} className="flex-grow cursor-pointer">
+                            <span className="font-medium text-sm text-text-primary">{entity.content.substring(0, 100)}{entity.content.length > 100 ? '...' : ''}</span>
+                            <span className="block text-xs text-text-secondary">{entity.type} - {formatRelativeTime(entity.createdAt)}</span>
+                        </label>
+                    </div>
+                ))}
+            </div>
+        </Modal>
     </div>
     );
 };

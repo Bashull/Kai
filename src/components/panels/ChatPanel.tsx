@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { streamChat } from '../../services/geminiService';
 import MarkdownRenderer from '../ui/MarkdownRenderer';
-import { Send, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
+import { Send, Mic, MicOff, Volume2, VolumeX, Archive } from 'lucide-react';
 import { formatRelativeTime } from '../../utils/helpers';
 import Button from '../ui/Button';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -22,6 +22,8 @@ const ChatPanel: React.FC = () => {
     spokenMessageId,
     speakMessage,
     stopSpeaking,
+    summarizeAndSaveChat,
+    isSummarizing,
   } = useAppStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -82,11 +84,27 @@ const ChatPanel: React.FC = () => {
   };
 
   return (
-    <div>
-      <h1 className="h1-title">Chat con Kai</h1>
-      <p className="p-subtitle">Nuestro canal de comunicación directa. Estoy listo para colaborar.</p>
+    <div className="flex flex-col h-full">
+      <div className="flex justify-between items-center mb-1">
+        <div>
+            <h1 className="h1-title">Chat con Kai</h1>
+            <p className="p-subtitle">Nuestro canal de comunicación directa. Estoy listo para colaborar.</p>
+        </div>
+        {chatHistory.length > 6 && (
+            <Button 
+                onClick={summarizeAndSaveChat} 
+                loading={isSummarizing}
+                disabled={isSummarizing || isTyping}
+                icon={Archive}
+                variant="secondary"
+                size="sm"
+            >
+                Resumir y Guardar en Kernel
+            </Button>
+        )}
+      </div>
       
-      <div className="w-full max-w-4xl mx-auto flex flex-col h-[calc(100vh-15rem)]">
+      <div className="w-full max-w-4xl mx-auto flex flex-col flex-grow h-[calc(100vh-15rem)]">
         <div className="flex-1 overflow-y-auto pr-4 -mr-4 mb-4">
             <div className="space-y-6">
                 <AnimatePresence>
@@ -118,7 +136,7 @@ const ChatPanel: React.FC = () => {
                                 msg.role === 'user' 
                                     ? 'bg-gradient-to-br from-kai-primary to-indigo-600 text-white chat-bubble-user' 
                                     : 'bg-kai-surface chat-bubble-model'
-                            }`}>
+                            } ${isSpeaking && spokenMessageId === msg.id ? 'speaking-highlight' : ''}`}>
                                 <MarkdownRenderer content={msg.content} />
                                 <div className="text-xs mt-2 opacity-60 text-right">
                                     {formatRelativeTime(msg.timestamp)}
@@ -139,11 +157,19 @@ const ChatPanel: React.FC = () => {
             </div>
         </div>
         <div className="relative">
+          {isRecording && (
+             <div className="absolute inset-x-0 -top-10 flex justify-center items-center">
+                 <div className="bg-kai-surface px-4 py-2 rounded-lg flex items-center gap-2 text-sm text-text-secondary shadow-lg">
+                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                    <span>Grabando...</span>
+                 </div>
+            </div>
+          )}
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Envíame un mensaje o utiliza el micrófono..."
+            placeholder={isRecording ? "" : "Envíame un mensaje o utiliza el micrófono..."}
             className="form-textarea w-full pr-28"
             rows={2}
             disabled={isTyping}

@@ -96,6 +96,29 @@ export const generateWithAI = async (prompt: string): Promise<string> => {
 };
 
 /**
+ * Summarizes a given block of text.
+ * @param text The text to summarize.
+ * @returns A concise summary of the text.
+ */
+export const summarizeText = async (text: string): Promise<string> => {
+    const prompt = `Por favor, resume el siguiente texto en un párrafo conciso y claro. Captura las ideas y decisiones clave. El resumen debe ser adecuado para ser guardado como un recuerdo a largo plazo.\n\nTexto a resumir:\n"""\n${text}\n"""\n\nResumen:`;
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+        });
+        return response.text;
+    } catch (error) {
+        console.error("Summarization failed:", error);
+        if (error instanceof Error) {
+            throw new Error(error.message);
+        }
+        throw new Error("An unknown error occurred during text summarization.");
+    }
+};
+
+
+/**
  * Performs a simple check to verify API access and model functionality.
  * Sends a 'ping' and expects a 'pong'.
  * @returns The text response from the model.
