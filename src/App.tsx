@@ -1,7 +1,3 @@
-
-// FIX: Replaced the incorrect App component with the main application layout.
-// This new component correctly integrates with the sidebar, panels, and useAppStore,
-// resolving errors related to a missing default export and a missing function import.
 import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { parseISO } from 'date-fns';
@@ -10,14 +6,18 @@ import Sidebar from './components/layout/Sidebar';
 
 // Panel Imports
 import ChatPanel from './components/panels/ChatPanel';
-import KernelPanel from './components/KernelPanel';
+import KernelPanel from './components/panels/KernelPanel';
 import ForgePanel from './components/panels/ForgePanel';
 import StudioPanel from './components/panels/StudioPanel';
 import TasksPanel from './components/panels/TasksPanel';
 import SettingsPanel from './components/panels/SettingsPanel';
 import ResumeBuilderPanel from './components/panels/ResumeBuilderPanel';
+import AwesomeResourcesPanel from './components/panels/AwesomeResourcesPanel';
+import DiaryPanel from './components/panels/DiaryPanel';
+import SnapshotsPanel from './components/panels/SnapshotsPanel';
 import KaiAvatar from './components/ui/KaiAvatar';
 import { ToastContainer } from './components/ui/Toast';
+import SearchResultsModal from './components/ui/SearchResultsModal';
 
 const panelMap = {
   chat: ChatPanel,
@@ -27,14 +27,22 @@ const panelMap = {
   tasks: TasksPanel,
   settings: SettingsPanel,
   resume: ResumeBuilderPanel,
+  awesome: AwesomeResourcesPanel,
+  diary: DiaryPanel,
+  snapshots: SnapshotsPanel,
 };
 
 const App: React.FC = () => {
-  const { activePanel, sidebarCollapsed, theme, setTheme, setDueTasks, tasks } = useAppStore();
+  const { activePanel, sidebarCollapsed, theme, setDueTasks, tasks } = useAppStore();
 
   useEffect(() => {
-    setTheme(theme); // Apply theme on initial load
-  }, [setTheme, theme]);
+    const root = document.documentElement;
+    if (theme === 'light') {
+      root.classList.remove('dark');
+    } else {
+      root.classList.add('dark');
+    }
+  }, [theme]);
 
   useEffect(() => {
     const now = new Date();
@@ -67,9 +75,10 @@ const App: React.FC = () => {
               </motion.div>
             </AnimatePresence>
         </div>
-      </motion.main>
+      </main>
       <KaiAvatar />
       <ToastContainer />
+      <SearchResultsModal />
     </div>
   );
 };

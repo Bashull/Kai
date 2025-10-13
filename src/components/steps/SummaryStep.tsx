@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { generateWithAI } from '../../services/geminiService';
-import { AIButton } from '../common';
+import { AIButton } from '../ui/AIButton';
 
 const SummaryStep: React.FC = () => {
   const { summary, setSummary, resumeData, setIsGenerating, addNotification } = useAppStore();

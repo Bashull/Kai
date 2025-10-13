@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, BrainCircuit, Flame, Terminal, Settings, ChevronsLeft, ChevronsRight, CheckSquare, Bell, ClipboardList } from 'lucide-react';
+import { MessageSquare, BrainCircuit, Flame, Terminal, Settings, ChevronsLeft, ChevronsRight, CheckSquare, Bell, ClipboardList, Search, Star, BookText, Camera } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { Panel } from '../../types';
 import Button from '../ui/Button';
@@ -14,6 +14,9 @@ const navItems: { panel: Panel; icon: React.ElementType; label: string }[] = [
   { panel: 'studio', icon: Terminal, label: 'IA Studio' },
   { panel: 'tasks', icon: CheckSquare, label: 'Misiones' },
   { panel: 'resume', icon: ClipboardList, label: 'Constructor de CV' },
+  { panel: 'awesome', icon: Star, label: 'Awesome Resources' },
+  { panel: 'diary', icon: BookText, label: 'Diario' },
+  { panel: 'snapshots', icon: Camera, label: 'Snapshots' },
   { panel: 'settings', icon: Settings, label: 'Ajustes' },
 ];
 
@@ -26,12 +29,33 @@ const Sidebar: React.FC = () => {
     dueTasks,
     showNotifications,
     toggleNotifications,
+    searchQuery,
+    setSearchQuery,
+    executeSearch,
   } = useAppStore();
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const sidebarVariants = {
     open: { width: '16rem' },
     closed: { width: '4rem' },
   };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    executeSearch();
+    searchInputRef.current?.blur();
+  };
+
+  const handleSearchIconClick = () => {
+    if (sidebarCollapsed) {
+        toggleSidebar();
+        // Wait for sidebar animation to finish before focusing
+        setTimeout(() => {
+            searchInputRef.current?.focus();
+        }, 300); 
+    }
+  };
+
 
   return (
     <motion.aside
@@ -50,7 +74,34 @@ const Sidebar: React.FC = () => {
         </motion.div>
         {!sidebarCollapsed && <span className="text-xl font-bold ml-2 font-orbitron">KaiOS</span>}
       </div>
-      <nav className="flex-1 px-2 py-4 space-y-2">
+
+       {/* Search Bar */}
+      <div className={`py-3 ${sidebarCollapsed ? 'px-2' : 'px-4'}`}>
+        {!sidebarCollapsed ? (
+            <form onSubmit={handleSearchSubmit} className="relative">
+                <input
+                    ref={searchInputRef}
+                    type="text"
+                    placeholder="Búsqueda Inteligente..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full bg-kai-dark/60 border-2 border-border-color rounded-lg pl-10 pr-4 py-2 text-sm text-text-primary placeholder-text-secondary/60 focus:outline-none focus:ring-1 focus:ring-kai-primary transition-all"
+                />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-secondary pointer-events-none" />
+            </form>
+        ) : (
+            <Button
+                variant="ghost"
+                onClick={handleSearchIconClick}
+                className="w-full !px-2 !justify-center"
+                title="Búsqueda Inteligente"
+            >
+                <Search className="h-5 w-5" />
+            </Button>
+        )}
+      </div>
+
+      <nav className="flex-1 px-2 py-4 space-y-2 border-t border-border-color/50">
         {navItems.map(({ panel, icon: Icon, label }) => (
           <Button
             key={panel}

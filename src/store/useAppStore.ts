@@ -12,12 +12,18 @@ import { createTaskSlice } from './slices/createTaskSlice';
 import { createConstitutionSlice } from './slices/createConstitutionSlice';
 import { createResumeSlice } from './slices/createResumeSlice';
 import { createNotificationSlice } from './slices/createNotificationSlice';
+import { createSearchSlice } from './slices/createSearchSlice';
+import { createAwesomeResourceSlice } from './slices/createAwesomeResourceSlice';
+import { createDiarySlice } from './slices/createDiarySlice';
+import { createSnapshotSlice } from './slices/createSnapshotSlice';
+import { createVoiceSlice } from './slices/createVoiceSlice';
 
 export const useAppStore = create<AppState>()(
   persist(
     (...a) => ({
       ...createUISlice(...a),
       ...createChatSlice(...a),
+      ...createVoiceSlice(...a),
       ...createKernelSlice(...a),
       ...createForgeSlice(...a),
       ...createStudioSlice(...a),
@@ -27,6 +33,10 @@ export const useAppStore = create<AppState>()(
       ...createConstitutionSlice(...a),
       ...createResumeSlice(...a),
       ...createNotificationSlice(...a),
+      ...createSearchSlice(...a),
+      ...createAwesomeResourceSlice(...a),
+      ...createDiarySlice(...a),
+      ...createSnapshotSlice(...a),
     }),
     {
       name: 'kai-ultra-pro-storage',
@@ -41,6 +51,8 @@ export const useAppStore = create<AppState>()(
         constitution: state.constitution, // Persist constitution
         versionHistory: state.versionHistory, // Persist history
         resumeData: state.resumeData, // Persist resume data
+        diary: state.diary, // Persist diary
+        snapshots: state.snapshots, // Persist snapshots
       }),
     }
   )

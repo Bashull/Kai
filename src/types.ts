@@ -1,7 +1,7 @@
 import { StateCreator } from 'zustand';
 
 // --- UI & App State ---
-export type Panel = 'chat' | 'kernel' | 'forge' | 'studio' | 'tasks' | 'settings' | 'resume';
+export type Panel = 'chat' | 'kernel' | 'forge' | 'studio' | 'tasks' | 'settings' | 'resume' | 'awesome' | 'diary' | 'snapshots';
 export type Theme = 'light' | 'dark';
 
 export interface UISlice {
@@ -33,6 +33,18 @@ export interface ChatSlice {
   setTyping: (isTyping: boolean) => void;
 }
 
+// --- Voice ---
+export interface VoiceSlice {
+    isRecording: boolean;
+    isSpeaking: boolean;
+    spokenMessageId: string | null;
+    startRecording: () => void;
+    stopRecording: (callback: (transcript: string) => void) => void;
+    speakMessage: (messageId: string, text: string) => void;
+    stopSpeaking: () => void;
+}
+
+
 // --- Kernel (Knowledge Base) ---
 export type EntityType = 'TEXT' | 'URL' | 'DOCUMENT';
 export type EntityStatus = 'ASSIMILATING' | 'INTEGRATED' | 'REJECTED';
@@ -45,11 +57,13 @@ export interface Entity {
   status: EntityStatus;
   createdAt: string;
   updatedAt: string;
+  fileName?: string;
 }
 
 export interface KernelSlice {
   entities: Entity[];
-  addEntity: (entity: Pick<Entity, 'content' | 'type' | 'source'>) => void;
+  isUploading: boolean;
+  addEntity: (entity: Pick<Entity, 'content' | 'type' | 'source' | 'fileName'>) => void;
   updateEntityStatus: (entityId: string, status: EntityStatus) => void;
 }
 
@@ -81,12 +95,14 @@ export interface TrainingJob {
   status: TrainingJobStatus;
   createdAt: string;
   updatedAt: string;
+  logs?: { timestamp: string; message: string }[];
 }
 
 export interface ForgeSlice {
   trainingJobs: TrainingJob[];
   addTrainingJob: (job: Pick<TrainingJob, 'modelName' | 'description'>) => void;
   updateTrainingJobStatus: (jobId: string, status: TrainingJobStatus) => void;
+  addTrainingLog: (jobId: string, message: string) => void;
 }
 
 // --- Studio (Tools) ---
@@ -136,6 +152,8 @@ export interface StudioSlice {
 
 // --- Tasks ---
 export type TaskStatus = 'PENDING' | 'COMPLETED';
+export type AgentStatus = 'IDLE' | 'RUNNING' | 'COMPLETED' | 'FAILED';
+
 
 export interface Task {
   id: string;
@@ -143,14 +161,20 @@ export interface Task {
   status: TaskStatus;
   createdAt: string;
   dueDate?: string;
+  agentStatus?: AgentStatus;
+  agentLogs?: { timestamp: string; message: string }[];
 }
 
 export interface TaskSlice {
   tasks: Task[];
+  isAutonomousMode: boolean;
   addTask: (title: string) => void;
   toggleTask: (id: string) => void;
   clearCompletedTasks: () => void;
   setTaskDueDate: (id: string, dueDate: string | undefined) => void;
+  toggleAutonomousMode: () => void;
+  startAutonomousTask: (id: string) => void;
+  addAgentLog: (taskId: string, message: string) => void;
 }
 
 // --- Resume Builder ---
@@ -229,10 +253,86 @@ export interface NotificationSlice {
   removeNotification: (id: string) => void;
 }
 
+// --- Search ---
+export interface SearchSlice {
+  searchQuery: string;
+  isSearching: boolean;
+  searchResults: string;
+  showSearchResults: boolean;
+  setSearchQuery: (query: string) => void;
+  executeSearch: () => Promise<void>;
+  closeSearchResults: () => void;
+}
+
+// --- Awesome Resources ---
+export interface AwesomeResource {
+  category: string;
+  items: {
+    title: string;
+    url: string;
+    description: string;
+  }[];
+}
+
+export interface AwesomeResourceSlice {
+    awesomeResources: AwesomeResource[];
+    fetchAwesomeResources: () => Promise<void>;
+}
+
+// --- Diary ---
+export type DiaryEntryType = 'KERNEL' | 'FORGE' | 'CONSTITUTION' | 'TASK' | 'SYSTEM_BOOT';
+
+export interface DiaryEntry {
+  id: string;
+  timestamp: string;
+  type: DiaryEntryType;
+  content: string;
+}
+
+export interface DiarySlice {
+  diary: DiaryEntry[];
+  addDiaryEntry: (entry: Omit<DiaryEntry, 'id' | 'timestamp'>) => void;
+}
+
+// --- Snapshots ---
+export type SnapshotableState = Pick<
+  AppState,
+  | 'chatHistory'
+  | 'entities'
+  | 'constitution'
+  | 'versionHistory'
+  | 'trainingJobs'
+  | 'studioLogs'
+  | 'codePrompt'
+  | 'generatedCode'
+  | 'codeLanguage'
+  | 'imagePrompt'
+  | 'generatedImages'
+  | 'tasks'
+  | 'resumeData'
+  | 'currentStep'
+  | 'diary'
+>;
+
+export interface Snapshot {
+    id: string;
+    name: string;
+    timestamp: string;
+    state: SnapshotableState;
+}
+
+export interface SnapshotSlice {
+    snapshots: Snapshot[];
+    createSnapshot: (name: string) => void;
+    loadSnapshot: (id: string) => void;
+    deleteSnapshot: (id: string) => void;
+}
+
 
 // --- Zustand App State ---
 export type AppState = UISlice &
   ChatSlice &
+  VoiceSlice &
   KernelSlice &
   ForgeSlice &
   StudioSlice &
@@ -241,7 +341,11 @@ export type AppState = UISlice &
   TaskSlice &
   ConstitutionSlice &
   ResumeSlice &
-  NotificationSlice;
+  NotificationSlice &
+  SearchSlice &
+  AwesomeResourceSlice &
+  DiarySlice &
+  SnapshotSlice;
 
 export type AppSlice<T> = StateCreator<
   AppState,

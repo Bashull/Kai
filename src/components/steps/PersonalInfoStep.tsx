@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAppStore } from '../../store/useAppStore';
+import { PersonalInfo } from '../../types';
 
 const PersonalInfoStep: React.FC = () => {
   const { personalInfo, updatePersonalInfo } = useAppStore(state => ({
@@ -8,7 +9,7 @@ const PersonalInfoStep: React.FC = () => {
   }));
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    updatePersonalInfo(e.target.name as keyof typeof personalInfo, e.target.value);
+    updatePersonalInfo(e.target.name as keyof PersonalInfo, e.target.value);
   };
 
   return (

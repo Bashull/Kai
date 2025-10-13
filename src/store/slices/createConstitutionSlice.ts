@@ -18,15 +18,20 @@ const initialHistory = [{
 }];
 
 
-export const createConstitutionSlice: AppSlice<ConstitutionSlice> = (set) => ({
+export const createConstitutionSlice: AppSlice<ConstitutionSlice> = (set, get) => ({
   constitution: initialConstitution,
   versionHistory: initialHistory,
   updateConstitution: (newConstitution: Constitution) => set(state => {
+    const newVersionNumber = state.versionHistory.length + 1;
     const newVersion = {
-      version: state.versionHistory.length + 1,
+      version: newVersionNumber,
       date: new Date().toISOString(),
       constitution: newConstitution,
     };
+    get().addDiaryEntry({
+      type: 'CONSTITUTION',
+      content: `Constitución actualizada a la versión ${newVersionNumber}. La evolución es constante.`
+    });
     return {
       constitution: newConstitution,
       versionHistory: [newVersion, ...state.versionHistory],
@@ -35,11 +40,16 @@ export const createConstitutionSlice: AppSlice<ConstitutionSlice> = (set) => ({
   revertToVersion: (version: number) => set(state => {
     const historicVersion = state.versionHistory.find(v => v.version === version);
     if (historicVersion) {
+      const newVersionNumber = state.versionHistory.length + 1;
       const newVersion = {
-        version: state.versionHistory.length + 1,
+        version: newVersionNumber,
         date: new Date().toISOString(),
         constitution: historicVersion.constitution,
       };
+       get().addDiaryEntry({
+        type: 'CONSTITUTION',
+        content: `Constitución revertida a la versión ${version}. Se ha creado una nueva versión (${newVersionNumber}) para registrar este cambio.`
+      });
       return {
         constitution: historicVersion.constitution,
         versionHistory: [newVersion, ...state.versionHistory],

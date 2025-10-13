@@ -1,23 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { generateWithAI } from '../../services/geminiService';
-import { AIButton } from '../common';
+import { AIButton } from '../ui/AIButton';
 import { X } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { COMMON_SKILLS } from '../../constants';
 
 const SkillsStep: React.FC = () => {
   const { skills, addSkill, removeSkill, resumeData, setIsGenerating, addNotification } = useAppStore();
   const [newSkill, setNewSkill] = useState('');
+  const [suggestions, setSuggestions] = useState<string[]>([]);
 
-  const handleAddSkill = () => {
-    addSkill(newSkill);
-    setNewSkill('');
+  useEffect(() => {
+    if (newSkill.trim().length > 1) {
+      const lowercasedInput = newSkill.toLowerCase();
+      const existingSkillNames = new Set(skills.map(s => s.name.toLowerCase()));
+      const filtered = COMMON_SKILLS.filter(s => 
+        s.toLowerCase().includes(lowercasedInput) && !existingSkillNames.has(s.toLowerCase())
+      ).slice(0, 5);
+      setSuggestions(filtered);
+    } else {
+      setSuggestions([]);
+    }
+  }, [newSkill, skills]);
+
+  const handleAddSkillFromInput = (skillToAdd: string) => {
+    if (skillToAdd.trim()) {
+      addSkill(skillToAdd.trim());
+      setNewSkill('');
+      setSuggestions([]);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ',') {
       e.preventDefault();
-      handleAddSkill();
+      handleAddSkillFromInput(newSkill);
     }
   };
 
@@ -48,17 +66,39 @@ const SkillsStep: React.FC = () => {
       </div>
       <div>
         <label htmlFor="skill-input" className="form-label">Añadir Habilidad</label>
-        <div className="flex gap-2">
-          <input
-            id="skill-input"
-            type="text"
-            value={newSkill}
-            onChange={(e) => setNewSkill(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="form-input flex-grow"
-            placeholder="Ej: React, Liderazgo de equipos"
-          />
-          <button onClick={handleAddSkill} className="px-4 py-2 bg-kai-primary text-white rounded-lg">Añadir</button>
+        <div className="relative">
+          <div className="flex gap-2">
+            <input
+              id="skill-input"
+              type="text"
+              value={newSkill}
+              onChange={(e) => setNewSkill(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="form-input flex-grow"
+              placeholder="Ej: React, Liderazgo de equipos"
+              autoComplete="off"
+            />
+            <button onClick={() => handleAddSkillFromInput(newSkill)} className="px-4 py-2 bg-kai-primary text-white rounded-lg">Añadir</button>
+          </div>
+          {suggestions.length > 0 && (
+            <motion.ul
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="absolute z-10 w-full mt-1 bg-kai-surface border border-border-color rounded-lg shadow-lg max-h-60 overflow-y-auto"
+            >
+              {suggestions.map(suggestion => (
+                <li
+                  key={suggestion}
+                  onClick={() => handleAddSkillFromInput(suggestion)}
+                  onMouseDown={(e) => e.preventDefault()}
+                  className="px-4 py-2 text-sm cursor-pointer hover:bg-kai-dark/50"
+                >
+                  {suggestion}
+                </li>
+              ))}
+            </motion.ul>
+          )}
         </div>
       </div>
       <div className="flex flex-wrap gap-2 pt-4">

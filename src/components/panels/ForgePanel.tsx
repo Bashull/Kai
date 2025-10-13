@@ -2,9 +2,29 @@ import React from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { AnimatePresence, motion } from 'framer-motion';
 import Button from '../ui/Button';
-import { Flame, Cpu, ShieldCheck } from 'lucide-react';
+import { Flame, Cpu, ShieldCheck, FileCode } from 'lucide-react';
 import TrainingJobStatusBadge from '../ui/TrainingJobStatusBadge';
 import { formatRelativeTime } from '../../utils/helpers';
+import { TrainingJob } from '../../types';
+import { format } from 'date-fns';
+
+
+const TrainingLogViewer: React.FC<{ logs: TrainingJob['logs'] }> = ({ logs }) => {
+    if (!logs || logs.length === 0) {
+        return <p className="text-xs text-text-secondary/70 italic">Esperando inicio del entrenamiento...</p>;
+    }
+    return (
+        <div className="bg-black/40 rounded-lg p-3 mt-4 max-h-40 overflow-y-auto font-mono text-xs">
+            {logs.map(log => (
+                <div key={log.timestamp} className="flex items-start gap-2">
+                    <span className="text-gray-500 shrink-0">{format(new Date(log.timestamp), 'HH:mm:ss')}</span>
+                    <span className="text-gray-300 whitespace-pre-wrap">{log.message}</span>
+                </div>
+            ))}
+        </div>
+    );
+};
+
 
 const ForgePanel: React.FC = () => {
     const { trainingJobs, addTrainingJob, entities } = useAppStore(state => ({
@@ -92,7 +112,7 @@ const ForgePanel: React.FC = () => {
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.5, transition: { duration: 0.2 } }}
                                 transition={{ type: 'spring', stiffness: 500, damping: 50, mass: 0.7 }}
-                                className="bg-kai-surface/50 border border-border-color rounded-lg p-4 transition-colors duration-200 hover:bg-kai-surface"
+                                className="bg-kai-surface/50 border border-border-color rounded-lg p-4 transition-all duration-200 hover:bg-kai-surface"
                             >
                                 <div className="flex justify-between items-start gap-4">
                                     <div>
@@ -101,9 +121,16 @@ const ForgePanel: React.FC = () => {
                                     </div>
                                     <TrainingJobStatusBadge status={job.status} />
                                 </div>
-                                <div className="text-xs text-text-secondary/60 mt-3 text-right">
-                                    Iniciado {formatRelativeTime(job.createdAt)}
+                                <div className="text-xs text-text-secondary/60 mt-3 flex justify-between items-center">
+                                     <div className="flex items-center gap-2">
+                                        <FileCode size={14}/>
+                                        <span>Registro de Entrenamiento</span>
+                                     </div>
+                                    <span>Iniciado {formatRelativeTime(job.createdAt)}</span>
                                 </div>
+                                {(job.status === 'TRAINING' || job.status === 'COMPLETED' || job.status === 'FAILED') && (
+                                    <TrainingLogViewer logs={job.logs} />
+                                )}
                             </motion.div>
                         ))}
                     </AnimatePresence>

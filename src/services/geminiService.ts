@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import { GeneratedImage, CodeLanguage } from "../types";
+import { GeneratedImage, CodeLanguage, Entity } from "../types";
 
 // Initialize the Google AI client
 // It is assumed that process.env.API_KEY is configured in the execution environment.
@@ -121,5 +121,43 @@ export const generateImages = async (prompt: string): Promise<GeneratedImage[]> 
         console.error("Image Generation failed:", error);
         // Propagate the error to be handled by the UI
         throw error;
+    }
+};
+
+/**
+ * Performs an AI-powered search based on a user query and Kernel context.
+ * @param searchQuery The user's natural language query.
+ * @param entities A list of entities from the Kernel for context.
+ * @returns A markdown-formatted string with the search results.
+ */
+export const performAISearch = async (searchQuery: string, entities: Entity[]): Promise<string> => {
+    const kernelContext = entities.length > 0
+        ? `Here is a list of knowledge entities currently stored in the Kernel:\n${entities.map(e => `- TYPE: ${e.type}, CONTENT: ${e.content.substring(0, 150)}...`).join('\n')}`
+        : "The Kernel is currently empty.";
+
+    const prompt = `You are the intelligent search core for KaiOS, a personal AI assistant.
+A user has submitted the following query: "${searchQuery}"
+
+${kernelContext}
+
+Analyze the user's query and the Kernel data. Provide a concise and helpful response.
+- Leverage semantic understanding to connect related but not explicitly linked concepts from the Kernel.
+- If the query can be answered using the Kernel entities, summarize the relevant information.
+- If the query seems to be a command or a request to see a specific part of the app (e.g., "show my missions", "I want to create a CV", "open the forge"), suggest which panel the user should navigate to. The available panels are: Chat, Kernel, La Forja, IA Studio, Misiones, Constructor de CV, Ajustes.
+- If it's a general knowledge question, provide a direct answer.
+- Format your response in clean Markdown. Start with a clear heading for your answer.`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+        });
+        return response.text;
+    } catch (error) {
+        console.error("AI Search failed:", error);
+        if (error instanceof Error) {
+            throw new Error(error.message);
+        }
+        throw new Error("An unknown error occurred during AI search.");
     }
 };

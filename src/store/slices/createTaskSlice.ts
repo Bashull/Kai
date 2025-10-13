@@ -30,24 +30,35 @@ const initialTasks: Task[] = [
 ];
 
 
-export const createTaskSlice: AppSlice<TaskSlice> = (set) => ({
+export const createTaskSlice: AppSlice<TaskSlice> = (set, get) => ({
     tasks: initialTasks,
+    isAutonomousMode: false,
     addTask: (title: string) => set(state => ({
         tasks: [
             {
                 id: generateId(),
                 title,
                 status: 'PENDING',
+                agentStatus: 'IDLE',
                 createdAt: new Date().toISOString(),
             },
             ...state.tasks,
         ],
     })),
-    toggleTask: (id: string) => set(state => ({
-        tasks: state.tasks.map(task =>
-            task.id === id ? { ...task, status: task.status === 'PENDING' ? 'COMPLETED' : 'PENDING' } : task
-        ),
-    })),
+    toggleTask: (id: string) => set(state => {
+        const task = state.tasks.find(t => t.id === id);
+        if (task && task.status === 'PENDING') {
+             get().addDiaryEntry({
+                type: 'TASK',
+                content: `Misión completada: "${task.title}"`
+            });
+        }
+        return {
+            tasks: state.tasks.map(t =>
+                t.id === id ? { ...t, status: t.status === 'PENDING' ? 'COMPLETED' : 'PENDING' } : t
+            ),
+        }
+    }),
     clearCompletedTasks: () => set(state => ({
         tasks: state.tasks.filter(task => task.status !== 'COMPLETED'),
     })),
@@ -56,4 +67,48 @@ export const createTaskSlice: AppSlice<TaskSlice> = (set) => ({
             task.id === id ? { ...task, dueDate } : task
         ),
     })),
+    toggleAutonomousMode: () => set(state => ({ isAutonomousMode: !state.isAutonomousMode })),
+    addAgentLog: (taskId, message) => {
+        set(state => ({
+            tasks: state.tasks.map(task => 
+                task.id === taskId 
+                ? { ...task, agentLogs: [...(task.agentLogs || []), { timestamp: new Date().toISOString(), message }] } 
+                : task
+            )
+        }));
+    },
+    startAutonomousTask: (id: string) => {
+        const { addAgentLog } = get();
+        
+        set(state => ({
+            tasks: state.tasks.map(t => t.id === id ? { ...t, agentStatus: 'RUNNING', agentLogs: [] } : t)
+        }));
+
+        addAgentLog(id, 'Iniciando agente autónomo...');
+
+        const agentSteps = [
+            { delay: 1000, message: "Analizando la intención de la misión..." },
+            { delay: 2500, message: "Identificando herramientas necesarias: [Search, KernelQuery]" },
+            { delay: 4000, message: "Ejecutando consulta en el Kernel..." },
+            { delay: 5500, message: "Resultado: No se encontró información relevante. Procediendo a búsqueda web." },
+            { delay: 7000, message: "Resumiendo resultados de la búsqueda..." },
+            { delay: 8500, message: "Conclusión generada. Misión completada." },
+        ];
+        
+        let cumulativeDelay = 0;
+        agentSteps.forEach(step => {
+            cumulativeDelay += step.delay;
+            setTimeout(() => addAgentLog(id, step.message), cumulativeDelay);
+        });
+
+        setTimeout(() => {
+            set(state => ({
+                tasks: state.tasks.map(t => t.id === id ? { ...t, agentStatus: 'COMPLETED', status: 'COMPLETED' } : t)
+            }));
+             const task = get().tasks.find(t => t.id === id);
+             if (task) {
+                get().addDiaryEntry({ type: 'TASK', content: `Misión completada por agente autónomo: "${task.title}"` });
+             }
+        }, cumulativeDelay + 1000);
+    },
 });

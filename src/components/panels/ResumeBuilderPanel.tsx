@@ -7,7 +7,7 @@ import ExperienceStep from '../steps/ExperienceStep';
 import EducationStep from '../steps/EducationStep';
 import SkillsStep from '../steps/SkillsStep';
 import SummaryStep from '../steps/SummaryStep';
-import ResumePreview from '../ResumePreview';
+import ResumePreview from '../steps/ResumePreview';
 import Button from '../ui/Button';
 import { RESUME_STEPS } from '../../constants';
 

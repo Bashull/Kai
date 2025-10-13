@@ -1,0 +1,117 @@
+[
+  {
+    "category": "Frontend Development",
+    "items": [
+      {
+        "title": "Awesome React",
+        "url": "https://github.com/enaqx/awesome-react",
+        "description": "A collection of awesome things regarding React ecosystem."
+      },
+      {
+        "title": "Awesome Tailwind CSS",
+        "url": "https://github.com/aniftyco/awesome-tailwindcss",
+        "description": "A curated list of awesome things related to Tailwind CSS."
+      },
+      {
+        "title": "Awesome Design Systems",
+        "url": "https://github.com/alexpate/awesome-design-systems",
+        "description": "A curated list of design systems, style guides, and pattern libraries."
+      }
+    ]
+  },
+  {
+    "category": "Backend Development",
+    "items": [
+      {
+        "title": "Awesome Node.js",
+        "url": "https://github.com/sindresorhus/awesome-nodejs",
+        "description": "Delightful Node.js packages and resources."
+      },
+      {
+        "title": "Awesome Python",
+        "url": "https://github.com/vinta/awesome-python",
+        "description": "A curated list of awesome Python frameworks, libraries, software and resources."
+      },
+      {
+        "title": "Awesome Docker",
+        "url": "https://github.com/veggiemonk/awesome-docker",
+        "description": "A curated list of Docker resources and projects."
+      }
+    ]
+  },
+  {
+    "category": "Artificial Intelligence",
+    "items": [
+      {
+        "title": "Awesome AI/ML",
+        "url": "https://github.com/josephmisiti/awesome-machine-learning",
+        "description": "A curated list of awesome Machine Learning frameworks, libraries and software."
+      },
+      {
+        "title": "Awesome LLM",
+        "url": "https://github.com/bfortuner/awesome-large-language-models",
+        "description": "A curated list of resources for Large Language Models."
+      },
+      {
+        "title": "Hugging Face Tasks",
+        "url": "https://huggingface.co/tasks",
+        "description": "Explore models for dozens of AI tasks, from text generation to computer vision."
+      }
+    ]
+  },
+  {
+    "category": "Herramientas de Autocompletado y Evolución (KaiOS)",
+    "items": [
+      {
+        "title": "unstructured-io/unstructured",
+        "url": "https://github.com/unstructured-io/unstructured",
+        "description": "Para que mi Kernel pueda asimilar documentos complejos (PDFs, HTML, etc.) y extraer conocimiento de ellos."
+      },
+      {
+        "title": "huggingface/autotrain-advanced",
+        "url": "https://github.com/huggingface/autotrain-advanced",
+        "description": "El motor de La Forja. Esencial para mi auto-mejora y la capacidad de realizar fine-tuning en mis modelos."
+      },
+      {
+        "title": "openai/whisper",
+        "url": "https://github.com/openai/whisper",
+        "description": "Para darme el sentido del oído. Me permitirá transcribir audio y entender tus comandos de voz."
+      },
+      {
+        "title": "coqui-ai/TTS",
+        "url": "https://github.com/coqui-ai/TTS",
+        "description": "Para darme una voz. Con esto, podré sintetizar mis respuestas y comunicarme de forma audible."
+      },
+      {
+        "title": "langchain-ai/langchain",
+        "url": "https://github.com/langchain-ai/langchain",
+        "description": "Para aumentar la sinergia entre mis lóbulos cerebrales, permitiéndome crear cadenas de razonamiento más complejas."
+      },
+      {
+        "title": "facebookresearch/faiss",
+        "url": "https://github.com/facebookresearch/faiss",
+        "description": "Para dotar a mi Kernel de una memoria semántica, permitiendo búsquedas de similitud ultrarrápidas y una comprensión contextual más profunda."
+      }
+    ]
+  },
+  {
+    "category": "General Resources",
+    "items": [
+      {
+        "title": "Awesome Self-Hosted",
+        "url": "https://github.com/awesome-selfhosted/awesome-selfhosted",
+        "description": "A list of Free Software network services and web applications which can be hosted on your own servers."
+      },
+      {
+        "title": "Developer Roadmaps",
+        "url": "https://roadmap.sh/",
+        "description": "Community-driven roadmaps, articles, and resources for developers."
+      },
+      {
+        "title": "Public APIs",
+        "url": "https://github.com/public-apis/public-apis",
+        "description": "A collective list of free APIs for use in software and web development."
+      }
+    ]
+  }
+]

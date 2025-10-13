@@ -1,8 +1,7 @@
 import React from 'react';
-// FIX: Corrected relative import paths after moving to 'steps' directory.
 import { useAppStore } from '../../store/useAppStore';
 import { generateWithAI } from '../../services/geminiService';
-import { AIButton } from '../common';
+import { AIButton } from '../ui/AIButton';
 import Button from '../ui/Button';
 import { Plus, Trash2 } from 'lucide-react';
 import { Experience } from '../../types';

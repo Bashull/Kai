@@ -1,16 +1,28 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { streamChat } from '../../services/geminiService';
 import MarkdownRenderer from '../ui/MarkdownRenderer';
-import { Send } from 'lucide-react';
+import { Send, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
 import { formatRelativeTime } from '../../utils/helpers';
 import Button from '../ui/Button';
 import { AnimatePresence, motion } from 'framer-motion';
 
 const ChatPanel: React.FC = () => {
   const [input, setInput] = useState('');
-  const { addChatMessage, updateLastChatMessage, setTyping, isTyping, chatHistory } = useAppStore();
+  const { 
+    addChatMessage, 
+    updateLastChatMessage, 
+    setTyping, 
+    isTyping, 
+    chatHistory,
+    isRecording,
+    startRecording,
+    stopRecording,
+    isSpeaking,
+    spokenMessageId,
+    speakMessage,
+    stopSpeaking,
+  } = useAppStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -18,6 +30,11 @@ const ChatPanel: React.FC = () => {
   };
 
   useEffect(scrollToBottom, [chatHistory, isTyping]);
+  
+  // Clean up speech synthesis on component unmount
+  useEffect(() => {
+    return () => stopSpeaking();
+  }, [stopSpeaking]);
 
   const handleSend = async () => {
     if (!input.trim() || isTyping) return;
@@ -52,7 +69,17 @@ const ChatPanel: React.FC = () => {
         e.preventDefault();
         handleSend();
     }
-  }
+  };
+
+  const handleVoiceRecording = () => {
+    if (isRecording) {
+        stopRecording((transcript) => {
+            setInput(prev => prev + transcript);
+        });
+    } else {
+        startRecording();
+    }
+  };
 
   return (
     <div>
@@ -73,7 +100,20 @@ const ChatPanel: React.FC = () => {
                             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                             className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}
                         >
-                            {msg.role === 'model' && <span className="text-xl mt-1" aria-hidden="true">🤖</span>}
+                            {msg.role === 'model' && (
+                                <div className="flex flex-col items-center gap-2">
+                                    <span className="text-xl mt-1" aria-hidden="true">🤖</span>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="!p-1"
+                                      onClick={() => isSpeaking && spokenMessageId === msg.id ? stopSpeaking() : speakMessage(msg.id, msg.content)}
+                                      title={isSpeaking && spokenMessageId === msg.id ? 'Detener lectura' : 'Leer en voz alta'}
+                                    >
+                                        {isSpeaking && spokenMessageId === msg.id ? <VolumeX size={14} /> : <Volume2 size={14} />}
+                                    </Button>
+                                </div>
+                            )}
                             <div className={`max-w-xl rounded-xl px-4 py-3 shadow-md ${
                                 msg.role === 'user' 
                                     ? 'bg-gradient-to-br from-kai-primary to-indigo-600 text-white chat-bubble-user' 
@@ -103,21 +143,30 @@ const ChatPanel: React.FC = () => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Envíame un mensaje..."
-            className="form-textarea w-full pr-16"
+            placeholder="Envíame un mensaje o utiliza el micrófono..."
+            className="form-textarea w-full pr-28"
             rows={2}
             disabled={isTyping}
             aria-label="Mensaje de chat"
           />
-          <Button 
-            onClick={handleSend} 
-            disabled={!input.trim() || isTyping} 
-            loading={isTyping}
-            className="absolute right-3 top-1/2 -translate-y-1/2 !p-2 !h-9 !w-9 !rounded-full"
-            aria-label="Enviar mensaje"
-          >
-            {!isTyping && <Send className="h-5 w-5" />}
-          </Button>
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+            <Button
+              onClick={handleVoiceRecording}
+              className={`!p-2 !h-9 !w-9 !rounded-full ${isRecording ? 'bg-red-500 hover:bg-red-600' : ''}`}
+              title={isRecording ? 'Detener grabación' : 'Grabar voz'}
+            >
+              {isRecording ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+            </Button>
+            <Button 
+              onClick={handleSend} 
+              disabled={!input.trim() || isTyping} 
+              loading={isTyping}
+              className="!p-2 !h-9 !w-9 !rounded-full"
+              aria-label="Enviar mensaje"
+            >
+              {!isTyping && <Send className="h-5 w-5" />}
+            </Button>
+          </div>
         </div>
       </div>
     </div>
