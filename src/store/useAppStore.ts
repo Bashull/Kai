@@ -11,6 +11,7 @@ import { createImageSlice } from './slices/createImageSlice';
 import { createTaskSlice } from './slices/createTaskSlice';
 import { createConstitutionSlice } from './slices/createConstitutionSlice';
 import { createResumeSlice } from './slices/createResumeSlice';
+import { createNotificationSlice } from './slices/createNotificationSlice';
 
 export const useAppStore = create<AppState>()(
   persist(
@@ -25,6 +26,7 @@ export const useAppStore = create<AppState>()(
       ...createTaskSlice(...a),
       ...createConstitutionSlice(...a),
       ...createResumeSlice(...a),
+      ...createNotificationSlice(...a),
     }),
     {
       name: 'kai-ultra-pro-storage',

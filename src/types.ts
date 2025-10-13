@@ -214,6 +214,21 @@ export interface ResumeSlice {
   setIsGenerating: (isGenerating: boolean) => void;
 }
 
+// --- Notifications ---
+export type NotificationType = 'success' | 'error' | 'info';
+
+export interface Notification {
+  id: string;
+  type: NotificationType;
+  message: string;
+}
+
+export interface NotificationSlice {
+  notifications: Notification[];
+  addNotification: (notification: Omit<Notification, 'id'>) => void;
+  removeNotification: (id: string) => void;
+}
+
 
 // --- Zustand App State ---
 export type AppState = UISlice &
@@ -225,7 +240,8 @@ export type AppState = UISlice &
   ImageSlice &
   TaskSlice &
   ConstitutionSlice &
-  ResumeSlice;
+  ResumeSlice &
+  NotificationSlice;
 
 export type AppSlice<T> = StateCreator<
   AppState,

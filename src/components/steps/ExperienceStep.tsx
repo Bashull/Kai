@@ -8,7 +8,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import { Experience } from '../../types';
 
 const ExperienceItem: React.FC<{ item: Experience; index: number }> = ({ item, index }) => {
-  const { updateExperience, removeExperience, setIsGenerating } = useAppStore();
+  const { updateExperience, removeExperience, setIsGenerating, addNotification } = useAppStore();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     updateExperience(index, e.target.name as keyof Experience, e.target.value);
@@ -20,7 +20,7 @@ const ExperienceItem: React.FC<{ item: Experience; index: number }> = ({ item, i
 
   const handleAIDescription = async () => {
     if (!item.jobTitle || !item.company) {
-      alert("Por favor, introduce un Puesto y una Empresa para la asistencia de IA.");
+      addNotification({ type: 'error', message: "Por favor, introduce un Puesto y una Empresa para la asistencia de IA." });
       return;
     }
     setIsGenerating(true);
@@ -30,7 +30,7 @@ const ExperienceItem: React.FC<{ item: Experience; index: number }> = ({ item, i
       updateExperience(index, 'description', result);
     } catch (error) {
       console.error(error);
-      alert("No se pudo generar la descripción.");
+      addNotification({ type: 'error', message: "No se pudo generar la descripción." });
     } finally {
       setIsGenerating(false);
     }

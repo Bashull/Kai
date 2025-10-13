@@ -32,7 +32,7 @@ const ClassicTemplate: React.FC = () => {
               <p className="text-sm font-light">{exp.startDate} - {exp.isCurrent ? 'Actual' : exp.endDate}</p>
             </div>
             <p className="italic">{exp.company}, {exp.location}</p>
-            <div className="prose prose-sm mt-1" dangerouslySetInnerHTML={{ __html: exp.description.replace(/\n/g, '<br />') }} />
+            <div className="text-sm mt-1 whitespace-pre-wrap">{exp.description}</div>
           </div>
         ))}
       </section>

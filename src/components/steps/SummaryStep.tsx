@@ -4,11 +4,11 @@ import { generateWithAI } from '../../services/geminiService';
 import { AIButton } from '../common';
 
 const SummaryStep: React.FC = () => {
-  const { summary, setSummary, resumeData, setIsGenerating } = useAppStore();
+  const { summary, setSummary, resumeData, setIsGenerating, addNotification } = useAppStore();
 
   const handleAIGenerate = async () => {
     if (resumeData.experience.length === 0) {
-      alert("Añade alguna experiencia laboral para que pueda generar un resumen.");
+      addNotification({ type: 'info', message: "Añade alguna experiencia laboral para que pueda generar un resumen." });
       return;
     }
     setIsGenerating(true);
@@ -21,7 +21,7 @@ const SummaryStep: React.FC = () => {
       setSummary(result);
     } catch (error) {
       console.error(error);
-      alert("No se pudo generar el resumen.");
+      addNotification({ type: 'error', message: "No se pudo generar el resumen." });
     } finally {
       setIsGenerating(false);
     }

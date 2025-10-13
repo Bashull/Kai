@@ -16,6 +16,7 @@ import TasksPanel from './components/panels/TasksPanel';
 import SettingsPanel from './components/panels/SettingsPanel';
 import ResumeBuilderPanel from './components/panels/ResumeBuilderPanel';
 import KaiAvatar from './components/ui/KaiAvatar';
+import { ToastContainer } from './components/ui/Toast';
 
 const panelMap = {
   chat: ChatPanel,
@@ -57,6 +58,7 @@ const App: React.FC = () => {
         </div>
       </motion.main>
       <KaiAvatar />
+      <ToastContainer />
     </div>
   );
 };

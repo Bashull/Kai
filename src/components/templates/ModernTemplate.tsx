@@ -51,7 +51,7 @@ const ModernTemplate: React.FC = () => {
                                 <p className="text-xs text-gray-500">{exp.startDate} - {exp.isCurrent ? 'Actual' : exp.endDate}</p>
                             </div>
                             <p className="font-semibold text-gray-700">{exp.company}, {exp.location}</p>
-                             <div className="prose prose-sm mt-1 text-gray-600" dangerouslySetInnerHTML={{ __html: exp.description.replace(/\n/g, '<br />') }} />
+                             <div className="text-sm mt-1 text-gray-600 whitespace-pre-wrap">{exp.description}</div>
                         </div>
                     ))}
                 </section>

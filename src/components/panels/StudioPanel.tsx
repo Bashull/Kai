@@ -1,9 +1,10 @@
 
+
 import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Code, Image as ImageIcon, Terminal } from 'lucide-react';
 import CodePanel from './CodePanel';
-import ImagePanel from './ImagePanel';
+import ImagePanel from '../steps/ImagePanel';
 import ConsolePanel from './ConsolePanel';
 
 type StudioTab = 'code' | 'image' | 'console';

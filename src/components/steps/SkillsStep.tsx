@@ -6,7 +6,7 @@ import { X } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const SkillsStep: React.FC = () => {
-  const { skills, addSkill, removeSkill, resumeData, setIsGenerating } = useAppStore();
+  const { skills, addSkill, removeSkill, resumeData, setIsGenerating, addNotification } = useAppStore();
   const [newSkill, setNewSkill] = useState('');
 
   const handleAddSkill = () => {
@@ -24,7 +24,7 @@ const SkillsStep: React.FC = () => {
   const handleAISuggestions = async () => {
       const jobTitles = resumeData.experience.map(e => e.jobTitle).join(', ');
       if (!jobTitles) {
-          alert("Añade alguna experiencia laboral para que pueda sugerirte habilidades.");
+          addNotification({ type: 'info', message: "Añade alguna experiencia laboral para que pueda sugerirte habilidades." });
           return;
       }
       setIsGenerating(true);
@@ -34,7 +34,7 @@ const SkillsStep: React.FC = () => {
           result.split(',').forEach(skill => addSkill(skill.trim()));
       } catch (error) {
           console.error(error);
-          alert("No se pudieron generar sugerencias.");
+          addNotification({ type: 'error', message: "No se pudieron generar sugerencias." });
       } finally {
           setIsGenerating(false);
       }
