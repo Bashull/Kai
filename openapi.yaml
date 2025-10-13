@@ -85,7 +85,7 @@ paths:
             application/json:
               schema:
                 type: object
-
+  
   /api/forge/start-training:
     post:
       operationId: startTraining
@@ -133,7 +133,7 @@ paths:
             application/json:
               schema:
                 type: object # Refers to the TrainingJob type in the app
-                
+
   /drive/v3/files:
     get:
       operationId: listPublicDriveFiles
