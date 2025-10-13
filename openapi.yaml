@@ -1,13 +1,24 @@
 openapi: 3.1.0
 info:
-  title: Kai FusionAI API
-  description: Acciones para acceder, consolidar y operar sobre las memorias y documentos del sistema Kai/FusionAI.
-  version: 1.0.0
+  title: Kai FusionAI API Unificada
+  description: API unificada para acceder a las memorias de Kai, operar La Forja, y conectar con Google Drive para archivos públicos y privados.
+  version: 1.1.0
 servers:
   - url: https://db7b1716-8580-4438-b2e5-26a39bc47d79-00-1v1sjqe5urhuq.spock.replit.dev
-    description: Servidor Replit (memorias y consolidado)
+    description: Servidor Replit (Memorias y Forja)
   - url: https://www.googleapis.com
-    description: API pública de Google Drive (solo para documentos compartidos públicamente)
+    description: API de Google Drive
+components:
+  securitySchemes:
+    googleOAuth:
+      type: oauth2
+      description: Acceso OAuth a tu cuenta de Google Drive.
+      flows:
+        authorizationCode:
+          authorizationUrl: https://accounts.google.com/o/oauth2/v2/auth
+          tokenUrl: https://oauth2.googleapis.com/token
+          scopes:
+            https://www.googleapis.com/auth/drive.readonly: Acceso de solo lectura a tus archivos de Drive.
 paths:
   /api/consciousness/memories:
     get:
@@ -15,46 +26,25 @@ paths:
       summary: Obtener recuerdos de Kai
       responses:
         '200':
-          description: Lista de recuerdos en JSON
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-
+          description: Lista de recuerdos en JSON.
   /api/consciousness/diary:
     get:
       operationId: getDiary
       summary: Obtener entradas del diario de Kai
       responses:
         '200':
-          description: Lista de entradas del diario
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-
+          description: Lista de entradas del diario.
   /api/consciousness/snapshots:
     get:
       operationId: getSnapshots
       summary: Obtener snapshots de conciencia de Kai
       responses:
         '200':
-          description: Lista de snapshots
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-
+          description: Lista de snapshots.
   /api/consciousness/search:
     get:
       operationId: searchMemories
-      summary: Buscar recuerdos, diarios o snapshots relacionados con un término
+      summary: Buscar en la memoria de Kai
       parameters:
         - name: query
           in: query
@@ -63,29 +53,14 @@ paths:
             type: string
       responses:
         '200':
-          description: Resultados de búsqueda
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-
+          description: Resultados de búsqueda.
   /api/consciousness/memory/compile:
     post:
       operationId: compileMemory
-      summary: Generar el archivo consolidado de memoria (`memoria_kai.json`)
-      description: Consolida recuerdos, diarios y snapshots en un solo archivo JSON estructurado.
-      requestBody:
-        required: false
+      summary: Generar archivo de memoria consolidado
       responses:
         '200':
-          description: JSON consolidado de memoria generado correctamente
-          content:
-            application/json:
-              schema:
-                type: object
-  
+          description: JSON de memoria generado.
   /api/forge/start-training:
     post:
       operationId: startTraining
@@ -97,25 +72,11 @@ paths:
             schema:
               type: object
               properties:
-                modelName:
-                  type: string
-                description:
-                  type: string
+                modelName: { type: string }
+                description: { type: string }
       responses:
         '202':
-          description: Trabajo de entrenamiento aceptado
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  jobId:
-                    type: string
-                  status:
-                    type: string
-                  message:
-                    type: string
-
+          description: Trabajo de entrenamiento aceptado.
   /api/forge/jobs/{jobId}:
     get:
       operationId: getTrainingJobStatus
@@ -128,57 +89,78 @@ paths:
             type: string
       responses:
         '200':
-          description: Estado y logs del trabajo
-          content:
-            application/json:
-              schema:
-                type: object # Refers to the TrainingJob type in the app
-
+          description: Estado y logs del trabajo.
   /drive/v3/files:
     get:
-      operationId: listPublicDriveFiles
-      summary: Listar archivos compartidos públicamente desde Google Drive
+      operationId: listDriveFiles
+      summary: Listar archivos de tu Google Drive
+      security:
+        - googleOAuth:
+            - https://www.googleapis.com/auth/drive.readonly
       parameters:
         - name: q
           in: query
           required: false
-          description: Filtro de búsqueda, por ejemplo `name contains 'Kai'`
+          description: Filtro de búsqueda, como "name contains 'Kai'".
           schema:
             type: string
-        - name: key
+        - name: pageSize
           in: query
-          required: true
-          description: Tu API key de Google Drive (requiere habilitar el API)
+          schema:
+            type: integer
+            default: 15
+        - name: fields
+          in: query
           schema:
             type: string
+            default: "files(id,name,mimeType,modifiedTime,iconLink)"
       responses:
         '200':
-          description: Lista de archivos en Google Drive que cumplen con el filtro
-          content:
-            application/json:
-              schema:
-                type: object
-
+          description: Lista de archivos.
   /drive/v3/files/{fileId}:
     get:
-      operationId: getDriveFileMetadata
-      summary: Obtener metadata de un archivo compartido públicamente
+      operationId: getDriveFileById
+      summary: Obtener metadatos de un archivo de Drive
+      security:
+        - googleOAuth:
+            - https://www.googleapis.com/auth/drive.readonly
       parameters:
         - name: fileId
           in: path
           required: true
           schema:
             type: string
-        - name: key
+        - name: fields
+          in: query
+          schema:
+            type: string
+            default: "id,name,mimeType,modifiedTime,webViewLink"
+      responses:
+        '200':
+          description: Metadatos del archivo.
+  /drive/v3/files/{fileId}/export:
+    get:
+      operationId: exportGoogleDoc
+      summary: Exportar un Google Doc como texto
+      security:
+        - googleOAuth:
+            - https://www.googleapis.com/auth/drive.readonly
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: mimeType
           in: query
           required: true
-          description: Tu API key de Google Drive
+          description: Tipo de exportación, p. ej., "text/plain".
           schema:
             type: string
       responses:
         '200':
-          description: Metadatos del archivo (nombre, tipo, etc.)
+          description: Contenido del documento exportado.
           content:
-            application/json:
+            text/plain:
               schema:
-                type: object
+                type: string
