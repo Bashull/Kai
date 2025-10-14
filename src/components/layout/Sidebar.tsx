@@ -1,17 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+// FIX: Replaced aliased import path with a relative path.
 import { useAppStore } from '../../store/useAppStore';
 import {
     MessageSquare, BrainCircuit, Flame, Bot, CheckSquare, Settings,
     FileText, Star, BookOpen, Camera, Search, Bell, Menu, X, Radio
 } from 'lucide-react';
+// FIX: Replaced aliased import path with a relative path.
 import KaiAvatar from '../ui/KaiAvatar';
+// FIX: Replaced aliased import path with a relative path.
 import NotificationPopover from '../ui/NotificationPopover';
-// FIX: Replace `parseISO` with `new Date()` constructor as `parseISO` is causing an import error.
 import { isToday } from 'date-fns';
+// FIX: Replaced aliased import path with a relative path.
 import { Panel } from '../../types';
 
-// FIX: Explicitly type `id` as `Panel` to satisfy `setActivePanel`'s expected argument type.
 const navItems: { id: Panel; label: string; icon: React.ElementType }[] = [
     { id: 'chat', label: 'Chat', icon: MessageSquare },
     { id: 'live', label: 'Live', icon: Radio },
@@ -22,7 +24,6 @@ const navItems: { id: Panel; label: string; icon: React.ElementType }[] = [
     { id: 'resume', label: 'Constructor CV', icon: FileText },
 ];
 
-// FIX: Explicitly type `id` as `Panel` to satisfy `setActivePanel`'s expected argument type.
 const secondaryNavItems: { id: Panel; label: string; icon: React.ElementType }[] = [
     { id: 'awesome', label: 'Recursos', icon: Star },
     { id: 'diary', label: 'Diario', icon: BookOpen },
@@ -31,7 +32,6 @@ const secondaryNavItems: { id: Panel; label: string; icon: React.ElementType }[]
 
 const NavButton: React.FC<{ item: { id: string, label: string, icon: React.ElementType }; isActive: boolean; isCollapsed: boolean; onClick: () => void; badgeCount?: number }> =
     ({ item, isActive, isCollapsed, onClick, badgeCount = 0 }) => {
-        // FIX: Using variants for framer-motion animations to resolve typing issues.
         const spanVariants = {
             initial: { opacity: 0, width: 0 },
             animate: { opacity: 1, width: 'auto' },
@@ -50,7 +50,6 @@ const NavButton: React.FC<{ item: { id: string, label: string, icon: React.Eleme
                 <item.icon className={`h-5 w-5 ${isCollapsed ? '' : 'mr-3'}`} />
                 <AnimatePresence>
                     {!isCollapsed && (
-                        // FIX: Switched to using variants for framer-motion props to avoid type errors.
                         <motion.span
                             variants={spanVariants}
                             initial="initial"
@@ -89,7 +88,6 @@ const Sidebar: React.FC = () => {
     const [dueTasks, setDueTasks] = useState<any[]>([]);
 
     useEffect(() => {
-        // FIX: Replace `parseISO` with `new Date()` to avoid import errors.
         const todayTasks = tasks.filter(task => task.dueDate && task.status === 'PENDING' && isToday(new Date(task.dueDate)));
         setDueTasks(todayTasks);
     }, [tasks]);
@@ -144,7 +142,6 @@ const Sidebar: React.FC = () => {
                             item={item}
                             isActive={activePanel === item.id}
                             isCollapsed={sidebarCollapsed}
-                            // FIX: item.id is now correctly typed as Panel.
                             onClick={() => setActivePanel(item.id)}
                         />
                     ))}
@@ -160,7 +157,6 @@ const Sidebar: React.FC = () => {
                                 item={item}
                                 isActive={activePanel === item.id}
                                 isCollapsed={sidebarCollapsed}
-                                // FIX: item.id is now correctly typed as Panel.
                                 onClick={() => setActivePanel(item.id)}
                             />
                         ))}

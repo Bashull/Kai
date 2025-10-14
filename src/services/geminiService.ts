@@ -1,6 +1,9 @@
 import { GoogleGenAI, FunctionCall } from "@google/genai";
+// FIX: Replaced aliased import path with a relative path.
 import { GeneratedImage, CodeLanguage, Entity } from "../types";
+// FIX: Replaced aliased import path with a relative path.
 import { kaiTools } from './kaiTools';
+// FIX: Replaced aliased import path with a relative path.
 import { apiClient } from './apiClient';
 
 

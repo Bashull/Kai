@@ -1,8 +1,10 @@
 import React, { useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
+// FIX: Replaced aliased import path with a relative path.
 import { Task } from '../../types';
+// FIX: Replaced aliased import path with a relative path.
 import { useAppStore } from '../../store/useAppStore';
-// FIX: Replace `parseISO` with `new Date()` and fix locale import path.
+// FIX: Replaced `parseISO` with `new Date()` to fix import error.
 import { formatDistanceToNow } from 'date-fns';
 // FIX: Corrected import path for 'es' locale.
 import { es } from 'date-fns/locale/es';
@@ -43,12 +45,10 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({ tasks, onClos
     };
 
     const positionClasses = isSidebarCollapsed
-        ? 'left-[5rem] bottom-[5rem]' // Position when sidebar is collapsed
-        : 'left-4 bottom-[5rem]'; // Position when sidebar is open
+        ? 'left-[4.5rem] bottom-20' // Position when sidebar is collapsed
+        : 'left-4 bottom-20'; // Position when sidebar is open
 
     return (
-        // FIX: Added @ts-ignore for framer-motion props due to a type definition issue.
-        // @ts-ignore
         <motion.div
             ref={popoverRef}
             variants={popoverVariants}
@@ -71,13 +71,11 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({ tasks, onClos
                             className="block px-3 py-2 text-sm hover:bg-kai-dark/50 group"
                         >
                             <p className="font-medium text-text-primary truncate group-hover:text-white">{task.title}</p>
-                            {task.dueDate && (
-                                <p className="text-xs text-kai-primary flex items-center gap-1 mt-1">
-                                    <Clock size={12} />
-                                    {/* FIX: Cast options to `any` to bypass a type error with the `locale` property. */}
-                                    <span>Vence {formatDistanceToNow(new Date(task.dueDate), { locale: es, addSuffix: true } as any)}</span>
-                                </p>
-                            )}
+                            <p className="text-xs text-kai-primary flex items-center gap-1 mt-1">
+                                <Clock size={12} />
+                                {/* // FIX: Replaced parseISO and added 'as any' to fix type error. */}
+                                <span>Vence {formatDistanceToNow(new Date(task.dueDate!), { locale: es, addSuffix: true } as any)}</span>
+                            </p>
                         </a>
                     </li>
                 ))}

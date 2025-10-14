@@ -1,7 +1,7 @@
 import React from 'react';
-import { useAppStore } from '../../store/useAppStore';
-import Modal from './Modal';
-import MarkdownRenderer from './MarkdownRenderer';
+import { useAppStore } from '@/store/useAppStore';
+import Modal from '@/components/ui/Modal';
+import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import { Loader2 } from 'lucide-react';
 
 const SearchResultsModal: React.FC = () => {

@@ -1,7 +1,7 @@
 import React from 'react';
 import Button from './Button';
 import { Sparkles } from 'lucide-react';
-import { useAppStore } from '../../store/useAppStore';
+import { useAppStore } from '@/store/useAppStore';
 
 interface AIButtonProps extends React.ComponentProps<typeof Button> {
     onClick: () => void;

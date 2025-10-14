@@ -1,4 +1,5 @@
-import { TrainingJob, TrainingJobStatus } from '../types';
+// FIX: Replaced aliased import path with a relative path.
+import { TrainingJob } from '../types';
 
 const API_BASE_URL = 'https://db7b1716-8580-4438-b2e5-26a39bc47d79-00-1v1sjqe5urhuq.spock.replit.dev';
 

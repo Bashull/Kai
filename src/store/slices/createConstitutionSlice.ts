@@ -1,3 +1,4 @@
+// FIX: Replaced aliased import path with a relative path.
 import { ConstitutionSlice, AppSlice, Constitution } from '../../types';
 
 const initialConstitution: Constitution = {

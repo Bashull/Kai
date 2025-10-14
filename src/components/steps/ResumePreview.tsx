@@ -1,8 +1,8 @@
 import React, { useState, useRef } from 'react';
-import { useAppStore } from '../../store/useAppStore';
-import ClassicTemplate from '../templates/ClassicTemplate';
-import ModernTemplate from '../templates/ModernTemplate';
-import Button from '../ui/Button';
+import { useAppStore } from '@/store/useAppStore';
+import ClassicTemplate from '@/components/templates/ClassicTemplate';
+import ModernTemplate from '@/components/templates/ModernTemplate';
+import Button from '@/components/ui/Button';
 import { Download } from 'lucide-react';
 
 type Template = 'classic' | 'modern';

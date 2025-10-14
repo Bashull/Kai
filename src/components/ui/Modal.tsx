@@ -56,7 +56,6 @@ const Modal: React.FC<ModalProps> = ({
     full: 'max-w-7xl'
   };
 
-  // FIX: Using variants for framer-motion animations to resolve typing issues.
   const backdropVariants = {
     initial: { opacity: 0 },
     animate: { opacity: 1 },
@@ -72,7 +71,6 @@ const Modal: React.FC<ModalProps> = ({
   return createPortal(
     <AnimatePresence>
       {isOpen && (
-        // FIX: Switched to using variants for framer-motion props to avoid type errors.
         <motion.div
           variants={backdropVariants}
           initial="initial"

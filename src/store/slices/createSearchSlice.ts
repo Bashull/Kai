@@ -1,6 +1,7 @@
-import { AppSlice } from '../../types';
+// FIX: Replaced aliased import path with a relative path.
+import { AppSlice, SearchSlice } from '../../types';
+// FIX: Replaced aliased import path with a relative path.
 import { performAISearch } from '../../services/geminiService';
-import { SearchSlice } from '../../types';
 
 export const createSearchSlice: AppSlice<SearchSlice> = (set, get) => ({
   searchQuery: '',

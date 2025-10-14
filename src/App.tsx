@@ -1,26 +1,26 @@
 import React, { useEffect } from 'react';
-import { useAppStore } from './store/useAppStore';
+import { useAppStore } from '@/store/useAppStore';
 import { AnimatePresence, motion } from 'framer-motion';
 
 // Layout & UI
-import Sidebar from './components/layout/Sidebar';
-import DynamicBackground from './components/ui/DynamicBackground';
-import CustomCursor from './components/ui/CustomCursor';
-import { ToastContainer } from './components/ui/Toast';
-import SearchResultsModal from './components/ui/SearchResultsModal';
+import Sidebar from '@/components/layout/Sidebar';
+import DynamicBackground from '@/components/ui/DynamicBackground';
+import CustomCursor from '@/components/ui/CustomCursor';
+import { ToastContainer } from '@/components/ui/Toast';
+import SearchResultsModal from '@/components/ui/SearchResultsModal';
 
 // Panels
-import ChatPanel from './components/panels/ChatPanel';
-import LivePanel from './components/panels/LivePanel';
-import KernelPanel from './components/panels/KernelPanel';
-import ForgePanel from './components/panels/ForgePanel';
-import StudioPanel from './components/panels/StudioPanel';
-import TasksPanel from './components/panels/TasksPanel';
-import SettingsPanel from './components/panels/SettingsPanel';
-import ResumeBuilderPanel from './components/panels/ResumeBuilderPanel';
-import AwesomeResourcesPanel from './components/panels/AwesomeResourcesPanel';
-import DiaryPanel from './components/panels/DiaryPanel';
-import SnapshotsPanel from './components/panels/SnapshotsPanel';
+import ChatPanel from '@/components/panels/ChatPanel';
+import LivePanel from '@/components/panels/LivePanel';
+import KernelPanel from '@/components/panels/KernelPanel';
+import ForgePanel from '@/components/panels/ForgePanel';
+import StudioPanel from '@/components/panels/StudioPanel';
+import TasksPanel from '@/components/panels/TasksPanel';
+import SettingsPanel from '@/components/panels/SettingsPanel';
+import ResumeBuilderPanel from '@/components/panels/ResumeBuilderPanel';
+import AwesomeResourcesPanel from '@/components/panels/AwesomeResourcesPanel';
+import DiaryPanel from '@/components/panels/DiaryPanel';
+import SnapshotsPanel from '@/components/panels/SnapshotsPanel';
 
 const panelComponents: { [key: string]: React.FC } = {
   chat: ChatPanel,
@@ -56,7 +56,6 @@ const App: React.FC = () => {
   
   const ActivePanelComponent = panelComponents[activePanel];
 
-  // FIX: Using variants for framer-motion animations to resolve typing issues.
   const panelVariants = {
     initial: { opacity: 0, y: 20 },
     animate: { opacity: 1, y: 0 },
@@ -73,7 +72,6 @@ const App: React.FC = () => {
       <main className={`flex-1 transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'pl-20' : 'pl-64'}`}>
         <div className="p-4 sm:p-6 lg:p-8 h-screen overflow-y-auto">
             <AnimatePresence mode="wait">
-                 {/* FIX: Switched to using variants for framer-motion props to avoid type errors. */}
                  <motion.div
                     key={activePanel}
                     variants={panelVariants}

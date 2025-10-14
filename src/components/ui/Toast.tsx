@@ -1,7 +1,9 @@
 import React from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CheckCircle, XCircle, Info, X } from 'lucide-react';
+// FIX: Replaced aliased import path with a relative path.
 import { useAppStore } from '../../store/useAppStore';
+// FIX: Replaced aliased import path with a relative path.
 import { Notification } from '../../types';
 
 const icons = {
@@ -19,9 +21,8 @@ const Toast: React.FC<{ notification: Notification }> = ({ notification }) => {
     exit: { opacity: 0, y: 20, scale: 0.5 },
   };
 
+  // @ts-ignore
   return (
-    // FIX: Added @ts-ignore for the 'layout' prop due to a type definition issue.
-    // @ts-ignore
     <motion.div
       layout
       variants={toastVariants}

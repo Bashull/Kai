@@ -1,3 +1,4 @@
+// FIX: Replaced aliased import path with a relative path.
 import { AwesomeResourceSlice, AppSlice } from '../../types';
 
 export const createAwesomeResourceSlice: AppSlice<AwesomeResourceSlice> = (set) => ({

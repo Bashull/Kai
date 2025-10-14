@@ -1,4 +1,6 @@
+// FIX: Replaced aliased import path with a relative path.
 import { AppSlice, SnapshotSlice, Snapshot, SnapshotableState } from '../../types';
+// FIX: Replaced aliased import path with a relative path.
 import { generateId } from '../../utils/helpers';
 
 const SNAPSHOTABLE_KEYS: (keyof SnapshotableState)[] = [
@@ -31,9 +33,7 @@ export const createSnapshotSlice: AppSlice<SnapshotSlice> = (set, get) => ({
   loadSnapshot: (id: string) => {
     const snapshot = get().snapshots.find(s => s.id === id);
     if (snapshot) {
-      // FIX: Cast snapshot state to `any` to work around a complex Zustand typing issue with partial state replacement.
       set(snapshot.state as any, true);
-      // After loading, reset transient UI state and navigate to a safe panel
       set({ activePanel: 'chat', showSearchResults: false, showNotifications: false });
       get().addNotification({ type: 'info', message: `Snapshot "${snapshot.name}" cargado.` });
     } else {

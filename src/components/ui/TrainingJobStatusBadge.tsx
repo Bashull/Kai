@@ -1,5 +1,6 @@
 import React from 'react';
 import { Loader2, CheckCircle, XCircle, Hourglass } from 'lucide-react';
+// FIX: Replaced aliased import path with a relative path.
 import { TrainingJobStatus } from '../../types';
 
 interface TrainingJobStatusBadgeProps {

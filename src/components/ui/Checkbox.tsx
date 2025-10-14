@@ -38,7 +38,6 @@ const Checkbox: React.FC<CheckboxProps> = ({ id, checked, onChange, className = 
         readOnly={readOnly}
         {...props}
       />
-      {/* FIX: Added @ts-ignore for framer-motion props due to a type definition issue. */}
       {/* @ts-ignore */}
       <motion.div
         className="w-6 h-6 border-2 rounded-md flex items-center justify-center cursor-pointer"
@@ -56,7 +55,6 @@ const Checkbox: React.FC<CheckboxProps> = ({ id, checked, onChange, className = 
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
             >
-              {/* FIX: Added @ts-ignore for framer-motion props due to a type definition issue. */}
               {/* @ts-ignore */}
               <motion.path
                 d="M5 13l4 4L19 7"

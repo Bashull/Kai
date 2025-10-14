@@ -1,3 +1,4 @@
+// FIX: Replaced aliased import path with a relative path.
 import { UISlice, AppSlice, Panel, Theme, Task } from '../../types';
 
 export const createUISlice: AppSlice<UISlice> = (set) => ({

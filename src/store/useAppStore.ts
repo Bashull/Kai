@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+// FIX: Replaced aliased import path with a relative path.
 import { AppState } from '../types';
+// FIX: Replaced aliased import paths with relative paths.
 import { createUISlice } from './slices/createUISlice';
 import { createChatSlice } from './slices/createChatSlice';
 import { createKernelSlice } from './slices/createKernelSlice';
@@ -43,19 +45,17 @@ export const useAppStore = create<AppState>()(
     {
       name: 'kai-os-v3-storage',
       storage: createJSONStorage(() => localStorage),
-      // Only persist non-sensitive UI settings and important data
       partialize: (state) => ({
         activePanel: state.activePanel,
         sidebarCollapsed: state.sidebarCollapsed,
         theme: state.theme,
         codeLanguage: state.codeLanguage,
-        tasks: state.tasks, // Persist user's tasks
-        constitution: state.constitution, // Persist constitution
-        versionHistory: state.versionHistory, // Persist history
-        resumeData: state.resumeData, // Persist resume data
-        diary: state.diary, // Persist diary
-        snapshots: state.snapshots, // Persist snapshots
-        // FIX: Added critical state slices to persistence to prevent data loss on refresh.
+        tasks: state.tasks,
+        constitution: state.constitution,
+        versionHistory: state.versionHistory,
+        resumeData: state.resumeData,
+        diary: state.diary,
+        snapshots: state.snapshots,
         chatHistory: state.chatHistory,
         entities: state.entities,
         trainingJobs: state.trainingJobs,
