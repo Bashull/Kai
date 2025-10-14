@@ -21,8 +21,6 @@ const DiaryEntryCard: React.FC<{ entry: DiaryEntry }> = ({ entry }) => {
   };
 
   return (
-    // FIX: Added @ts-ignore for the 'layout' prop due to a type definition issue.
-    // @ts-ignore
     <motion.div
       layout
       variants={cardVariants}
@@ -58,7 +56,6 @@ const DiaryPanel: React.FC = () => {
         <div className="space-y-4">
           <AnimatePresence>
             {diary.length === 0 ? (
-              // FIX: Switched to using variants for framer-motion props to avoid type errors.
               <motion.div
                 variants={emptyStateVariants}
                 initial="initial"

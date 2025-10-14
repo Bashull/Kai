@@ -1,4 +1,3 @@
-// FIX: Replaced aliased import path with a relative path.
 import { ImageSlice, AppSlice, GeneratedImage } from '../../types';
 
 export const createImageSlice: AppSlice<ImageSlice> = (set) => ({

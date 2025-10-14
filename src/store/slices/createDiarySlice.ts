@@ -1,6 +1,4 @@
-// FIX: Replaced aliased import path with a relative path.
 import { DiarySlice, AppSlice, DiaryEntry } from '../../types';
-// FIX: Replaced aliased import path with a relative path.
 import { generateId } from '../../utils/helpers';
 
 const initialDiary: DiaryEntry[] = [

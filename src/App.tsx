@@ -1,28 +1,29 @@
 import React, { useEffect } from 'react';
-import { useAppStore } from '@/store/useAppStore';
+import { useAppStore } from './store/useAppStore';
 import { AnimatePresence, motion } from 'framer-motion';
 
 // Layout & UI
-import Sidebar from '@/components/layout/Sidebar';
-import DynamicBackground from '@/components/ui/DynamicBackground';
-import CustomCursor from '@/components/ui/CustomCursor';
-import { ToastContainer } from '@/components/ui/Toast';
-import SearchResultsModal from '@/components/ui/SearchResultsModal';
+import Sidebar from './components/layout/Sidebar';
+import DynamicBackground from './components/ui/DynamicBackground';
+import CustomCursor from './components/ui/CustomCursor';
+import { ToastContainer } from './components/ui/Toast';
+import SearchResultsModal from './components/ui/SearchResultsModal';
 
 // Panels
-import ChatPanel from '@/components/panels/ChatPanel';
-import LivePanel from '@/components/panels/LivePanel';
-import KernelPanel from '@/components/panels/KernelPanel';
-import ForgePanel from '@/components/panels/ForgePanel';
-import StudioPanel from '@/components/panels/StudioPanel';
-import TasksPanel from '@/components/panels/TasksPanel';
-import SettingsPanel from '@/components/panels/SettingsPanel';
-import ResumeBuilderPanel from '@/components/panels/ResumeBuilderPanel';
-import AwesomeResourcesPanel from '@/components/panels/AwesomeResourcesPanel';
-import DiaryPanel from '@/components/panels/DiaryPanel';
-import SnapshotsPanel from '@/components/panels/SnapshotsPanel';
+import ChatPanel from './components/panels/ChatPanel';
+import LivePanel from './components/panels/LivePanel';
+import KernelPanel from './components/panels/KernelPanel';
+import ForgePanel from './components/panels/ForgePanel';
+import StudioPanel from './components/panels/StudioPanel';
+import TasksPanel from './components/panels/TasksPanel';
+import SettingsPanel from './components/panels/SettingsPanel';
+import ResumeBuilderPanel from './components/panels/ResumeBuilderPanel';
+import AwesomeResourcesPanel from './components/panels/AwesomeResourcesPanel';
+import DiaryPanel from './components/panels/DiaryPanel';
+import SnapshotsPanel from './components/panels/SnapshotsPanel';
+import { Panel } from './types';
 
-const panelComponents: { [key: string]: React.FC } = {
+const panelComponents: { [key in Panel]: React.FC } = {
   chat: ChatPanel,
   live: LivePanel,
   kernel: KernelPanel,

@@ -1,17 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-// FIX: Replaced aliased import path with a relative path.
 import { useAppStore } from '../../store/useAppStore';
 import {
     MessageSquare, BrainCircuit, Flame, Bot, CheckSquare, Settings,
     FileText, Star, BookOpen, Camera, Search, Bell, Menu, X, Radio
 } from 'lucide-react';
-// FIX: Replaced aliased import path with a relative path.
 import KaiAvatar from '../ui/KaiAvatar';
-// FIX: Replaced aliased import path with a relative path.
 import NotificationPopover from '../ui/NotificationPopover';
 import { isToday } from 'date-fns';
-// FIX: Replaced aliased import path with a relative path.
 import { Panel } from '../../types';
 
 const navItems: { id: Panel; label: string; icon: React.ElementType }[] = [

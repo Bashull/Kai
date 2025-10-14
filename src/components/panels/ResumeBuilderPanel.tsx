@@ -36,7 +36,6 @@ const ResumeBuilderPanel: React.FC = () => {
     }
   };
 
-  // FIX: Using variants for framer-motion animations to resolve typing issues.
   const stepVariants = {
     initial: { opacity: 0, x: 20 },
     animate: { opacity: 1, x: 0 },
@@ -53,7 +52,6 @@ const ResumeBuilderPanel: React.FC = () => {
         
         <div className="mt-8 panel-container min-h-[calc(100vh-22rem)]">
           <AnimatePresence mode="wait">
-            {/* FIX: Switched to using variants for framer-motion props to avoid type errors. */}
             <motion.div
               key={currentStep}
               variants={stepVariants}

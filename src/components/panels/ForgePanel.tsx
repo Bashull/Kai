@@ -58,7 +58,6 @@ const ForgePanel: React.FC = () => {
         );
     };
     
-    // FIX: Using variants for framer-motion animations to resolve typing issues.
     const controlPanelVariants = {
         initial: { opacity: 0, y: 20 },
         animate: { opacity: 1, y: 0 },
@@ -82,7 +81,6 @@ const ForgePanel: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Control Panel */}
             <div className="lg:col-span-1">
-                 {/* FIX: Switched to using variants for framer-motion props to avoid type errors. */}
                  <motion.div
                     variants={controlPanelVariants}
                     initial="initial"
@@ -142,7 +140,6 @@ const ForgePanel: React.FC = () => {
                  <div className="space-y-4 max-h-[calc(100vh-20rem)] overflow-y-auto pr-2">
                     <AnimatePresence>
                         {!trainingJobs.length && (
-                             // FIX: Switched to using variants for framer-motion props to avoid type errors.
                              <motion.div
                                 variants={logVariants}
                                 initial="initial"
@@ -154,8 +151,6 @@ const ForgePanel: React.FC = () => {
                             </motion.div>
                         )}
                         {trainingJobs.map(job => (
-                             // FIX: Added @ts-ignore for the 'layout' prop due to a type definition issue.
-                             // @ts-ignore
                              <motion.div
                                 key={job.id}
                                 layout
@@ -205,7 +200,6 @@ const ForgePanel: React.FC = () => {
                         className="flex items-center gap-3 p-3 rounded-lg hover:bg-kai-dark/50 cursor-pointer"
                         onClick={() => toggleEntitySelection(entity.id)}
                     >
-                        {/* FIX: Added a dummy onChange handler to satisfy Checkbox component's required props when readOnly is true. */}
                         <Checkbox id={`entity-${entity.id}`} checked={selectedEntityIds.includes(entity.id)} onChange={() => {}} readOnly />
                         <label htmlFor={`entity-${entity.id}`} className="flex-grow cursor-pointer">
                             <span className="font-medium text-sm text-text-primary">{entity.content.substring(0, 100)}{entity.content.length > 100 ? '...' : ''}</span>

@@ -5,10 +5,8 @@ import { CheckSquare, Plus, Trash2, Calendar, Play, Bot } from 'lucide-react';
 import Button from '../ui/Button';
 import Checkbox from '../ui/Checkbox';
 import { Task } from '../../types';
-// FIX: Replace `parseISO` with `new Date()` and fix locale import path.
 import { format, isToday, isPast } from 'date-fns';
-// FIX: Corrected import path for 'es' locale.
-import { es } from 'date-fns/locale/es';
+import { es } from 'date-fns/locale';
 
 const DueDateDisplay: React.FC<{ dueDate: string }> = ({ dueDate }) => {
     const date = new Date(dueDate);
@@ -55,8 +53,6 @@ const TaskItem: React.FC<{ task: Task }> = ({ task }) => {
     };
 
     return (
-        // FIX: Added @ts-ignore for the 'layout' prop due to a type definition issue.
-        // @ts-ignore
         <motion.li
             layout
             variants={taskItemVariants}
@@ -159,7 +155,6 @@ const TasksPanel: React.FC = () => {
                                 onClick={toggleAutonomousMode}
                                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isAutonomousMode ? 'bg-kai-primary' : 'bg-gray-600'}`}
                             >
-                                {/* FIX: Replaced `translateX` with `x` for framer-motion transform. */}
                                 <motion.span
                                     layout
                                     transition={{ type: 'spring', stiffness: 700, damping: 30 }}

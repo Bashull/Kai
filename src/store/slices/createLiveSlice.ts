@@ -1,7 +1,5 @@
-// FIX: Replaced aliased import path with a relative path.
 import { AppSlice, LiveSlice } from '../../types';
 import { GoogleGenAI, LiveServerMessage, Modality } from '@google/genai';
-// FIX: Replaced aliased import path with a relative path.
 import { generateId, decode, decodeAudioData, createBlob } from '../../utils/helpers';
 
 // Module-level variables to manage audio contexts and streams

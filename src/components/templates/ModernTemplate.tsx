@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAppStore } from '@/store/useAppStore';
+import { useAppStore } from '../../store/useAppStore';
 import { Mail, Phone, MapPin, Globe } from 'lucide-react';
 
 const ModernTemplate: React.FC = () => {

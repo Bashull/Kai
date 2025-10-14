@@ -1,6 +1,4 @@
-// FIX: Replaced aliased import path with a relative path.
 import { KernelSlice, AppSlice, Entity } from '../../types';
-// FIX: Replaced aliased import path with a relative path.
 import { generateId } from '../../utils/helpers';
 
 const initialEntities: Entity[] = [

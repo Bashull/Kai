@@ -1,9 +1,6 @@
 import React from 'react';
-// FIX: Replaced aliased import path with a relative path.
 import { useAppStore } from '../../store/useAppStore';
-// FIX: Replaced aliased import path with a relative path.
 import { generateWithAI } from '../../services/geminiService';
-// FIX: Replaced aliased import path with a relative path.
 import { AIButton } from '../ui/AIButton';
 
 const SummaryStep: React.FC = () => {

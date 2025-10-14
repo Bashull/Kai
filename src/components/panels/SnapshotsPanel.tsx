@@ -27,7 +27,6 @@ const SnapshotCard: React.FC<{ snapshot: Snapshot }> = ({ snapshot }) => {
         { icon: BookText, value: snapshot.state.diary.length, label: 'Entradas del Diario' },
     ];
     
-    // FIX: Using variants for framer-motion animations to resolve typing issues.
     const cardVariants = {
         initial: { opacity: 0, y: 50, scale: 0.8 },
         animate: { opacity: 1, y: 0, scale: 1 },
@@ -35,8 +34,6 @@ const SnapshotCard: React.FC<{ snapshot: Snapshot }> = ({ snapshot }) => {
     }
 
     return (
-        // FIX: Added @ts-ignore for the 'layout' prop due to a type definition issue.
-        // @ts-ignore
         <motion.div
             layout
             variants={cardVariants}
@@ -121,7 +118,6 @@ const SnapshotsPanel: React.FC = () => {
             <div className="space-y-4">
                 <AnimatePresence>
                     {snapshots.length === 0 ? (
-                        // FIX: Switched to using variants for framer-motion props to avoid type errors.
                         <motion.div
                             variants={emptyStateVariants}
                             initial="initial"

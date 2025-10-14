@@ -1,8 +1,5 @@
-// FIX: Replaced aliased import path with a relative path.
 import { ChatSlice, AppSlice, ChatMessage } from '../../types';
-// FIX: Replaced aliased import path with a relative path.
 import { generateId } from '../../utils/helpers';
-// FIX: Replaced aliased import path with a relative path.
 import { summarizeText } from '../../services/geminiService';
 
 export const createChatSlice: AppSlice<ChatSlice> = (set, get) => ({

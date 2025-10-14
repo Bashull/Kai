@@ -1,13 +1,9 @@
 import React, { useState, useEffect } from 'react';
-// FIX: Replaced aliased import path with a relative path.
 import { useAppStore } from '../../store/useAppStore';
-// FIX: Replaced aliased import path with a relative path.
 import { generateWithAI } from '../../services/geminiService';
-// FIX: Replaced aliased import path with a relative path.
 import { AIButton } from '../ui/AIButton';
 import { X } from 'lucide-react';
 import { motion } from 'framer-motion';
-// FIX: Replaced aliased import path with a relative path.
 import { COMMON_SKILLS } from '../../constants';
 
 const SkillsStep: React.FC = () => {

@@ -1,14 +1,9 @@
 import React from 'react';
-// FIX: Replaced aliased import path with a relative path.
 import { useAppStore } from '../../store/useAppStore';
-// FIX: Replaced aliased import path with a relative path.
 import { generateWithAI } from '../../services/geminiService';
-// FIX: Replaced aliased import path with a relative path.
 import { AIButton } from '../ui/AIButton';
-// FIX: Replaced aliased import path with a relative path.
 import Button from '../ui/Button';
 import { Plus, Trash2 } from 'lucide-react';
-// FIX: Replaced aliased import path with a relative path.
 import { Experience } from '../../types';
 
 const ExperienceItem: React.FC<{ item: Experience; index: number }> = ({ item, index }) => {

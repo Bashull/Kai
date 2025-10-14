@@ -2,12 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { AwesomeResource } from '../../types';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Star, Link as LinkIcon, ExternalLink, Search } from 'lucide-react';
+import { Star, ExternalLink, Search } from 'lucide-react';
 import Button from '../ui/Button';
 
 const ResourceItem: React.FC<{ item: AwesomeResource['items'][0] }> = ({ item }) => (
-  // FIX: Added @ts-ignore for the 'layout' prop due to a type definition issue.
-  // @ts-ignore
   <motion.div
     layout
     initial={{ opacity: 0, y: 20 }}
@@ -22,8 +20,6 @@ const ResourceItem: React.FC<{ item: AwesomeResource['items'][0] }> = ({ item })
         </h3>
         <p className="text-sm text-text-secondary mt-1">{item.description}</p>
       </div>
-      {/* FIX: Added @ts-ignore to suppress type error for `href` on the custom Button component. */}
-      {/* @ts-ignore */}
       <Button
         as="a"
         href={item.url}
@@ -97,7 +93,6 @@ const AwesomeResourcesPanel: React.FC = () => {
       <div className="space-y-8">
         <AnimatePresence>
           {filteredResources.map(category => (
-            // FIX: Switched to using variants for framer-motion props to avoid type errors.
             <motion.section 
               key={category.category}
               variants={sectionVariants}

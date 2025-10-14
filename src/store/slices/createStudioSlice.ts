@@ -1,6 +1,4 @@
-// FIX: Replaced aliased import path with a relative path.
 import { StudioSlice, AppSlice } from '../../types';
-// FIX: Replaced aliased import path with a relative path.
 import { generateId } from '../../utils/helpers';
 
 export const createStudioSlice: AppSlice<StudioSlice> = (set) => ({

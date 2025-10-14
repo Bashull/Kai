@@ -2,7 +2,6 @@ import React, { useEffect, useRef } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { motion } from 'framer-motion';
 import { Mic, StopCircle, User } from 'lucide-react';
-import Button from '../ui/Button';
 import KaiAvatar from '../ui/KaiAvatar';
 
 const LivePanel: React.FC = () => {

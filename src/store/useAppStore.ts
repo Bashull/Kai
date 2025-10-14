@@ -1,8 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-// FIX: Replaced aliased import path with a relative path.
 import { AppState } from '../types';
-// FIX: Replaced aliased import paths with relative paths.
 import { createUISlice } from './slices/createUISlice';
 import { createChatSlice } from './slices/createChatSlice';
 import { createKernelSlice } from './slices/createKernelSlice';

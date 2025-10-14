@@ -1,10 +1,7 @@
 import React from 'react';
-// FIX: Replaced aliased import path with a relative path.
 import { useAppStore } from '../../store/useAppStore';
-// FIX: Replaced aliased import path with a relative path.
 import Button from '../ui/Button';
 import { Plus, Trash2 } from 'lucide-react';
-// FIX: Replaced aliased import path with a relative path.
 import { Education } from '../../types';
 
 const EducationItem: React.FC<{ item: Education; index: number }> = ({ item, index }) => {

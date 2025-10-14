@@ -51,7 +51,6 @@ const ImagePanel: React.FC = () => {
     }
   };
   
-  // FIX: Using variants for framer-motion animations to resolve typing issues.
   const imageVariants = {
     initial: { opacity: 0, scale: 0.8 },
     animate: { opacity: 1, scale: 1 },
@@ -83,7 +82,6 @@ const ImagePanel: React.FC = () => {
             ))
           )}
           {generatedImages.map((image, index) => (
-            // FIX: Switched to using variants for framer-motion props to avoid type errors.
             <motion.div
               key={index}
               variants={imageVariants}

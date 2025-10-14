@@ -1,4 +1,3 @@
-// FIX: Replaced aliased import path with a relative path.
 import { VoiceSlice, AppSlice } from '../../types';
 
 // Declare SpeechRecognition interfaces for cross-browser compatibility

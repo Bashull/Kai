@@ -1,5 +1,16 @@
 import { StateCreator } from 'zustand';
 
+// --- Tasks (Missions) ---
+export interface Task {
+  id: string;
+  title: string;
+  status: 'PENDING' | 'COMPLETED';
+  createdAt: string;
+  dueDate?: string;
+  agentStatus?: 'IDLE' | 'RUNNING' | 'COMPLETED';
+  agentLogs?: { timestamp: string; message: string }[];
+}
+
 // --- UI & App State ---
 export type Panel = 'chat' | 'live' | 'kernel' | 'forge' | 'studio' | 'tasks' | 'settings' | 'resume' | 'awesome' | 'diary' | 'snapshots';
 export type Theme = 'light' | 'dark';
@@ -84,56 +95,53 @@ export interface Entity {
 export interface KernelSlice {
   entities: Entity[];
   isUploading: boolean;
-  addEntity: (entity: Pick<Entity, 'content' | 'type' | 'source' | 'fileName'>) => void;
+  addEntity: (entity: Pick<Entity, 'content' | 'type' | 'source'> & { fileName?: string }) => void;
   updateEntityStatus: (entityId: string, status: EntityStatus) => void;
 }
 
-// --- Constitution ---
-export interface Constitution {
-  masterDirective: string;
-  principles: string[];
-}
-export interface ConstitutionVersion {
-  version: number;
-  date: string;
-  constitution: Constitution;
-}
-export interface ConstitutionSlice {
-  constitution: Constitution;
-  versionHistory: ConstitutionVersion[];
-  updateConstitution: (newConstitution: Constitution) => void;
-  revertToVersion: (version: number) => void;
-}
-
-
-// --- Forge (Model Training) ---
+// --- Forge (Fine-tuning) ---
 export type TrainingJobStatus = 'QUEUED' | 'TRAINING' | 'COMPLETED' | 'FAILED';
 
 export interface TrainingJob {
   id: string;
   modelName: string;
   description: string;
+  datasetEntityIds?: string[];
   status: TrainingJobStatus;
   createdAt: string;
   updatedAt: string;
   logs?: { timestamp: string; message: string }[];
-  datasetEntityIds?: string[];
 }
 
 export interface ForgeSlice {
   trainingJobs: TrainingJob[];
-  addTrainingJob: (job: Pick<TrainingJob, 'modelName' | 'description' | 'datasetEntityIds'>) => void;
+  addTrainingJob: (job: Pick<TrainingJob, 'modelName' | 'description' | 'datasetEntityIds'>) => Promise<void>;
   updateTrainingJobStatus: (jobId: string, status: TrainingJobStatus) => void;
   addTrainingLog: (jobId: string, message: string) => void;
-  pollJobs: () => void;
+  pollJobs: () => Promise<void>;
 }
 
-// --- Studio (Tools) ---
+// --- Studio (Code, Image, Console) ---
 export type CodeLanguage = 'javascript' | 'typescript' | 'python' | 'html' | 'css' | 'json' | 'markdown';
 
 export interface GeneratedImage {
-  url: string;
   prompt: string;
+  url: string;
+}
+
+export interface StudioLog {
+    id: string;
+    timestamp: string;
+    type: 'COMMAND' | 'RESPONSE' | 'ERROR' | 'INFO';
+    content: string;
+}
+
+export interface StudioSlice {
+    isChecking: boolean;
+    studioLogs: StudioLog[];
+    setIsChecking: (isChecking: boolean) => void;
+    addStudioLog: (log: Omit<StudioLog, 'id' | 'timestamp'>) => void;
+    clearStudioLogs: () => void;
 }
 
 export interface CodeSlice {
@@ -156,48 +164,36 @@ export interface ImageSlice {
     setIsGeneratingImages: (isGenerating: boolean) => void;
 }
 
-export type StudioLogType = 'COMMAND' | 'RESPONSE' | 'ERROR' | 'INFO';
-
-export interface StudioLog {
-    id: string;
-    timestamp: string;
-    type: StudioLogType;
-    content: string;
-}
-
-export interface StudioSlice {
-    isChecking: boolean;
-    studioLogs: StudioLog[];
-    setIsChecking: (isChecking: boolean) => void;
-    addStudioLog: (log: Omit<StudioLog, 'id' | 'timestamp'>) => void;
-    clearStudioLogs: () => void;
-}
-
-// --- Tasks ---
-export type TaskStatus = 'PENDING' | 'COMPLETED';
-export type AgentStatus = 'IDLE' | 'RUNNING' | 'COMPLETED' | 'FAILED';
-
-
-export interface Task {
-  id: string;
-  title: string;
-  status: TaskStatus;
-  createdAt: string;
-  dueDate?: string;
-  agentStatus?: AgentStatus;
-  agentLogs?: { timestamp: string; message: string }[];
-}
-
+// --- TaskSlice Definition ---
 export interface TaskSlice {
   tasks: Task[];
   isAutonomousMode: boolean;
   addTask: (title: string) => void;
   toggleTask: (id: string) => void;
   clearCompletedTasks: () => void;
-  setTaskDueDate: (id: string, dueDate: string | undefined) => void;
+  setTaskDueDate: (id: string, dueDate?: string) => void;
   toggleAutonomousMode: () => void;
-  startAutonomousTask: (id: string) => void;
   addAgentLog: (taskId: string, message: string) => void;
+  startAutonomousTask: (id: string) => void;
+}
+
+// --- Constitution ---
+export interface Constitution {
+  masterDirective: string;
+  principles: string[];
+}
+
+export interface ConstitutionVersion {
+    version: number;
+    date: string;
+    constitution: Constitution;
+}
+
+export interface ConstitutionSlice {
+  constitution: Constitution;
+  versionHistory: ConstitutionVersion[];
+  updateConstitution: (newConstitution: Constitution) => void;
+  revertToVersion: (version: number) => void;
 }
 
 // --- Resume Builder ---
@@ -262,11 +258,9 @@ export interface ResumeSlice {
 }
 
 // --- Notifications ---
-export type NotificationType = 'success' | 'error' | 'info';
-
 export interface Notification {
   id: string;
-  type: NotificationType;
+  type: 'success' | 'error' | 'info';
   message: string;
 }
 
@@ -292,14 +286,14 @@ export interface AwesomeResource {
   category: string;
   items: {
     title: string;
-    url: string;
     description: string;
+    url: string;
   }[];
 }
 
 export interface AwesomeResourceSlice {
-    awesomeResources: AwesomeResource[];
-    fetchAwesomeResources: () => Promise<void>;
+  awesomeResources: AwesomeResource[];
+  fetchAwesomeResources: () => Promise<void>;
 }
 
 // --- Diary ---
@@ -318,62 +312,57 @@ export interface DiarySlice {
 }
 
 // --- Snapshots ---
-export type SnapshotableState = Pick<
-  AppState,
-  | 'chatHistory'
-  | 'entities'
-  | 'constitution'
-  | 'versionHistory'
-  | 'trainingJobs'
-  | 'studioLogs'
-  | 'codePrompt'
-  | 'generatedCode'
-  | 'codeLanguage'
-  | 'imagePrompt'
-  | 'generatedImages'
-  | 'tasks'
-  | 'resumeData'
-  | 'currentStep'
-  | 'diary'
->;
+export interface SnapshotableState {
+    chatHistory: ChatMessage[];
+    entities: Entity[];
+    constitution: Constitution;
+    versionHistory: ConstitutionVersion[];
+    trainingJobs: TrainingJob[];
+    studioLogs: StudioLog[];
+    codePrompt: string;
+    generatedCode: string;
+    codeLanguage: CodeLanguage;
+    imagePrompt: string;
+    generatedImages: GeneratedImage[];
+    tasks: Task[];
+    resumeData: ResumeData;
+    currentStep: number;
+    diary: DiaryEntry[];
+}
 
 export interface Snapshot {
-    id: string;
-    name: string;
-    timestamp: string;
-    state: SnapshotableState;
+  id: string;
+  name: string;
+  timestamp: string;
+  state: SnapshotableState;
 }
 
 export interface SnapshotSlice {
-    snapshots: Snapshot[];
-    createSnapshot: (name: string) => void;
-    loadSnapshot: (id: string) => void;
-    deleteSnapshot: (id: string) => void;
+  snapshots: Snapshot[];
+  createSnapshot: (name: string) => void;
+  loadSnapshot: (id: string) => void;
+  deleteSnapshot: (id: string) => void;
 }
 
 
-// --- Zustand App State ---
-export type AppState = UISlice &
-  ChatSlice &
-  VoiceSlice &
-  LiveSlice &
-  KernelSlice &
-  ForgeSlice &
-  StudioSlice &
-  CodeSlice &
-  ImageSlice &
-  TaskSlice &
-  ConstitutionSlice &
-  ResumeSlice &
-  NotificationSlice &
-  SearchSlice &
-  AwesomeResourceSlice &
-  DiarySlice &
-  SnapshotSlice;
+// --- Main App State & Slice Creator ---
+export interface AppState extends
+    UISlice,
+    ChatSlice,
+    VoiceSlice,
+    LiveSlice,
+    KernelSlice,
+    ForgeSlice,
+    StudioSlice,
+    CodeSlice,
+    ImageSlice,
+    TaskSlice,
+    ConstitutionSlice,
+    ResumeSlice,
+    NotificationSlice,
+    SearchSlice,
+    AwesomeResourceSlice,
+    DiarySlice,
+    SnapshotSlice {}
 
-export type AppSlice<T> = StateCreator<
-  AppState,
-  [['zustand/persist', unknown]],
-  [],
-  T
->;
+export type AppSlice<T> = StateCreator<AppState, [['zustand/persist', unknown]], [], T>;

@@ -1,6 +1,4 @@
-// FIX: Replaced aliased import path with a relative path.
 import { AppSlice, SnapshotSlice, Snapshot, SnapshotableState } from '../../types';
-// FIX: Replaced aliased import path with a relative path.
 import { generateId } from '../../utils/helpers';
 
 const SNAPSHOTABLE_KEYS: (keyof SnapshotableState)[] = [

@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Check } from 'lucide-react';
 
 interface CheckboxProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -38,7 +38,6 @@ const Checkbox: React.FC<CheckboxProps> = ({ id, checked, onChange, className = 
         readOnly={readOnly}
         {...props}
       />
-      {/* @ts-ignore */}
       <motion.div
         className="w-6 h-6 border-2 rounded-md flex items-center justify-center cursor-pointer"
         variants={boxVariants}
@@ -46,31 +45,25 @@ const Checkbox: React.FC<CheckboxProps> = ({ id, checked, onChange, className = 
         transition={{ duration: 0.2 }}
         aria-hidden="true"
       >
-        <AnimatePresence>
-          {checked && (
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              {/* @ts-ignore */}
-              <motion.path
-                d="M5 13l4 4L19 7"
-                stroke="white"
-                strokeWidth="3"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                variants={checkVariants}
-                initial="unchecked"
-                animate="checked"
-                exit="unchecked"
-                transition={{ duration: 0.3, ease: 'circOut' }}
-              />
-            </svg>
-          )}
-        </AnimatePresence>
+        <motion.svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <motion.path
+            d="M5 13l4 4L19 7"
+            stroke="white"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            variants={checkVariants}
+            initial="unchecked"
+            animate={checked ? 'checked' : 'unchecked'}
+            transition={{ duration: 0.3, ease: 'circOut' }}
+          />
+        </motion.svg>
       </motion.div>
     </div>
   );

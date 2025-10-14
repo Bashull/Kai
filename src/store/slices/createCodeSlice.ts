@@ -1,4 +1,3 @@
-// FIX: Replaced aliased import path with a relative path.
 import { CodeSlice, AppSlice, CodeLanguage } from '../../types';
 
 export const createCodeSlice: AppSlice<CodeSlice> = (set) => ({

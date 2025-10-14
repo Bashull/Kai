@@ -1,6 +1,4 @@
-// FIX: Replaced aliased import path with a relative path.
 import { ForgeSlice, AppSlice, TrainingJob } from '../../types';
-// FIX: Replaced aliased import path with a relative path.
 import { apiClient } from '../../services/apiClient';
 
 export const createForgeSlice: AppSlice<ForgeSlice> = (set, get) => ({

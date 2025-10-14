@@ -1,7 +1,5 @@
 import React from 'react';
-// FIX: Replaced aliased import path with a relative path.
 import { useAppStore } from '../../store/useAppStore';
-// FIX: Replaced aliased import path with a relative path.
 import { PersonalInfo } from '../../types';
 
 const PersonalInfoStep: React.FC = () => {
