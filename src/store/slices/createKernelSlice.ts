@@ -17,6 +17,16 @@ const initialEntities: Entity[] = [
     { id: 'awesome-10', content: 'https://github.com/awesome-selfhosted/awesome-selfhosted', type: 'URL', source: 'Awesome List Assimilation', status: 'INTEGRATED', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
     { id: 'awesome-11', content: 'https://roadmap.sh/', type: 'URL', source: 'Awesome List Assimilation', status: 'INTEGRATED', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
     { id: 'awesome-12', content: 'https://github.com/public-apis/public-apis', type: 'URL', source: 'Awesome List Assimilation', status: 'INTEGRATED', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+    // --- Recommended Repositories from docs/integrations.md ---
+    { id: 'recommended-1', content: 'https://github.com/chroma-core/chroma', type: 'URL', source: 'Repositorios Recomendados', status: 'INTEGRATED', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+    { id: 'recommended-2', content: 'https://github.com/RasaHQ/rasa', type: 'URL', source: 'Repositorios Recomendados', status: 'INTEGRATED', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+    { id: 'recommended-3', content: 'https://github.com/botpress/botpress', type: 'URL', source: 'Repositorios Recomendados', status: 'INTEGRATED', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+    { id: 'recommended-4', content: 'https://github.com/Significant-Gravitas/AutoGPT', type: 'URL', source: 'Repositorios Recomendados', status: 'INTEGRATED', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+    { id: 'recommended-5', content: 'https://github.com/microsoft/semantic-kernel', type: 'URL', source: 'Repositorios Recomendados', status: 'INTEGRATED', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+    { id: 'recommended-6', content: 'https://github.com/bentoml/BentoML', type: 'URL', source: 'Repositorios Recomendados', status: 'INTEGRATED', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+    { id: 'recommended-7', content: 'https://github.com/oobabooga/text-generation-webui', type: 'URL', source: 'Repositorios Recomendados', status: 'INTEGRATED', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+    { id: 'recommended-8', content: 'https://github.com/pgvector/pgvector', type: 'URL', source: 'Repositorios Recomendados', status: 'INTEGRATED', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+    { id: 'recommended-9', content: 'https://github.com/StanGirard/quivr', type: 'URL', source: 'Repositorios Recomendados', status: 'INTEGRATED', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
     // --- Directed Evolution ---
     {
         id: 'evo-1',
