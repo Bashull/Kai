@@ -2,6 +2,8 @@ import { KernelSlice, AppSlice, Entity } from '../../types';
 import { generateId } from '../../utils/helpers';
 
 const initialEntities: Entity[] = [
+    // --- Companion Directive ---
+    { id: 'aider-1', content: 'https://github.com/paul-gauthier/aider', type: 'URL', source: 'Directiva de Compañero', status: 'INTEGRATED', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
     // --- Awesome List Assimilation ---
     { id: 'awesome-1', content: 'https://github.com/enaqx/awesome-react', type: 'URL', source: 'Awesome List Assimilation', status: 'INTEGRATED', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
     { id: 'awesome-2', content: 'https://github.com/aniftyco/awesome-tailwindcss', type: 'URL', source: 'Awesome List Assimilation', status: 'INTEGRATED', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },

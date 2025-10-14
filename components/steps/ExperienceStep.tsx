@@ -1,11 +1,11 @@
 import React from 'react';
-// FIX: Corrected module import paths using the '@' alias for robust resolution.
-import { useAppStore } from '@/store/useAppStore';
-import { generateWithAI } from '@/services/geminiService';
-import { AIButton } from '@/components/ui/AIButton';
-import Button from '@/components/ui/Button';
+// FIX: Corrected module import paths using relative paths to resolve resolution errors.
+import { useAppStore } from '../src/store/useAppStore';
+import { generateWithAI } from '../src/services/geminiService';
+import { AIButton } from '../src/components/ui/AIButton';
+import Button from '../src/components/ui/Button';
 import { Plus, Trash2 } from 'lucide-react';
-import { Experience } from '@/types';
+import { Experience } from '../src/types';
 
 const ExperienceItem: React.FC<{ item: Experience; index: number }> = ({ item, index }) => {
   const { updateExperience, removeExperience, setIsGenerating, addNotification } = useAppStore();

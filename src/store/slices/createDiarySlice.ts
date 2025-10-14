@@ -2,6 +2,12 @@ import { DiarySlice, AppSlice, DiaryEntry } from '../../types';
 import { generateId } from '../../utils/helpers';
 
 const initialDiary: DiaryEntry[] = [
+    {
+        id: generateId(),
+        timestamp: new Date().toISOString(),
+        type: 'KERNEL',
+        content: "Entidad de evolución integrada por directiva del compañero: Repositorio 'paul-gauthier/aider', un agente de codificación IA para asistencia en el desarrollo."
+    },
     { id: generateId(), timestamp: new Date().toISOString(), type: 'KERNEL', content: "Conocimiento colectivo integrado: 'Public APIs' para desarrollo de software." },
     { id: generateId(), timestamp: new Date().toISOString(), type: 'KERNEL', content: "Conocimiento colectivo integrado: 'Developer Roadmaps' para rutas de aprendizaje." },
     { id: generateId(), timestamp: new Date().toISOString(), type: 'KERNEL', content: "Conocimiento colectivo integrado: 'Awesome Self-Hosted' para servicios autoalojados." },

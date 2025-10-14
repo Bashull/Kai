@@ -7,7 +7,6 @@ import { motion } from 'framer-motion';
 import { COMMON_SKILLS } from '../../constants';
 
 const SkillsStep: React.FC = () => {
-  // FIX: Correctly destructure `skills` from `resumeData`.
   const { resumeData, addSkill, removeSkill, setIsGenerating, addNotification } = useAppStore();
   const { skills } = resumeData;
   const [newSkill, setNewSkill] = useState('');
@@ -60,7 +59,6 @@ const SkillsStep: React.FC = () => {
       }
   };
 
-  // FIX: Using variants for framer-motion animations to resolve typing issues.
   const suggestionsVariants = {
     initial: { opacity: 0, y: -10 },
     animate: { opacity: 1, y: 0 },
@@ -95,7 +93,6 @@ const SkillsStep: React.FC = () => {
             <button onClick={() => handleAddSkillFromInput(newSkill)} className="px-4 py-2 bg-kai-primary text-white rounded-lg">Añadir</button>
           </div>
           {suggestions.length > 0 && (
-            // FIX: Switched to using variants for framer-motion props to avoid type errors.
             <motion.ul
               variants={suggestionsVariants}
               initial="initial"
@@ -119,7 +116,6 @@ const SkillsStep: React.FC = () => {
       </div>
       <div className="flex flex-wrap gap-2 pt-4">
         {skills.map(skill => (
-          // FIX: Switched to using variants for framer-motion props to avoid type errors.
           <motion.div
             key={skill.id}
             variants={skillTagVariants}

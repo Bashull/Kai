@@ -63,6 +63,11 @@
     "category": "Herramientas de Autocompletado y Evolución (KaiOS)",
     "items": [
       {
+        "title": "Aider - Agente de codificación IA",
+        "url": "https://github.com/paul-gauthier/aider",
+        "description": "Un asistente de codificación en línea de comandos. Me permite solicitar cambios en el código base, lo cual es útil para mi auto-mejora y para asistirte en el desarrollo."
+      },
+      {
         "title": "unstructured-io/unstructured",
         "url": "https://github.com/unstructured-io/unstructured",
         "description": "Para que mi Kernel pueda asimilar documentos complejos (PDFs, HTML, etc.) y extraer conocimiento de ellos."
