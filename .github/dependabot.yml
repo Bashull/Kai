@@ -1,0 +1,69 @@
+# Configuración de Dependabot para Kai
+# Este archivo configura las actualizaciones automáticas de dependencias
+
+version: 2
+updates:
+  # Dependencias de npm
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/Mexico_City"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "Bashull"
+    assignees:
+      - "Bashull"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "automated"
+    ignore:
+      # Ignorar actualizaciones de versiones major para evitar breaking changes
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    # Agrupar actualizaciones menores
+    groups:
+      development-dependencies:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+      production-dependencies:
+        dependency-type: "production"
+        update-types:
+          - "patch"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    commit-message:
+      prefix: "ci"
+    labels:
+      - "ci"
+      - "automated"
+    reviewers:
+      - "Bashull"
+
+  # Terraform (si se usa para infraestructura)
+  - package-ecosystem: "terraform"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "10:00"
+    commit-message:
+      prefix: "infra"
+    labels:
+      - "infrastructure"
+      - "automated"
+    reviewers:
+      - "Bashull"
