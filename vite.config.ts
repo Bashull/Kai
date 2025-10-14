@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => {
       resolve: {
         alias: {
           // FIX: Replaced __dirname with a relative path resolve to avoid errors when Node.js types are not available.
-          '@': path.resolve('src'),
+          '@': path.resolve('./src'),
         }
       }
     };

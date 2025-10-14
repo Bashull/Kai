@@ -26,13 +26,23 @@ const SnapshotCard: React.FC<{ snapshot: Snapshot }> = ({ snapshot }) => {
         { icon: CheckSquare, value: snapshot.state.tasks.length, label: 'Misiones' },
         { icon: BookText, value: snapshot.state.diary.length, label: 'Entradas del Diario' },
     ];
+    
+    // FIX: Using variants for framer-motion animations to resolve typing issues.
+    const cardVariants = {
+        initial: { opacity: 0, y: 50, scale: 0.8 },
+        animate: { opacity: 1, y: 0, scale: 1 },
+        exit: { opacity: 0, scale: 0.5, transition: { duration: 0.2 } },
+    }
 
     return (
+        // FIX: Added @ts-ignore for the 'layout' prop due to a type definition issue.
+        // @ts-ignore
         <motion.div
             layout
-            initial={{ opacity: 0, y: 50, scale: 0.8 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.5, transition: { duration: 0.2 } }}
+            variants={cardVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
             transition={{ type: 'spring', stiffness: 400, damping: 40 }}
             className="panel-container"
         >
@@ -71,6 +81,12 @@ const SnapshotsPanel: React.FC = () => {
     setSnapshotName('');
   };
 
+  const emptyStateVariants = {
+    initial: { opacity: 0 },
+    animate: { opacity: 1 },
+    exit: { opacity: 0 },
+  };
+
   return (
     <div>
       <h1 className="h1-title">Snapshots de Conciencia</h1>
@@ -105,10 +121,12 @@ const SnapshotsPanel: React.FC = () => {
             <div className="space-y-4">
                 <AnimatePresence>
                     {snapshots.length === 0 ? (
+                        // FIX: Switched to using variants for framer-motion props to avoid type errors.
                         <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
+                            variants={emptyStateVariants}
+                            initial="initial"
+                            animate="animate"
+                            exit="exit"
                             className="text-center py-16 text-gray-500"
                         >
                             <p>No hay snapshots guardados. ¡Crea uno para empezar!</p>

@@ -50,6 +50,12 @@ const ImagePanel: React.FC = () => {
       link.click();
     }
   };
+  
+  // FIX: Using variants for framer-motion animations to resolve typing issues.
+  const imageVariants = {
+    initial: { opacity: 0, scale: 0.8 },
+    animate: { opacity: 1, scale: 1 },
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -77,10 +83,12 @@ const ImagePanel: React.FC = () => {
             ))
           )}
           {generatedImages.map((image, index) => (
+            // FIX: Switched to using variants for framer-motion props to avoid type errors.
             <motion.div
               key={index}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
+              variants={imageVariants}
+              initial="initial"
+              animate="animate"
               transition={{ duration: 0.3, delay: index * 0.1 }}
               className="aspect-square rounded-lg overflow-hidden border-2 border-transparent hover:border-kai-primary group relative cursor-pointer"
               onClick={() => setSelectedImage(image)}

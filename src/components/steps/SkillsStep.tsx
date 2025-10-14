@@ -7,7 +7,9 @@ import { motion } from 'framer-motion';
 import { COMMON_SKILLS } from '../../constants';
 
 const SkillsStep: React.FC = () => {
-  const { skills, addSkill, removeSkill, resumeData, setIsGenerating, addNotification } = useAppStore();
+  // FIX: Correctly destructure `skills` from `resumeData`.
+  const { resumeData, addSkill, removeSkill, setIsGenerating, addNotification } = useAppStore();
+  const { skills } = resumeData;
   const [newSkill, setNewSkill] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
 
@@ -58,6 +60,18 @@ const SkillsStep: React.FC = () => {
       }
   };
 
+  // FIX: Using variants for framer-motion animations to resolve typing issues.
+  const suggestionsVariants = {
+    initial: { opacity: 0, y: -10 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0 },
+  };
+
+  const skillTagVariants = {
+    initial: { opacity: 0, scale: 0.5 },
+    animate: { opacity: 1, scale: 1 },
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -81,10 +95,12 @@ const SkillsStep: React.FC = () => {
             <button onClick={() => handleAddSkillFromInput(newSkill)} className="px-4 py-2 bg-kai-primary text-white rounded-lg">Añadir</button>
           </div>
           {suggestions.length > 0 && (
+            // FIX: Switched to using variants for framer-motion props to avoid type errors.
             <motion.ul
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
+              variants={suggestionsVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
               className="absolute z-10 w-full mt-1 bg-kai-surface border border-border-color rounded-lg shadow-lg max-h-60 overflow-y-auto"
             >
               {suggestions.map(suggestion => (
@@ -103,10 +119,12 @@ const SkillsStep: React.FC = () => {
       </div>
       <div className="flex flex-wrap gap-2 pt-4">
         {skills.map(skill => (
+          // FIX: Switched to using variants for framer-motion props to avoid type errors.
           <motion.div
             key={skill.id}
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
+            variants={skillTagVariants}
+            initial="initial"
+            animate="animate"
             className="flex items-center bg-kai-surface px-3 py-1.5 rounded-full text-sm font-medium"
           >
             {skill.name}

@@ -7,9 +7,12 @@ import {
 } from 'lucide-react';
 import KaiAvatar from '../ui/KaiAvatar';
 import NotificationPopover from '../ui/NotificationPopover';
-import { isToday, parseISO } from 'date-fns';
+// FIX: Replace `parseISO` with `new Date()` constructor as `parseISO` is causing an import error.
+import { isToday } from 'date-fns';
+import { Panel } from '../../types';
 
-const navItems = [
+// FIX: Explicitly type `id` as `Panel` to satisfy `setActivePanel`'s expected argument type.
+const navItems: { id: Panel; label: string; icon: React.ElementType }[] = [
     { id: 'chat', label: 'Chat', icon: MessageSquare },
     { id: 'live', label: 'Live', icon: Radio },
     { id: 'kernel', label: 'Kernel', icon: BrainCircuit },
@@ -19,14 +22,21 @@ const navItems = [
     { id: 'resume', label: 'Constructor CV', icon: FileText },
 ];
 
-const secondaryNavItems = [
+// FIX: Explicitly type `id` as `Panel` to satisfy `setActivePanel`'s expected argument type.
+const secondaryNavItems: { id: Panel; label: string; icon: React.ElementType }[] = [
     { id: 'awesome', label: 'Recursos', icon: Star },
     { id: 'diary', label: 'Diario', icon: BookOpen },
     { id: 'snapshots', label: 'Snapshots', icon: Camera },
 ];
 
-const NavButton: React.FC<{ item: typeof navItems[0]; isActive: boolean; isCollapsed: boolean; onClick: () => void; badgeCount?: number }> =
+const NavButton: React.FC<{ item: { id: string, label: string, icon: React.ElementType }; isActive: boolean; isCollapsed: boolean; onClick: () => void; badgeCount?: number }> =
     ({ item, isActive, isCollapsed, onClick, badgeCount = 0 }) => {
+        // FIX: Using variants for framer-motion animations to resolve typing issues.
+        const spanVariants = {
+            initial: { opacity: 0, width: 0 },
+            animate: { opacity: 1, width: 'auto' },
+            exit: { opacity: 0, width: 0 },
+        };
         return (
             <button
                 onClick={onClick}
@@ -40,10 +50,12 @@ const NavButton: React.FC<{ item: typeof navItems[0]; isActive: boolean; isColla
                 <item.icon className={`h-5 w-5 ${isCollapsed ? '' : 'mr-3'}`} />
                 <AnimatePresence>
                     {!isCollapsed && (
+                        // FIX: Switched to using variants for framer-motion props to avoid type errors.
                         <motion.span
-                            initial={{ opacity: 0, width: 0 }}
-                            animate={{ opacity: 1, width: 'auto' }}
-                            exit={{ opacity: 0, width: 0 }}
+                            variants={spanVariants}
+                            initial="initial"
+                            animate="animate"
+                            exit="exit"
                             transition={{ duration: 0.2 }}
                             className="flex-1 text-left whitespace-nowrap"
                         >
@@ -77,7 +89,8 @@ const Sidebar: React.FC = () => {
     const [dueTasks, setDueTasks] = useState<any[]>([]);
 
     useEffect(() => {
-        const todayTasks = tasks.filter(task => task.dueDate && task.status === 'PENDING' && isToday(parseISO(task.dueDate)));
+        // FIX: Replace `parseISO` with `new Date()` to avoid import errors.
+        const todayTasks = tasks.filter(task => task.dueDate && task.status === 'PENDING' && isToday(new Date(task.dueDate)));
         setDueTasks(todayTasks);
     }, [tasks]);
 
@@ -131,6 +144,7 @@ const Sidebar: React.FC = () => {
                             item={item}
                             isActive={activePanel === item.id}
                             isCollapsed={sidebarCollapsed}
+                            // FIX: item.id is now correctly typed as Panel.
                             onClick={() => setActivePanel(item.id)}
                         />
                     ))}
@@ -146,6 +160,7 @@ const Sidebar: React.FC = () => {
                                 item={item}
                                 isActive={activePanel === item.id}
                                 isCollapsed={sidebarCollapsed}
+                                // FIX: item.id is now correctly typed as Panel.
                                 onClick={() => setActivePanel(item.id)}
                             />
                         ))}
@@ -158,7 +173,7 @@ const Sidebar: React.FC = () => {
                     item={{ id: 'settings', label: 'Ajustes', icon: Settings }}
                     isActive={activePanel === 'settings'}
                     isCollapsed={sidebarCollapsed}
-                    onClick={() => setActivePanel('settings')}
+                    onClick={() => setActivePanel('settings' as Panel)}
                 />
                  <div className="relative">
                     <NavButton

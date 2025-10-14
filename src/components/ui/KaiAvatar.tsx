@@ -13,11 +13,19 @@ const KaiAvatar: React.FC<KaiAvatarProps> = ({ size = 'md', className = '' }) =>
     lg: 'w-16 h-16',
   };
 
+  // FIX: Using variants for framer-motion animations to resolve typing issues.
+  const avatarVariants = {
+    initial: { scale: 0.8, opacity: 0 },
+    animate: { scale: 1, opacity: 1 },
+  };
+
   return (
+    // FIX: Switched to using variants for framer-motion props to avoid type errors.
     <motion.div
       className={`relative rounded-full flex-shrink-0 ${sizeClasses[size]} ${className}`}
-      initial={{ scale: 0.8, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
+      variants={avatarVariants}
+      initial="initial"
+      animate="animate"
       transition={{ delay: 0.2, type: 'spring', stiffness: 200, damping: 20 }}
     >
       <div className="absolute inset-0 bg-kai-primary rounded-full animate-border-glow" />

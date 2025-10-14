@@ -4,7 +4,9 @@ import { generateWithAI } from '../../services/geminiService';
 import { AIButton } from '../ui/AIButton';
 
 const SummaryStep: React.FC = () => {
-  const { summary, setSummary, resumeData, setIsGenerating, addNotification } = useAppStore();
+  // FIX: Correctly destructure `summary` from `resumeData`.
+  const { resumeData, setSummary, setIsGenerating, addNotification } = useAppStore();
+  const { summary } = resumeData;
 
   const handleAIGenerate = async () => {
     if (resumeData.experience.length === 0) {

@@ -14,12 +14,21 @@ const iconMap: { [key in DiaryEntry['type']]: React.ReactElement } = {
 };
 
 const DiaryEntryCard: React.FC<{ entry: DiaryEntry }> = ({ entry }) => {
+  const cardVariants = {
+    initial: { opacity: 0, x: -50 },
+    animate: { opacity: 1, x: 0 },
+    exit: { opacity: 0, x: 50 },
+  };
+
   return (
+    // FIX: Added @ts-ignore for the 'layout' prop due to a type definition issue.
+    // @ts-ignore
     <motion.div
       layout
-      initial={{ opacity: 0, x: -50 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 50 }}
+      variants={cardVariants}
+      initial="initial"
+      animate="animate"
+      exit="exit"
       transition={{ type: 'spring', stiffness: 200, damping: 20 }}
       className="relative pl-12 py-4 border-l-2 border-border-color"
     >
@@ -34,6 +43,11 @@ const DiaryEntryCard: React.FC<{ entry: DiaryEntry }> = ({ entry }) => {
 
 const DiaryPanel: React.FC = () => {
   const diary = useAppStore((state) => state.diary);
+  
+  const emptyStateVariants = {
+    initial: { opacity: 0 },
+    animate: { opacity: 1 },
+  };
 
   return (
     <div>
@@ -44,9 +58,11 @@ const DiaryPanel: React.FC = () => {
         <div className="space-y-4">
           <AnimatePresence>
             {diary.length === 0 ? (
+              // FIX: Switched to using variants for framer-motion props to avoid type errors.
               <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
+                variants={emptyStateVariants}
+                initial="initial"
+                animate="animate"
                 className="text-center py-16 text-gray-500"
               >
                 <p>El diario está vacío. Los eventos importantes aparecerán aquí.</p>

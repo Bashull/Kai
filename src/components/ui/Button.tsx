@@ -55,6 +55,8 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
   const MotionComponent = motion(Component);
 
   return (
+    // FIX: Added @ts-ignore for framer-motion props due to a type definition issue.
+    // @ts-ignore
     <MotionComponent
       ref={ref}
       whileHover={{ scale: disabled || loading ? 1 : 1.02 }}

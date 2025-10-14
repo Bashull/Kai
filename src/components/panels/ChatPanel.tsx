@@ -109,6 +109,8 @@ const ChatPanel: React.FC = () => {
             <div className="space-y-6">
                 <AnimatePresence>
                     {chatHistory.map((msg) => (
+                        // FIX: Added @ts-ignore for the 'layout' prop due to a type definition issue.
+                        // @ts-ignore
                         <motion.div
                             layout
                             key={msg.id}

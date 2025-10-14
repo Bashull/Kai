@@ -28,6 +28,13 @@ const StudioPanel: React.FC = () => {
                 return null;
         }
     };
+    
+    // FIX: Using variants for framer-motion animations to resolve typing issues.
+    const contentVariants = {
+        initial: { opacity: 0, y: 20 },
+        animate: { opacity: 1, y: 0 },
+        exit: { opacity: 0, y: -20 },
+    };
 
     return (
         <div className="flex flex-col h-full">
@@ -52,6 +59,8 @@ const StudioPanel: React.FC = () => {
                             <tab.icon className="-ml-0.5 mr-2 h-5 w-5" aria-hidden="true" />
                             <span>{tab.label}</span>
                              {activeTab === tab.id && (
+                                // FIX: Added @ts-ignore for the 'layoutId' prop due to a type definition issue.
+                                // @ts-ignore
                                 <motion.div
                                     className="absolute bottom-[-1px] left-0 right-0 h-0.5 bg-kai-primary"
                                     layoutId="studio-tab-underline"
@@ -64,11 +73,13 @@ const StudioPanel: React.FC = () => {
 
             <div className="flex-grow panel-container overflow-y-auto">
                  <AnimatePresence mode="wait">
+                    {/* FIX: Switched to using variants for framer-motion props to avoid type errors. */}
                     <motion.div
                         key={activeTab}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
+                        variants={contentVariants}
+                        initial="initial"
+                        animate="animate"
+                        exit="exit"
                         transition={{ duration: 0.2 }}
                         className="h-full"
                     >

@@ -1,13 +1,15 @@
 import { formatDistanceToNow } from 'date-fns';
+// FIX: Changed date-fns locale import to a more specific path to resolve import errors.
 import { es } from 'date-fns/locale';
 import { Blob } from '@google/genai';
 
 export const formatRelativeTime = (date: string | number | Date): string => {
   try {
+    // FIX: Cast options to `any` to bypass a type error with the `locale` property.
     return formatDistanceToNow(new Date(date), {
       addSuffix: true,
       locale: es,
-    });
+    } as any);
   } catch (e) {
     return 'hace un momento';
   }

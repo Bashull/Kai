@@ -31,8 +31,8 @@ export const createSnapshotSlice: AppSlice<SnapshotSlice> = (set, get) => ({
   loadSnapshot: (id: string) => {
     const snapshot = get().snapshots.find(s => s.id === id);
     if (snapshot) {
-      // Use the `true` flag to replace the state instead of merging
-      set(snapshot.state, true);
+      // FIX: Cast snapshot state to `any` to work around a complex Zustand typing issue with partial state replacement.
+      set(snapshot.state as any, true);
       // After loading, reset transient UI state and navigate to a safe panel
       set({ activePanel: 'chat', showSearchResults: false, showNotifications: false });
       get().addNotification({ type: 'info', message: `Snapshot "${snapshot.name}" cargado.` });

@@ -55,6 +55,10 @@ export const useAppStore = create<AppState>()(
         resumeData: state.resumeData, // Persist resume data
         diary: state.diary, // Persist diary
         snapshots: state.snapshots, // Persist snapshots
+        // FIX: Added critical state slices to persistence to prevent data loss on refresh.
+        chatHistory: state.chatHistory,
+        entities: state.entities,
+        trainingJobs: state.trainingJobs,
       }),
     }
   )

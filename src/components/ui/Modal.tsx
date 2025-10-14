@@ -56,13 +56,28 @@ const Modal: React.FC<ModalProps> = ({
     full: 'max-w-7xl'
   };
 
+  // FIX: Using variants for framer-motion animations to resolve typing issues.
+  const backdropVariants = {
+    initial: { opacity: 0 },
+    animate: { opacity: 1 },
+    exit: { opacity: 0 },
+  };
+
+  const modalVariants = {
+    initial: { opacity: 0, scale: 0.95, y: 20 },
+    animate: { opacity: 1, scale: 1, y: 0 },
+    exit: { opacity: 0, scale: 0.95, y: 20 },
+  };
+
   return createPortal(
     <AnimatePresence>
       {isOpen && (
+        // FIX: Switched to using variants for framer-motion props to avoid type errors.
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+          variants={backdropVariants}
+          initial="initial"
+          animate="animate"
+          exit="exit"
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           role="dialog"
           aria-modal="true"
@@ -70,18 +85,20 @@ const Modal: React.FC<ModalProps> = ({
         >
           {/* Overlay */}
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            variants={backdropVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
             className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             onClick={closeOnOverlayClick ? onClose : undefined}
           />
           
           {/* Modal */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            variants={modalVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
             className={`relative w-full ${sizes[size]} bg-kai-surface rounded-xl shadow-2xl max-h-[90vh] flex flex-col border border-border-color`}
           >
             {/* Header */}

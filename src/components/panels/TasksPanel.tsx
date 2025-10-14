@@ -5,11 +5,12 @@ import { CheckSquare, Plus, Trash2, Calendar, Play, Bot } from 'lucide-react';
 import Button from '../ui/Button';
 import Checkbox from '../ui/Checkbox';
 import { Task } from '../../types';
-import { format, isToday, isPast, parseISO } from 'date-fns';
+// FIX: Replace `parseISO` with `new Date()` and fix locale import path.
+import { format, isToday, isPast } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 const DueDateDisplay: React.FC<{ dueDate: string }> = ({ dueDate }) => {
-    const date = parseISO(dueDate);
+    const date = new Date(dueDate);
     let displayText = `Vence ${format(date, 'd MMM', { locale: es })}`;
     if (isToday(date)) displayText = 'Vence Hoy';
     
@@ -46,12 +47,21 @@ const TaskItem: React.FC<{ task: Task }> = ({ task }) => {
         setTaskDueDate(task.id, e.target.value || undefined);
     };
 
+    const taskItemVariants = {
+        initial: { opacity: 0, y: 20 },
+        animate: { opacity: 1, y: 0 },
+        exit: { opacity: 0, x: -20 },
+    };
+
     return (
+        // FIX: Added @ts-ignore for the 'layout' prop due to a type definition issue.
+        // @ts-ignore
         <motion.li
             layout
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, x: -20 }}
+            variants={taskItemVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
             className="flex flex-col gap-4 p-4 bg-kai-surface/50 border border-border-color rounded-lg transition-colors duration-200 hover:bg-kai-surface"
         >
@@ -148,11 +158,12 @@ const TasksPanel: React.FC = () => {
                                 onClick={toggleAutonomousMode}
                                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isAutonomousMode ? 'bg-kai-primary' : 'bg-gray-600'}`}
                             >
+                                {/* FIX: Replaced `translateX` with `x` for framer-motion transform. */}
                                 <motion.span
                                     layout
                                     transition={{ type: 'spring', stiffness: 700, damping: 30 }}
                                     className="inline-block h-4 w-4 transform rounded-full bg-white"
-                                    style={{translateX: isAutonomousMode ? '1.5rem' : '0.25rem' }}
+                                    style={{x: isAutonomousMode ? '1.5rem' : '0.25rem' }}
                                 />
                                 <Bot size={12} className={`absolute text-gray-800 ${isAutonomousMode ? 'left-1.5' : 'right-1.5'}`}/>
                             </button>

@@ -56,6 +56,13 @@ const App: React.FC = () => {
   
   const ActivePanelComponent = panelComponents[activePanel];
 
+  // FIX: Using variants for framer-motion animations to resolve typing issues.
+  const panelVariants = {
+    initial: { opacity: 0, y: 20 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -20 },
+  };
+
   return (
     <div className="font-sans bg-kai-dark text-text-primary min-h-screen flex">
       <DynamicBackground />
@@ -66,11 +73,13 @@ const App: React.FC = () => {
       <main className={`flex-1 transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'pl-20' : 'pl-64'}`}>
         <div className="p-4 sm:p-6 lg:p-8 h-screen overflow-y-auto">
             <AnimatePresence mode="wait">
+                 {/* FIX: Switched to using variants for framer-motion props to avoid type errors. */}
                  <motion.div
                     key={activePanel}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
+                    variants={panelVariants}
+                    initial="initial"
+                    animate="animate"
+                    exit="exit"
                     transition={{ duration: 0.3 }}
                     className="h-full"
                  >
