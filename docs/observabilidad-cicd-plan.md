@@ -68,7 +68,7 @@ Este documento describe la implementación de soluciones de observabilidad y CI/
 
 **Implementación**:
 ```javascript
-// tools/telemetry-collector.js
+// tools/telemetry-collector.cjs
 - Configuración del SDK de OpenTelemetry
 - Auto-instrumentación de frameworks (React, Express)
 - Exportadores para GCP
@@ -100,7 +100,7 @@ Este documento describe la implementación de soluciones de observabilidad y CI/
 
 **Implementación**:
 ```javascript
-// tools/setup-alerts.js
+// tools/setup-alerts.cjs
 - Definición de SLIs/SLOs
 - Creación de alertas programáticas
 - Configuración de canales de notificación
@@ -215,7 +215,7 @@ strategy:
 
 **Implementación**:
 ```javascript
-// tools/generate-reports.js
+// tools/generate-reports.cjs
 - Agregación de métricas semanales
 - Generación de gráficos de tendencias
 - Cálculo de SLI/SLO compliance

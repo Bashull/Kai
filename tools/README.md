@@ -6,17 +6,25 @@ Este directorio contiene scripts y herramientas para la observabilidad, monitore
 
 ### 🔭 Telemetría
 
-- **`telemetry-collector.js`**: Configuración de OpenTelemetry para recopilación de métricas, logs y trazas
+- **`telemetry-collector.cjs`**: Configuración de OpenTelemetry para recopilación de métricas, logs y trazas
   - Auto-instrumentación de Node.js
   - Exportadores para Google Cloud Monitoring y Cloud Trace
   - Métricas personalizadas para llamadas a IA
+- **`telemetry-integration-example.cjs`**: Ejemplos de integración de telemetría en la aplicación
 
 ### 🚨 Alertas
 
-- **`setup-alerts.js`**: Configuración de políticas de alertas en Google Cloud Monitoring
+- **`setup-alerts.cjs`**: Configuración de políticas de alertas en Google Cloud Monitoring
   - Alertas de latencia, errores, recursos y disponibilidad
   - Definición de SLIs/SLOs
   - Integración con canales de notificación
+
+### 📊 Reportes
+
+- **`generate-reports.cjs`**: Generador de reportes automatizados
+  - Reportes de rendimiento, disponibilidad, seguridad y CI/CD
+  - Múltiples formatos de salida (Markdown, JSON, HTML)
+  - Métricas DORA para CI/CD
 
 ## 🚀 Uso
 
@@ -52,7 +60,7 @@ NOTIFICATION_CHANNEL_ID=tu-canal-id
 
 ```javascript
 // En el punto de entrada de tu aplicación
-const { initializeTelemetry } = require('./tools/telemetry-collector');
+const { initializeTelemetry } = require('./tools/telemetry-collector.cjs');
 
 // Inicializar telemetría
 initializeTelemetry();
@@ -63,13 +71,14 @@ initializeTelemetry();
 #### Ejecutar ejemplo standalone
 
 ```bash
-node tools/telemetry-collector.js
+node tools/telemetry-collector.cjs
+node tools/telemetry-integration-example.cjs
 ```
 
 #### Usar tracing personalizado
 
 ```javascript
-const { setupCustomTracing } = require('./tools/telemetry-collector');
+const { setupCustomTracing } = require('./tools/telemetry-collector.cjs');
 const { traceAsync } = setupCustomTracing();
 
 // Envolver operaciones con tracing
@@ -89,19 +98,19 @@ await traceAsync('mi-operacion', async (span) => {
 
 ```bash
 # Modo dry-run (sin crear cambios reales)
-node tools/setup-alerts.js --dry-run
+node tools/setup-alerts.cjs --dry-run
 
 # Crear políticas
-node tools/setup-alerts.js
+node tools/setup-alerts.cjs
 
 # Limpiar políticas antiguas y crear nuevas
-node tools/setup-alerts.js --clean
+node tools/setup-alerts.cjs --clean
 ```
 
 #### Crear canal de notificación
 
 ```javascript
-const { createEmailNotificationChannel } = require('./tools/setup-alerts');
+const { createEmailNotificationChannel } = require('./tools/setup-alerts.cjs');
 
 // Crear canal de email
 const channelId = await createEmailNotificationChannel('tu-email@example.com');
@@ -179,10 +188,26 @@ fetch cloud_run_revision
 
 ## 🛠️ Desarrollo
 
+### Generar Reportes
+
+```bash
+# Generar reporte completo en Markdown
+node tools/generate-reports.cjs --type=all --format=markdown
+
+# Generar solo reporte de rendimiento en JSON
+node tools/generate-reports.cjs --type=performance --format=json
+
+# Generar reporte de seguridad
+node tools/generate-reports.cjs --type=security --format=markdown
+
+# Especificar directorio de salida
+node tools/generate-reports.cjs --type=all --output=./custom-reports
+```
+
 ### Agregar Métricas Personalizadas
 
 ```javascript
-const { createCustomMetrics } = require('./tools/telemetry-collector');
+const { createCustomMetrics } = require('./tools/telemetry-collector.cjs');
 const { aiCallsCounter } = createCustomMetrics();
 
 // Incrementar contador
@@ -195,7 +220,7 @@ aiCallsCounter.add(1, {
 
 ### Agregar Alertas Personalizadas
 
-Edita `tools/setup-alerts.js` y agrega tu política al array `ALERT_POLICIES`:
+Edita `tools/setup-alerts.cjs` y agrega tu política al array `ALERT_POLICIES`:
 
 ```javascript
 {
