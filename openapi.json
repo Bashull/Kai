@@ -1,0 +1,157 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Kai System Status API",
+    "description": "API para monitorear el estado y salud del sistema Kai",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Kai Development Team"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Servidor de desarrollo"
+    },
+    {
+      "url": "https://api.kai.example.com",
+      "description": "Servidor de producción"
+    }
+  ],
+  "paths": {
+    "/status": {
+      "get": {
+        "operationId": "getSystemStatus",
+        "summary": "Obtener estado del sistema",
+        "description": "Retorna información sobre el estado de salud del sistema, incluyendo modo de ejecución, tiempo de actividad (uptime) y uso de memoria",
+        "tags": ["System"],
+        "responses": {
+          "200": {
+            "description": "Estado del sistema obtenido exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": ["ok"],
+                      "description": "Estado general del sistema",
+                      "example": "ok"
+                    },
+                    "mode": {
+                      "type": "string",
+                      "description": "Modo de ejecución del servidor (development, production, test)",
+                      "example": "development"
+                    },
+                    "uptime": {
+                      "type": "integer",
+                      "description": "Tiempo de actividad del servidor en segundos",
+                      "example": 3600
+                    },
+                    "memory": {
+                      "type": "object",
+                      "description": "Información sobre el uso de memoria",
+                      "properties": {
+                        "rss": {
+                          "type": "integer",
+                          "description": "Resident Set Size - Memoria total en MB",
+                          "example": 50
+                        },
+                        "heapTotal": {
+                          "type": "integer",
+                          "description": "Heap total asignado en MB",
+                          "example": 30
+                        },
+                        "heapUsed": {
+                          "type": "integer",
+                          "description": "Heap utilizado en MB",
+                          "example": 20
+                        },
+                        "external": {
+                          "type": "integer",
+                          "description": "Memoria externa en MB",
+                          "example": 5
+                        }
+                      },
+                      "required": ["rss", "heapTotal", "heapUsed", "external"]
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Timestamp ISO 8601 de la respuesta",
+                      "example": "2025-10-14T01:33:02.406Z"
+                    }
+                  },
+                  "required": ["status", "mode", "uptime", "memory", "timestamp"]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error interno del servidor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": ["error"],
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Internal server error"
+                    }
+                  },
+                  "required": ["status", "message"]
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "getHealth",
+        "summary": "Health check del sistema",
+        "description": "Endpoint simple para verificar que el servidor está respondiendo",
+        "tags": ["System"],
+        "responses": {
+          "200": {
+            "description": "El servidor está funcionando correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": ["ok"],
+                      "example": "ok"
+                    }
+                  },
+                  "required": ["status"]
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    }
+  },
+  "components": {
+    "schemas": {},
+    "securitySchemes": {}
+  },
+  "tags": [
+    {
+      "name": "System",
+      "description": "Endpoints relacionados con el estado y salud del sistema"
+    }
+  ]
+}
