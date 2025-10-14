@@ -25,7 +25,7 @@ export const createLiveSlice: AppSlice<LiveSlice> = (set, get) => ({
         set({ isConnecting: true });
 
         try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
             
             // Initialize AudioContexts
             inputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });

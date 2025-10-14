@@ -11,11 +11,3 @@ root.render(
     <App />
   </React.StrictMode>
 );
-
-// Optional: Fade out loading screen
-window.addEventListener('load', () => {
-  const loadingScreen = document.getElementById('loading-screen');
-  if (loadingScreen) {
-    loadingScreen.setAttribute('data-loaded', 'true');
-  }
-});

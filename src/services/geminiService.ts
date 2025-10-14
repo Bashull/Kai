@@ -6,7 +6,7 @@ import { apiClient } from './apiClient';
 
 // Initialize the Google AI client
 // It is assumed that process.env.API_KEY is configured in the execution environment.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
 
 /**
  * Creates a streaming chat session with the Gemini model, with function calling enabled.
@@ -78,7 +78,6 @@ export const streamChat = async function* (history: { role: string, parts: { tex
  * @param prompt The user's prompt.
  * @returns The text response from the model.
  */
-// FIX: Add missing generateWithAI function. - This is now fixed.
 export const generateWithAI = async (prompt: string): Promise<string> => {
     try {
         const response = await ai.models.generateContent({

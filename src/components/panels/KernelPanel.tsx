@@ -25,7 +25,7 @@ const EntityCard: React.FC<{ entity: Entity }> = ({ entity }) => {
             className="bg-kai-surface/50 border border-border-color rounded-lg p-4 transition-colors duration-200 hover:bg-kai-surface"
         >
             <div className="flex justify-between items-start gap-4">
-                <div className="flex-grow">
+                <div className="flex-grow overflow-hidden">
                     <div className="flex items-center gap-2 text-text-secondary text-sm mb-2">
                         {iconMap[entity.type]}
                         <span>{entity.type}</span>

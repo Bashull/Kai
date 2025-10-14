@@ -30,13 +30,13 @@ const StudioPanel: React.FC = () => {
     };
 
     return (
-        <div className="flex flex-col h-[calc(100vh-6rem)]">
+        <div className="flex flex-col h-full">
             <div className="flex-shrink-0">
                 <h1 className="h1-title">IA Studio</h1>
                 <p className="p-subtitle">Mi suite de herramientas para la creación y el diagnóstico.</p>
             </div>
 
-            <div className="flex-shrink-0 border-b border-border-color mb-4">
+            <div className="flex-shrink-0 border-b border-border-color my-4">
                 <nav className="-mb-px flex space-x-6" aria-label="Tabs">
                     {TABS.map((tab) => (
                         <button

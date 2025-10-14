@@ -16,7 +16,7 @@ const ResourceItem: React.FC<{ item: AwesomeResource['items'][0] }> = ({ item })
     <div className="flex justify-between items-start gap-4">
       <div>
         <h3 className="font-bold text-text-primary group-hover:text-kai-primary transition-colors">
-          {item.title}
+          <a href={item.url} target="_blank" rel="noopener noreferrer">{item.title}</a>
         </h3>
         <p className="text-sm text-text-secondary mt-1">{item.description}</p>
       </div>
@@ -70,10 +70,10 @@ const AwesomeResourcesPanel: React.FC = () => {
   
   return (
     <div>
-      <h1 className="h1-title">Awesome Resources</h1>
+      <h1 className="h1-title">Recursos Awesome</h1>
       <p className="p-subtitle">Una colección curada de listas "awesome" y recursos para el desarrollo y la IA.</p>
       
-       <div className="relative mb-6">
+       <div className="relative my-6">
             <input
                 type="text"
                 placeholder="Filtrar recursos..."

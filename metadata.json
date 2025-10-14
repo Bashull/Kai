@@ -1,5 +1,7 @@
 {
-  "name": "AI Resume Builder",
-  "description": "An application that helps you create a professional resume with the assistance of AI. Enter your details, choose a template, and let Gemini help you craft the perfect descriptions and summary for your career profile.",
-  "requestFramePermissions": []
+  "name": "KaiOS v3.0",
+  "description": "KaiOS v3.0 - Un ecosistema de IA relacional y unificado para la creación, colaboración y aumento.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
 }

@@ -41,6 +41,9 @@ export const createResumeSlice: AppSlice<ResumeSlice> = (set, get) => ({
   updateExperience: (index, field, value) => set(state => {
     const newExperience = [...state.resumeData.experience];
     (newExperience[index] as any)[field] = value;
+    if(field === 'isCurrent' && value === true) {
+        (newExperience[index] as any)['endDate'] = '';
+    }
     return { resumeData: { ...state.resumeData, experience: newExperience } };
   }),
   removeExperience: (id: string) => set(state => ({

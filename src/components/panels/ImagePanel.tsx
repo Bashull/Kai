@@ -93,7 +93,7 @@ const ImagePanel: React.FC = () => {
           ))}
         </div>
         {!isGeneratingImages && generatedImages.length === 0 && (
-            <div className="col-span-full text-center py-16 text-gray-500">
+            <div className="col-span-full text-center py-16 text-text-secondary">
                 <p>Las imágenes generadas aparecerán aquí.</p>
             </div>
         )}

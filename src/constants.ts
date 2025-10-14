@@ -1,10 +1,10 @@
 export const RESUME_STEPS = [
-  'Personal Info',
-  'Experience',
-  'Education',
-  'Skills',
-  'Summary',
-  'Preview',
+  'Información Personal',
+  'Experiencia',
+  'Educación',
+  'Habilidades',
+  'Resumen',
+  'Vista Previa',
 ];
 
 export const COMMON_SKILLS = [

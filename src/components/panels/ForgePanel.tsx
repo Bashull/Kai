@@ -49,6 +49,7 @@ const ForgePanel: React.FC = () => {
             datasetEntityIds: selectedEntityIds,
         });
         setSelectedEntityIds([]);
+        setIsModalOpen(false);
     };
 
     const toggleEntitySelection = (id: string) => {
@@ -181,7 +182,7 @@ const ForgePanel: React.FC = () => {
                         className="flex items-center gap-3 p-3 rounded-lg hover:bg-kai-dark/50 cursor-pointer"
                         onClick={() => toggleEntitySelection(entity.id)}
                     >
-                        <Checkbox id={`entity-${entity.id}`} checked={selectedEntityIds.includes(entity.id)} onChange={() => {}} />
+                        <Checkbox id={`entity-${entity.id}`} checked={selectedEntityIds.includes(entity.id)} readOnly />
                         <label htmlFor={`entity-${entity.id}`} className="flex-grow cursor-pointer">
                             <span className="font-medium text-sm text-text-primary">{entity.content.substring(0, 100)}{entity.content.length > 100 ? '...' : ''}</span>
                             <span className="block text-xs text-text-secondary">{entity.type} - {formatRelativeTime(entity.createdAt)}</span>

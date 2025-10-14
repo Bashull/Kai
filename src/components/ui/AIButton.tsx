@@ -3,14 +3,12 @@ import Button from './Button';
 import { Sparkles } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 
-interface AIButtonProps {
+interface AIButtonProps extends React.ComponentProps<typeof Button> {
     onClick: () => void;
     promptText?: string;
-    className?: string;
-    children: React.ReactNode;
 }
 
-export const AIButton: React.FC<AIButtonProps> = ({ onClick, promptText, className, children }) => {
+export const AIButton: React.FC<AIButtonProps> = ({ onClick, promptText, className, children, ...props }) => {
     const { isGenerating } = useAppStore();
 
     return (
@@ -23,6 +21,7 @@ export const AIButton: React.FC<AIButtonProps> = ({ onClick, promptText, classNa
             size="sm"
             className={`text-kai-primary ${className}`}
             title={promptText || "Asistencia de IA"}
+            {...props}
         >
             {children}
         </Button>

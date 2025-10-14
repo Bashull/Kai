@@ -41,7 +41,7 @@ export const useAppStore = create<AppState>()(
       ...createSnapshotSlice(...a),
     }),
     {
-      name: 'kai-ultra-pro-storage',
+      name: 'kai-os-v3-storage',
       storage: createJSONStorage(() => localStorage),
       // Only persist non-sensitive UI settings and important data
       partialize: (state) => ({

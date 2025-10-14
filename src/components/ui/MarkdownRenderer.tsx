@@ -10,7 +10,7 @@ interface MarkdownRendererProps {
 const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
   return (
     <ReactMarkdown
-      className="prose prose-invert prose-sm max-w-none"
+      className="prose prose-sm prose-invert max-w-none"
       components={{
         code({ node, className, children, ...props }) {
           const match = /language-(\w+)/.exec(className || '');

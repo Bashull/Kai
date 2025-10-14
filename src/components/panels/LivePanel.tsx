@@ -50,7 +50,7 @@ const LivePanel: React.FC = () => {
         const draw = () => {
             animationFrameIdRef.current = requestAnimationFrame(draw);
 
-            analyserNode.getByteFrequencyData(dataArray);
+            analyserNode.getByteTimeDomainData(dataArray);
 
             const width = canvas.width;
             const height = canvas.height;
@@ -59,7 +59,7 @@ const LivePanel: React.FC = () => {
             
             let sum = 0;
             for(let i = 0; i < bufferLength; i++) {
-                sum += dataArray[i];
+                sum += Math.abs(dataArray[i] - 128);
             }
             const avg = sum / bufferLength;
 
@@ -67,13 +67,13 @@ const LivePanel: React.FC = () => {
 
             const baseRadius = 40;
             const maxRadius = 75;
-            const radius = Math.min(baseRadius + (avg / 255) * (maxRadius - baseRadius) * 2, maxRadius);
+            const radius = Math.min(baseRadius + (avg / 64) * (maxRadius - baseRadius) * 2, maxRadius);
 
             // Draw pulsating outer circles
             for (let i = 1; i <= 3; i++) {
                 ctx.beginPath();
                 ctx.arc(centerX, centerY, radius + i * 20, 0, 2 * Math.PI);
-                const opacity = Math.max(0, (avg / 128) - (i * 0.2));
+                const opacity = Math.max(0, (avg / 32) - (i * 0.2));
                 ctx.strokeStyle = `rgba(79, 70, 229, ${opacity * 0.5})`;
                 ctx.lineWidth = 2;
                 ctx.stroke();

@@ -55,7 +55,7 @@ const TaskItem: React.FC<{ task: Task }> = ({ task }) => {
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
             className="flex flex-col gap-4 p-4 bg-kai-surface/50 border border-border-color rounded-lg transition-colors duration-200 hover:bg-kai-surface"
         >
-            <div className="flex items-center gap-4">
+            <div className="flex items-start gap-4">
                 <Checkbox
                     id={task.id}
                     checked={isCompleted}
@@ -67,7 +67,7 @@ const TaskItem: React.FC<{ task: Task }> = ({ task }) => {
                         htmlFor={task.id}
                         className={`cursor-pointer transition-colors ${isCompleted ? 'text-text-secondary' : 'text-text-primary'} ${isAgentRunning ? 'cursor-not-allowed' : ''}`}
                     >
-                         <span className={`line-through ${isCompleted ? 'completed' : ''}`}>{task.title}</span>
+                         <span className={`${isCompleted ? 'line-through' : ''}`}>{task.title}</span>
                     </label>
                     {task.dueDate && !isCompleted && <div className="mt-1"><DueDateDisplay dueDate={task.dueDate} /></div> }
                 </div>
@@ -86,7 +86,7 @@ const TaskItem: React.FC<{ task: Task }> = ({ task }) => {
                     </Button>
                 )}
 
-                {!isAutonomousMode && (
+                {!isAutonomousMode && !isCompleted && (
                     <div className="relative group">
                         <Calendar size={18} className="text-text-secondary cursor-pointer hover:text-text-primary" />
                         <input

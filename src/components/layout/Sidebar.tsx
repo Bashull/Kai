@@ -33,7 +33,7 @@ const NavButton: React.FC<{ item: typeof navItems[0]; isActive: boolean; isColla
                 title={item.label}
                 className={`flex items-center w-full text-sm font-medium rounded-lg transition-colors duration-200 ${
                     isActive
-                        ? 'bg-kai-primary/20 text-kai-primary'
+                        ? 'bg-kai-primary/20 text-text-primary'
                         : 'text-text-secondary hover:text-text-primary hover:bg-kai-surface'
                 } ${isCollapsed ? 'justify-center h-12' : 'px-4 h-11'}`}
             >
@@ -74,7 +74,7 @@ const Sidebar: React.FC = () => {
         toggleNotifications,
     } = useAppStore();
 
-    const [dueTasks, setDueTasks] = useState([]);
+    const [dueTasks, setDueTasks] = useState<any[]>([]);
 
     useEffect(() => {
         const todayTasks = tasks.filter(task => task.dueDate && task.status === 'PENDING' && isToday(parseISO(task.dueDate)));

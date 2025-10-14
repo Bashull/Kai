@@ -5,7 +5,7 @@ import { Loader2 } from 'lucide-react';
 type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'success' | 'kai';
 type ButtonSize = 'sm' | 'md' | 'lg' | 'xl';
 
-interface ButtonProps extends Omit<ComponentPropsWithRef<'button'>, 'children'> {
+interface ButtonProps extends Omit<ComponentPropsWithRef<'button'>, 'children' | 'color'> {
   children?: ReactNode;
   as?: ElementType;
   variant?: ButtonVariant;

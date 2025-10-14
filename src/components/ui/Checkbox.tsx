@@ -1,14 +1,15 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Check } from 'lucide-react';
 
-interface CheckboxProps {
+interface CheckboxProps extends React.InputHTMLAttributes<HTMLInputElement> {
   id: string;
   checked: boolean;
   onChange: () => void;
   className?: string;
 }
 
-const Checkbox: React.FC<CheckboxProps> = ({ id, checked, onChange, className = '' }) => {
+const Checkbox: React.FC<CheckboxProps> = ({ id, checked, onChange, className = '', readOnly, ...props }) => {
   const boxVariants = {
     checked: {
       background: 'var(--kai-primary)',
@@ -31,9 +32,11 @@ const Checkbox: React.FC<CheckboxProps> = ({ id, checked, onChange, className = 
         id={id}
         type="checkbox"
         checked={checked}
-        onChange={onChange}
+        onChange={readOnly ? undefined : onChange}
         className="absolute w-6 h-6 opacity-0 cursor-pointer"
         aria-checked={checked}
+        readOnly={readOnly}
+        {...props}
       />
       <motion.div
         className="w-6 h-6 border-2 rounded-md flex items-center justify-center cursor-pointer"

@@ -10,7 +10,7 @@ const SettingsPanel: React.FC = () => {
             <h1 className="h1-title">Ajustes</h1>
             <p className="p-subtitle">Personaliza tu experiencia con KaiOS.</p>
 
-            <div className="space-y-8 max-w-md">
+            <div className="space-y-8 max-w-md mt-6">
                 <div className="panel-container">
                     <h2 className="text-lg font-semibold mb-3">Apariencia</h2>
                     <div className="space-y-4">
