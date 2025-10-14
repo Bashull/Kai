@@ -7,7 +7,8 @@ import Checkbox from '../ui/Checkbox';
 import { Task } from '../../types';
 // FIX: Replace `parseISO` with `new Date()` and fix locale import path.
 import { format, isToday, isPast } from 'date-fns';
-import { es } from 'date-fns/locale';
+// FIX: Corrected import path for 'es' locale.
+import { es } from 'date-fns/locale/es';
 
 const DueDateDisplay: React.FC<{ dueDate: string }> = ({ dueDate }) => {
     const date = new Date(dueDate);

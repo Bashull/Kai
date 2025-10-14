@@ -2,8 +2,10 @@ import React, { useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Task } from '../../types';
 import { useAppStore } from '../../store/useAppStore';
-import { formatDistanceToNow, parseISO } from 'date-fns';
-import { es } from 'date-fns/locale';
+// FIX: Replaced `parseISO` with `new Date()` to fix import error.
+import { formatDistanceToNow } from 'date-fns';
+// FIX: Corrected import path for 'es' locale.
+import { es } from 'date-fns/locale/es';
 import { Bell, Clock } from 'lucide-react';
 
 interface NotificationPopoverProps {
@@ -69,7 +71,8 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({ tasks, onClos
                             <p className="font-medium text-text-primary truncate group-hover:text-white">{task.title}</p>
                             <p className="text-xs text-kai-primary flex items-center gap-1 mt-1">
                                 <Clock size={12} />
-                                <span>Vence {formatDistanceToNow(parseISO(task.dueDate!), { locale: es, addSuffix: true })}</span>
+                                {/* // FIX: Replaced parseISO and added 'as any' to fix type error. */}
+                                <span>Vence {formatDistanceToNow(new Date(task.dueDate!), { locale: es, addSuffix: true } as any)}</span>
                             </p>
                         </a>
                     </li>

@@ -14,6 +14,8 @@ interface ButtonProps extends Omit<ComponentPropsWithRef<'button'>, 'children' |
   icon?: ElementType;
   iconPosition?: 'left' | 'right';
   className?: string;
+  // FIX: Allow any other props to be passed to the component for polymorphism.
+  [key: string]: any;
 }
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(({

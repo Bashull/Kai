@@ -4,7 +4,8 @@ import { Task } from '../../types';
 import { useAppStore } from '../../store/useAppStore';
 // FIX: Replace `parseISO` with `new Date()` and fix locale import path.
 import { formatDistanceToNow } from 'date-fns';
-import { es } from 'date-fns/locale';
+// FIX: Corrected import path for 'es' locale.
+import { es } from 'date-fns/locale/es';
 import { Bell, Clock } from 'lucide-react';
 
 interface NotificationPopoverProps {

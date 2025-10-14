@@ -1,6 +1,6 @@
 import React from 'react';
-import { useAppStore } from '../../store/useAppStore';
-import Button from '../ui/Button';
+import { useAppStore } from './store/useAppStore';
+import Button from './components/ui/Button';
 
 const SettingsPanel: React.FC = () => {
     const { theme, setTheme, sidebarCollapsed, toggleSidebar } = useAppStore();
