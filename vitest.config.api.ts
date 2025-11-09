@@ -1,5 +1,5 @@
 import { defineConfig } from 'vitest/config';
-import path from 'path';
+importar  * como ruta desde 'ruta' ;    
 
 export default defineConfig({
   test: {
