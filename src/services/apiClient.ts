@@ -1,4 +1,5 @@
-import { TrainingJob } from '../types';
+import { TrainingJob, Memory, MemoryType } from '../types';
+import { useAppStore } from '../store/useAppStore';
 
 const API_BASE_URL = 'https://db7b1716-8580-4438-b2e5-26a39bc47d79-00-1v1sjqe5urhuq.spock.replit.dev';
 
@@ -33,6 +34,52 @@ export const apiClient: { [key: string]: (args: any) => Promise<any> } = {
   getMemories: async () => {
     const response = await fetch(`${API_BASE_URL}/api/consciousness/memories`);
     return handleResponse(response);
+  },
+  getLongTermMemories: async ({ type, limit }: { type?: MemoryType; limit?: number } = {}) => {
+    const state = useAppStore.getState();
+    let memories = state.memories;
+    
+    if (type) {
+      memories = state.getMemoriesByType(type);
+    }
+    
+    if (limit) {
+      memories = memories.slice(0, limit);
+    }
+    
+    return Promise.resolve({
+      memories,
+      total: memories.length,
+    });
+  },
+  addLongTermMemory: async ({ content, type, importance = 0.5, tags = [] }: {
+    content: string;
+    type: MemoryType;
+    importance?: number;
+    tags?: string[];
+  }) => {
+    const state = useAppStore.getState();
+    state.addMemory({
+      content,
+      type,
+      importance,
+      tags,
+    });
+    
+    return Promise.resolve({
+      success: true,
+      message: 'Recuerdo añadido a la memoria a largo plazo.',
+    });
+  },
+  searchLongTermMemories: async ({ query }: { query: string }) => {
+    const state = useAppStore.getState();
+    const results = state.searchMemories(query);
+    
+    return Promise.resolve({
+      results,
+      total: results.length,
+      query,
+    });
   },
   getDiary: async () => {
     const response = await fetch(`${API_BASE_URL}/api/consciousness/diary`);

@@ -4,7 +4,7 @@ import { generateId } from '../../utils/helpers';
 const SNAPSHOTABLE_KEYS: (keyof SnapshotableState)[] = [
   'chatHistory', 'entities', 'constitution', 'versionHistory', 'trainingJobs', 'studioLogs',
   'codePrompt', 'generatedCode', 'codeLanguage', 'imagePrompt', 'generatedImages', 'tasks',
-  'resumeData', 'currentStep', 'diary'
+  'resumeData', 'currentStep', 'diary', 'memories'
 ];
 
 export const createSnapshotSlice: AppSlice<SnapshotSlice> = (set, get) => ({
