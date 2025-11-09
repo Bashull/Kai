@@ -15,6 +15,7 @@ const ChatPanel: React.FC = () => {
     setTyping, 
     isTyping, 
     chatHistory,
+    memories,
     isRecording,
     startRecording,
     stopRecording,
@@ -53,7 +54,7 @@ const ChatPanel: React.FC = () => {
             parts: [{ text: msg.content }]
         }));
 
-        const stream = streamChat(historyForAPI, userMessageContent);
+        const stream = streamChat(historyForAPI, userMessageContent, memories);
         for await (const chunk of stream) {
             updateLastChatMessage(chunk);
         }

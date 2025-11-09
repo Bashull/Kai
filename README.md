@@ -5,7 +5,8 @@ Kai es un compañero virtual avanzado especializado en Dungeons & Dragons y asis
 ## ✨ Características Principales
 
 - 💬 **Conversación Natural**: Interacción fluida usando modelos de lenguaje avanzados (Gemini, GPT)
-- 🧠 **Memoria Persistente**: Sistema de memoria vectorial con FAISS para recordar contexto y preferencias
+- 🧠 **Memoria a Largo Plazo**: Sistema de memoria persistente que almacena conocimientos, preferencias y conversaciones importantes
+- 🔍 **Búsqueda Semántica**: Recuperación inteligente de recuerdos relevantes durante conversaciones
 - 🎲 **Dungeons & Dragons**: Especialización en D&D 5e con generación de narrativa y gestión de campañas
 - 🔊 **Síntesis de Voz**: Respuestas en audio usando Coqui TTS
 - 🎤 **Reconocimiento de Voz**: Transcripción con OpenAI Whisper
@@ -172,7 +173,30 @@ Kai/
 ## 🎮 Uso
 
 ### Modo Conversación General
-Interactúa con Kai como asistente personal. Kai puede recordar contexto de conversaciones anteriores gracias a su memoria vectorial.
+Interactúa con Kai como asistente personal. Kai puede recordar contexto de conversaciones anteriores gracias a su sistema de memoria a largo plazo.
+
+### Sistema de Memoria a Largo Plazo 🧠
+
+Kai cuenta con un avanzado sistema de memoria persistente que le permite recordar información importante a través de las sesiones:
+
+#### Tipos de Recuerdos
+- **Conversaciones**: Resúmenes de conversaciones importantes
+- **Conocimientos**: Información y hechos aprendidos
+- **Preferencias**: Gustos y preferencias del usuario
+- **Eventos**: Acontecimientos significativos
+
+#### Características
+- **Creación Automática**: Al resumir conversaciones en el chat, se crean automáticamente recuerdos
+- **Creación Manual**: Añade recuerdos manualmente desde el panel de Memoria
+- **Búsqueda y Filtrado**: Encuentra recuerdos específicos por contenido, tipo o etiquetas
+- **Contexto Inteligente**: Los recuerdos relevantes se incluyen automáticamente en las conversaciones
+- **Persistencia**: Todos los recuerdos se guardan en localStorage y persisten entre sesiones
+
+#### Cómo Usar
+1. **Chat con contexto**: Kai recupera automáticamente recuerdos relevantes durante las conversaciones
+2. **Resumir conversaciones**: Usa el botón "Archivar" en el chat cuando tengas 6+ mensajes
+3. **Panel de Memoria**: Accede al panel "Memoria" para ver, buscar y gestionar todos tus recuerdos
+4. **Añadir recuerdos**: Crea recuerdos manualmente con información importante
 
 ### Modo Dungeons & Dragons
 Kai actúa como Dungeon Master, generando narrativa dinámica, gestionando NPCs y facilitando sesiones de D&D 5e.

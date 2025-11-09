@@ -12,7 +12,7 @@ export interface Task {
 }
 
 // --- UI & App State ---
-export type Panel = 'chat' | 'live' | 'kernel' | 'forge' | 'studio' | 'tasks' | 'settings' | 'resume' | 'awesome' | 'diary' | 'snapshots';
+export type Panel = 'chat' | 'live' | 'kernel' | 'forge' | 'studio' | 'tasks' | 'settings' | 'resume' | 'awesome' | 'diary' | 'snapshots' | 'memory';
 export type Theme = 'light' | 'dark';
 
 export interface UISlice {
@@ -311,6 +311,29 @@ export interface DiarySlice {
   addDiaryEntry: (entry: Omit<DiaryEntry, 'id' | 'timestamp'>) => void;
 }
 
+// --- Memory (Long-term) ---
+export type MemoryType = 'CONVERSATION' | 'KNOWLEDGE' | 'PREFERENCE' | 'EVENT';
+
+export interface Memory {
+  id: string;
+  content: string;
+  type: MemoryType;
+  timestamp: string;
+  importance: number; // 0-1 scale
+  tags?: string[];
+  metadata?: Record<string, any>;
+}
+
+export interface MemorySlice {
+  memories: Memory[];
+  addMemory: (memory: Omit<Memory, 'id' | 'timestamp'>) => void;
+  updateMemory: (id: string, updates: Partial<Memory>) => void;
+  deleteMemory: (id: string) => void;
+  searchMemories: (query: string) => Memory[];
+  getRecentMemories: (count: number) => Memory[];
+  getMemoriesByType: (type: MemoryType) => Memory[];
+}
+
 // --- Snapshots ---
 export interface SnapshotableState {
     chatHistory: ChatMessage[];
@@ -328,6 +351,7 @@ export interface SnapshotableState {
     resumeData: ResumeData;
     currentStep: number;
     diary: DiaryEntry[];
+    memories: Memory[];
 }
 
 export interface Snapshot {
@@ -363,6 +387,7 @@ export interface AppState extends
     SearchSlice,
     AwesomeResourceSlice,
     DiarySlice,
-    SnapshotSlice {}
+    SnapshotSlice,
+    MemorySlice {}
 
 export type AppSlice<T> = StateCreator<AppState, [['zustand/persist', unknown]], [], T>;

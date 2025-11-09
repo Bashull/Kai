@@ -21,6 +21,7 @@ import ResumeBuilderPanel from './components/panels/ResumeBuilderPanel';
 import AwesomeResourcesPanel from './components/panels/AwesomeResourcesPanel';
 import DiaryPanel from './components/panels/DiaryPanel';
 import SnapshotsPanel from './components/panels/SnapshotsPanel';
+import MemoryPanel from './components/panels/MemoryPanel';
 import { Panel } from './types';
 
 const panelComponents: { [key in Panel]: React.FC } = {
@@ -35,6 +36,7 @@ const panelComponents: { [key in Panel]: React.FC } = {
   awesome: AwesomeResourcesPanel,
   diary: DiaryPanel,
   snapshots: SnapshotsPanel,
+  memory: MemoryPanel,
 };
 
 const App: React.FC = () => {
