@@ -1,7 +1,10 @@
 import express, { Request, Response } from 'express';
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = (() => {
+  const port = parseInt(process.env.PORT || '3000', 10);
+  return isNaN(port) ? 3000 : port;
+})();
 
 // Store the start time to calculate uptime
 const startTime = Date.now();
