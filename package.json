@@ -10,8 +10,8 @@
     "test": "vitest --config vitest.config.api.ts",
     "test:ui": "vitest --ui --config vitest.config.api.ts",
     "test:run": "vitest run --config vitest.config.api.ts",
-    "api:dev": "NODE_ENV=development tsx apps/api/server.ts",
-    "api:start": "NODE_ENV=production tsx apps/api/server.ts"
+    "api:dev": "cross-env NODE_ENV=development tsx apps/api/server.ts",
+    "api:start": "cross-env NODE_ENV=production tsx apps/api/server.ts"
   },
   "dependencies": {
     "@google/genai": "^1.10.0"
@@ -22,6 +22,7 @@
     "@types/supertest": "^6.0.3",
     "@vitest/coverage-v8": "^3.2.4",
     "@vitest/ui": "^3.2.4",
+    "cross-env": "^10.1.0",
     "express": "^5.1.0",
     "supertest": "^7.1.4",
     "tsx": "^4.20.6",

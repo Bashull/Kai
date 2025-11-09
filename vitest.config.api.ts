@@ -1,5 +1,4 @@
 import { defineConfig } from 'vitest/config';
-importar  * como ruta desde 'ruta' ;    
 
 export default defineConfig({
   test: {
@@ -8,11 +7,6 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-    },
-  },
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, '.'),
     },
   },
 });

@@ -6,17 +6,14 @@ const PORT = (() => {
   return isNaN(port) ? 3000 : port;
 })();
 
-// Store the start time to calculate uptime
-const startTime = Date.now();
-
 // Middleware
 app.use(express.json());
 
 // GET /status endpoint
 app.get('/status', (_req: Request, res: Response) => {
   try {
-    // Calculate uptime in seconds
-    const uptimeSeconds = Math.floor((Date.now() - startTime) / 1000);
+    // Calculate uptime in seconds using process.uptime()
+    const uptimeSeconds = Math.floor(process.uptime());
     
     // Get memory usage (in MB)
     const memoryUsage = process.memoryUsage();
@@ -38,6 +35,7 @@ app.get('/status', (_req: Request, res: Response) => {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
+    console.error('Error in /status endpoint:', error);
     res.status(500).json({
       status: 'error',
       message: 'Internal server error',
