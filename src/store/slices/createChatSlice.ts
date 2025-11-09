@@ -27,7 +27,7 @@ export const createChatSlice: AppSlice<ChatSlice> = (set, get) => ({
     }),
   setTyping: (isTyping: boolean) => set({ isTyping }),
   summarizeAndSaveChat: async () => {
-    const { chatHistory, addEntity, addNotification, addMemory, addDiaryEntry } = get();
+    const { chatHistory, addEntity, addNotification } = get();
     if (chatHistory.length < 2) {
       addNotification({ type: 'info', message: 'No hay suficiente conversación para resumir.' });
       return;
@@ -41,32 +41,13 @@ export const createChatSlice: AppSlice<ChatSlice> = (set, get) => ({
       
       const summary = await summarizeText(conversationText);
 
-      // Save to Kernel
       addEntity({
         content: summary,
         type: 'TEXT',
         source: 'Chat Summary',
       });
 
-      // Save to long-term Memory
-      addMemory({
-        content: summary,
-        type: 'CONVERSATION',
-        importance: 0.7,
-        tags: ['chat', 'conversation', 'summary'],
-        metadata: {
-          messageCount: chatHistory.length,
-          date: new Date().toISOString(),
-        },
-      });
-
-      // Add diary entry
-      addDiaryEntry({
-        type: 'KERNEL',
-        content: `Conversación resumida y guardada en memoria a largo plazo (${chatHistory.length} mensajes).`,
-      });
-
-      addNotification({ type: 'success', message: 'Resumen guardado en Kernel y Memoria a largo plazo.' });
+      addNotification({ type: 'success', message: 'Resumen de la conversación guardado en el Kernel.' });
 
     } catch (error) {
         console.error("Failed to summarize chat:", error);

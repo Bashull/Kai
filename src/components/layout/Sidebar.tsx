@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '../../store/useAppStore';
 import {
     MessageSquare, BrainCircuit, Flame, Bot, CheckSquare, Settings,
-    FileText, Star, BookOpen, Camera, Search, Bell, Menu, X, Radio, Brain
+    FileText, Star, BookOpen, Camera, Search, Bell, Menu, X, Radio
 } from 'lucide-react';
 import KaiAvatar from '../ui/KaiAvatar';
 import NotificationPopover from '../ui/NotificationPopover';
@@ -21,7 +21,6 @@ const navItems: { id: Panel; label: string; icon: React.ElementType }[] = [
 ];
 
 const secondaryNavItems: { id: Panel; label: string; icon: React.ElementType }[] = [
-    { id: 'memory', label: 'Memoria', icon: Brain },
     { id: 'awesome', label: 'Recursos', icon: Star },
     { id: 'diary', label: 'Diario', icon: BookOpen },
     { id: 'snapshots', label: 'Snapshots', icon: Camera },

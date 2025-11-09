@@ -2,69 +2,8 @@ import { FunctionDeclaration, Type } from '@google/genai';
 
 export const getMemories: FunctionDeclaration = {
   name: 'getMemories',
-  description: 'Obtener recuerdos de memoria a largo plazo de Kai.',
+  description: 'Obtener recuerdos de Kai.',
   parameters: { type: Type.OBJECT, properties: {} },
-};
-
-export const getLongTermMemories: FunctionDeclaration = {
-  name: 'getLongTermMemories',
-  description: 'Obtener recuerdos de memoria a largo plazo con filtros opcionales.',
-  parameters: {
-    type: Type.OBJECT,
-    properties: {
-      type: {
-        type: Type.STRING,
-        description: 'Tipo de recuerdo: CONVERSATION, KNOWLEDGE, PREFERENCE, o EVENT.',
-      },
-      limit: {
-        type: Type.NUMBER,
-        description: 'Número máximo de recuerdos a retornar.',
-      },
-    },
-  },
-};
-
-export const addLongTermMemory: FunctionDeclaration = {
-  name: 'addLongTermMemory',
-  description: 'Añadir un nuevo recuerdo a la memoria a largo plazo.',
-  parameters: {
-    type: Type.OBJECT,
-    properties: {
-      content: {
-        type: Type.STRING,
-        description: 'El contenido del recuerdo.',
-      },
-      type: {
-        type: Type.STRING,
-        description: 'Tipo de recuerdo: CONVERSATION, KNOWLEDGE, PREFERENCE, o EVENT.',
-      },
-      importance: {
-        type: Type.NUMBER,
-        description: 'Importancia del recuerdo (0-1).',
-      },
-      tags: {
-        type: Type.ARRAY,
-        description: 'Etiquetas para categorizar el recuerdo.',
-        items: { type: Type.STRING },
-      },
-    },
-    required: ['content', 'type'],
-  },
-};
-
-export const searchLongTermMemories: FunctionDeclaration = {
-  name: 'searchLongTermMemories',
-  description: 'Buscar en la memoria a largo plazo usando una consulta de texto.',
-  parameters: {
-    type: Type.OBJECT,
-    properties: {
-      query: {
-        type: Type.STRING,
-        description: 'Término de búsqueda.',
-      },
-    },
-    required: ['query'],
-  },
 };
 
 export const getDiary: FunctionDeclaration = {
@@ -128,9 +67,6 @@ export const getTrainingJobStatus: FunctionDeclaration = {
 
 export const kaiTools: FunctionDeclaration[] = [
   getMemories,
-  getLongTermMemories,
-  addLongTermMemory,
-  searchLongTermMemories,
   getDiary,
   getSnapshots,
   searchMemories,

@@ -18,7 +18,6 @@ import { createDiarySlice } from './slices/createDiarySlice';
 import { createSnapshotSlice } from './slices/createSnapshotSlice';
 import { createVoiceSlice } from './slices/createVoiceSlice';
 import { createLiveSlice } from './slices/createLiveSlice';
-import { createMemorySlice } from './slices/createMemorySlice';
 
 export const useAppStore = create<AppState>()(
   persist(
@@ -40,7 +39,6 @@ export const useAppStore = create<AppState>()(
       ...createAwesomeResourceSlice(...a),
       ...createDiarySlice(...a),
       ...createSnapshotSlice(...a),
-      ...createMemorySlice(...a),
     }),
     {
       name: 'kai-os-v3-storage',
@@ -59,7 +57,6 @@ export const useAppStore = create<AppState>()(
         chatHistory: state.chatHistory,
         entities: state.entities,
         trainingJobs: state.trainingJobs,
-        memories: state.memories,
       }),
     }
   )

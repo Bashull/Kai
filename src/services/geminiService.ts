@@ -1,5 +1,5 @@
 import { GoogleGenAI, FunctionCall } from "@google/genai";
-import { GeneratedImage, CodeLanguage, Entity, Memory } from "../types";
+import { GeneratedImage, CodeLanguage, Entity } from "../types";
 import { kaiTools } from './kaiTools';
 import { apiClient } from './apiClient';
 
@@ -9,79 +9,15 @@ import { apiClient } from './apiClient';
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
 
 /**
- * Get relevant memories for context
- */
-const getRelevantMemories = (memories: Memory[], prompt: string, limit: number = 3): Memory[] => {
-    if (memories.length === 0) return [];
-    
-    // Simple relevance scoring based on keyword matching
-    const promptWords = prompt.toLowerCase().split(/\s+/);
-    
-    const scoredMemories = memories.map(memory => {
-        let score = 0;
-        const memoryText = memory.content.toLowerCase();
-        
-        // Score based on word matches
-        promptWords.forEach(word => {
-            if (word.length > 3 && memoryText.includes(word)) {
-                score += 1;
-            }
-        });
-        
-        // Boost score for higher importance
-        score *= memory.importance;
-        
-        // Boost recent memories slightly
-        const age = Date.now() - new Date(memory.timestamp).getTime();
-        const ageDays = age / (1000 * 60 * 60 * 24);
-        if (ageDays < 7) score *= 1.2;
-        
-        return { memory, score };
-    });
-    
-    // Sort by score and return top matches
-    return scoredMemories
-        .filter(m => m.score > 0)
-        .sort((a, b) => b.score - a.score)
-        .slice(0, limit)
-        .map(m => m.memory);
-};
-
-/**
  * Creates a streaming chat session with the Gemini model, with function calling enabled.
  * @param history The chat history to provide context.
  * @param prompt The user's new prompt.
- * @param memories Optional array of long-term memories for context.
  * @returns An async iterable stream of chat response text chunks.
  */
-export const streamChat = async function* (
-    history: { role: string, parts: { text: string }[] }[], 
-    prompt: string,
-    memories: Memory[] = []
-) {
-    // Get relevant memories for context
-    const relevantMemories = getRelevantMemories(memories, prompt);
-    
-    // Add memory context to system if relevant memories exist
-    let enhancedHistory = [...history];
-    if (relevantMemories.length > 0) {
-        const memoryContext = relevantMemories
-            .map(m => `- ${m.content} (${m.type}, importancia: ${m.importance.toFixed(1)})`)
-            .join('\n');
-        
-        const systemMessage = {
-            role: 'user',
-            parts: [{
-                text: `[Contexto de memoria a largo plazo relevante para esta conversación:\n${memoryContext}]\n\nPor favor, usa este contexto cuando sea relevante, pero no lo menciones explícitamente a menos que sea necesario.`
-            }]
-        };
-        
-        enhancedHistory = [systemMessage, ...history];
-    }
-    
+export const streamChat = async function* (history: { role: string, parts: { text: string }[] }[], prompt: string) {
     const chat = ai.chats.create({
         model: 'gemini-2.5-flash',
-        history: enhancedHistory,
+        history: history,
         config: {
             tools: [{ functionDeclarations: kaiTools }]
         }
