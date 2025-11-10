@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CheckSquare, Plus, Trash2, Calendar, Play, Bot } from 'lucide-react';
@@ -7,6 +7,58 @@ import Checkbox from '../ui/Checkbox';
 import { Task } from '../../types';
 import { format, isToday, isPast } from 'date-fns';
 import { es } from 'date-fns/locale';
+
+const PRIORITY_CONFIG: Record<Task['priority'], { label: string; badgeClass: string; dotClass: string }> = {
+    HIGH: {
+        label: 'Alta',
+        badgeClass: 'border-red-500/40 text-red-300 bg-red-500/10',
+        dotClass: 'bg-red-400',
+    },
+    MEDIUM: {
+        label: 'Media',
+        badgeClass: 'border-amber-500/40 text-amber-200 bg-amber-500/10',
+        dotClass: 'bg-amber-300',
+    },
+    LOW: {
+        label: 'Baja',
+        badgeClass: 'border-emerald-500/40 text-emerald-200 bg-emerald-500/10',
+        dotClass: 'bg-emerald-300',
+    },
+};
+
+type PriorityFilter = 'ALL' | Task['priority'];
+
+const PriorityBadge: React.FC<{ priority: Task['priority'] }> = ({ priority }) => {
+    const config = PRIORITY_CONFIG[priority];
+    return (
+        <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full border ${config.badgeClass}`}>
+            <span className={`w-2 h-2 rounded-full ${config.dotClass}`} aria-hidden />
+            Prioridad {config.label}
+        </span>
+    );
+};
+
+const PrioritySelector: React.FC<{
+    value: Task['priority'];
+    onChange: (priority: Task['priority']) => void;
+    disabled?: boolean;
+}> = ({ value, onChange, disabled }) => {
+    return (
+        <select
+            value={value}
+            onChange={(event) => onChange(event.target.value as Task['priority'])}
+            disabled={disabled}
+            className="bg-transparent border border-border-color rounded-md px-2 py-1 text-xs text-text-secondary focus:outline-none focus:ring-2 focus:ring-kai-primary/60 disabled:opacity-60"
+            aria-label="Cambiar prioridad"
+        >
+            {Object.entries(PRIORITY_CONFIG).map(([priorityKey, config]) => (
+                <option key={priorityKey} value={priorityKey} className="bg-kai-surface text-text-primary">
+                    {config.label}
+                </option>
+            ))}
+        </select>
+    );
+};
 
 const DueDateDisplay: React.FC<{ dueDate: string }> = ({ dueDate }) => {
     const date = new Date(dueDate);
@@ -38,7 +90,7 @@ const AgentLogViewer: React.FC<{ logs: Task['agentLogs'] }> = ({ logs }) => {
 
 
 const TaskItem: React.FC<{ task: Task }> = ({ task }) => {
-    const { toggleTask, setTaskDueDate, isAutonomousMode, startAutonomousTask } = useAppStore();
+    const { toggleTask, setTaskDueDate, isAutonomousMode, startAutonomousTask, setTaskPriority } = useAppStore();
     const isCompleted = task.status === 'COMPLETED';
     const isAgentRunning = task.agentStatus === 'RUNNING';
 
@@ -69,13 +121,21 @@ const TaskItem: React.FC<{ task: Task }> = ({ task }) => {
                     onChange={() => toggleTask(task.id)}
                     disabled={isAgentRunning}
                 />
-                <div className="flex-grow">
-                     <label
-                        htmlFor={task.id}
-                        className={`cursor-pointer transition-colors ${isCompleted ? 'text-text-secondary' : 'text-text-primary'} ${isAgentRunning ? 'cursor-not-allowed' : ''}`}
-                    >
-                         <span className={`${isCompleted ? 'line-through' : ''}`}>{task.title}</span>
-                    </label>
+                <div className="flex-grow space-y-2">
+                     <div className="flex flex-wrap items-center gap-2">
+                        <label
+                            htmlFor={task.id}
+                            className={`cursor-pointer transition-colors ${isCompleted ? 'text-text-secondary' : 'text-text-primary'} ${isAgentRunning ? 'cursor-not-allowed' : ''}`}
+                        >
+                             <span className={`${isCompleted ? 'line-through' : ''}`}>{task.title}</span>
+                        </label>
+                        <PriorityBadge priority={task.priority} />
+                        <PrioritySelector
+                            value={task.priority}
+                            onChange={(priority) => setTaskPriority(task.id, priority)}
+                            disabled={isAgentRunning}
+                        />
+                    </div>
                     {task.dueDate && !isCompleted && <div className="mt-1"><DueDateDisplay dueDate={task.dueDate} /></div> }
                 </div>
                 
@@ -114,15 +174,39 @@ const TaskItem: React.FC<{ task: Task }> = ({ task }) => {
 const TasksPanel: React.FC = () => {
     const { tasks, addTask, clearCompletedTasks, isAutonomousMode, toggleAutonomousMode } = useAppStore();
     const [newTaskTitle, setNewTaskTitle] = useState('');
+    const [newTaskPriority, setNewTaskPriority] = useState<Task['priority']>('MEDIUM');
+    const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('ALL');
 
-    const pendingTasks = tasks.filter(t => t.status === 'PENDING');
-    const completedTasks = tasks.filter(t => t.status === 'COMPLETED');
+    const pendingTasks = useMemo(
+        () => tasks.filter(t => t.status === 'PENDING'),
+        [tasks]
+    );
+    const completedTasks = useMemo(
+        () => tasks.filter(t => t.status === 'COMPLETED'),
+        [tasks]
+    );
+
+    const filterByPriority = (taskList: Task[]) =>
+        priorityFilter === 'ALL'
+            ? taskList
+            : taskList.filter(task => task.priority === priorityFilter);
+
+    const filteredPendingTasks = useMemo(
+        () => filterByPriority(pendingTasks),
+        [pendingTasks, priorityFilter]
+    );
+
+    const filteredCompletedTasks = useMemo(
+        () => filterByPriority(completedTasks),
+        [completedTasks, priorityFilter]
+    );
 
     const handleAddTask = (e: React.FormEvent) => {
         e.preventDefault();
         if (newTaskTitle.trim()) {
-            addTask(newTaskTitle.trim());
+            addTask(newTaskTitle.trim(), newTaskPriority);
             setNewTaskTitle('');
+            setNewTaskPriority('MEDIUM');
         }
     };
 
@@ -134,7 +218,7 @@ const TasksPanel: React.FC = () => {
             <div className="max-w-3xl mx-auto mt-6 space-y-8">
                 <div>
                      <div className="flex justify-between items-center mb-4">
-                        <form onSubmit={handleAddTask} className="flex gap-2 flex-grow">
+                        <form onSubmit={handleAddTask} className="flex gap-2 flex-grow flex-wrap">
                             <input
                                 type="text"
                                 value={newTaskTitle}
@@ -142,6 +226,18 @@ const TasksPanel: React.FC = () => {
                                 placeholder="Añadir nueva misión..."
                                 className="form-input flex-grow"
                             />
+                            <select
+                                value={newTaskPriority}
+                                onChange={(event) => setNewTaskPriority(event.target.value as Task['priority'])}
+                                className="bg-kai-surface border border-border-color rounded-md px-3 py-2 text-sm text-text-secondary focus:outline-none focus:ring-2 focus:ring-kai-primary/60"
+                                aria-label="Prioridad de la nueva misión"
+                            >
+                                {Object.entries(PRIORITY_CONFIG).map(([priorityKey, config]) => (
+                                    <option key={priorityKey} value={priorityKey} className="bg-kai-surface text-text-primary">
+                                        Prioridad {config.label}
+                                    </option>
+                                ))}
+                            </select>
                             <Button type="submit" icon={Plus} disabled={!newTaskTitle.trim()}>
                                 Añadir
                             </Button>
@@ -165,11 +261,34 @@ const TasksPanel: React.FC = () => {
                             </button>
                         </div>
                     </div>
+                    <div className="flex flex-wrap gap-2 mb-4">
+                        {([
+                            { value: 'ALL', label: 'Todas' },
+                            { value: 'HIGH', label: 'Alta' },
+                            { value: 'MEDIUM', label: 'Media' },
+                            { value: 'LOW', label: 'Baja' },
+                        ] as { value: PriorityFilter; label: string }[]).map(filter => (
+                            <button
+                                key={filter.value}
+                                onClick={() => setPriorityFilter(filter.value)}
+                                className={`px-3 py-1 rounded-full text-sm border transition-colors ${priorityFilter === filter.value ? 'bg-kai-primary text-white border-kai-primary' : 'border-border-color text-text-secondary hover:text-text-primary hover:border-kai-primary/50'}`}
+                                type="button"
+                            >
+                                {filter.label}
+                            </button>
+                        ))}
+                    </div>
                     <AnimatePresence>
                         <ul className="space-y-3">
-                            {pendingTasks.map(task => <TaskItem key={task.id} task={task} />)}
+                            {filteredPendingTasks.map(task => <TaskItem key={task.id} task={task} />)}
                         </ul>
                     </AnimatePresence>
+                    {filteredPendingTasks.length === 0 && pendingTasks.length > 0 && (
+                        <div className="text-center py-8 text-gray-500">
+                             <CheckSquare className="mx-auto w-12 h-12 mb-2 text-green-500" />
+                            <p className="font-semibold">No hay misiones con este filtro de prioridad.</p>
+                        </div>
+                    )}
                     {pendingTasks.length === 0 && tasks.length > 0 && (
                         <div className="text-center py-8 text-gray-500">
                              <CheckSquare className="mx-auto w-12 h-12 mb-2 text-green-500" />
@@ -198,9 +317,14 @@ const TasksPanel: React.FC = () => {
                         </div>
                         <AnimatePresence>
                              <ul className="space-y-3">
-                                {completedTasks.map(task => <TaskItem key={task.id} task={task} />)}
+                                {filteredCompletedTasks.map(task => <TaskItem key={task.id} task={task} />)}
                             </ul>
                         </AnimatePresence>
+                        {filteredCompletedTasks.length === 0 && completedTasks.length > 0 && (
+                            <div className="text-center py-6 text-gray-500 text-sm">
+                                <p>No hay misiones completadas con la prioridad seleccionada.</p>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
