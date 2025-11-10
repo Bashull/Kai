@@ -13,6 +13,21 @@ export default defineConfig(({ mode }) => {
         alias: {
           '@': path.resolve('./src'),
         }
+      },
+      build: {
+        rollupOptions: {
+          output: {
+            manualChunks: {
+              // Split vendor libraries
+              'react-vendor': ['react', 'react-dom'],
+              'ui-vendor': ['framer-motion', 'lucide-react'],
+              'editor-vendor': ['@monaco-editor/react'],
+              'markdown-vendor': ['react-markdown', 'react-syntax-highlighter'],
+              'utils-vendor': ['date-fns', 'zustand'],
+            }
+          }
+        },
+        chunkSizeWarningLimit: 1000,
       }
     };
 });
