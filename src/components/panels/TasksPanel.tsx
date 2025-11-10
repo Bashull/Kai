@@ -7,6 +7,7 @@ import Checkbox from '../ui/Checkbox';
 import { Task } from '../../types';
 import { format, isToday, isPast } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { getTaskPriority } from '../../utils/taskPriority';
 
 const PRIORITY_CONFIG: Record<Task['priority'], { label: string; badgeClass: string; dotClass: string }> = {
     HIGH: {
@@ -27,8 +28,6 @@ const PRIORITY_CONFIG: Record<Task['priority'], { label: string; badgeClass: str
 };
 
 type PriorityFilter = 'ALL' | Task['priority'];
-
-const getTaskPriority = (priority?: Task['priority']): Task['priority'] => priority ?? 'MEDIUM';
 
 const PriorityBadge: React.FC<{ priority?: Task['priority'] }> = ({ priority }) => {
     const resolvedPriority = getTaskPriority(priority);
