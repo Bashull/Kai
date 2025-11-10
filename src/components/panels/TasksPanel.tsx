@@ -28,8 +28,11 @@ const PRIORITY_CONFIG: Record<Task['priority'], { label: string; badgeClass: str
 
 type PriorityFilter = 'ALL' | Task['priority'];
 
-const PriorityBadge: React.FC<{ priority: Task['priority'] }> = ({ priority }) => {
-    const config = PRIORITY_CONFIG[priority];
+const getTaskPriority = (priority?: Task['priority']): Task['priority'] => priority ?? 'MEDIUM';
+
+const PriorityBadge: React.FC<{ priority?: Task['priority'] }> = ({ priority }) => {
+    const resolvedPriority = getTaskPriority(priority);
+    const config = PRIORITY_CONFIG[resolvedPriority];
     return (
         <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full border ${config.badgeClass}`}>
             <span className={`w-2 h-2 rounded-full ${config.dotClass}`} aria-hidden />
@@ -39,13 +42,14 @@ const PriorityBadge: React.FC<{ priority: Task['priority'] }> = ({ priority }) =
 };
 
 const PrioritySelector: React.FC<{
-    value: Task['priority'];
+    value?: Task['priority'];
     onChange: (priority: Task['priority']) => void;
     disabled?: boolean;
 }> = ({ value, onChange, disabled }) => {
+    const resolvedValue = getTaskPriority(value);
     return (
         <select
-            value={value}
+            value={resolvedValue}
             onChange={(event) => onChange(event.target.value as Task['priority'])}
             disabled={disabled}
             className="bg-transparent border border-border-color rounded-md px-2 py-1 text-xs text-text-secondary focus:outline-none focus:ring-2 focus:ring-kai-primary/60 disabled:opacity-60"
@@ -93,6 +97,7 @@ const TaskItem: React.FC<{ task: Task }> = ({ task }) => {
     const { toggleTask, setTaskDueDate, isAutonomousMode, startAutonomousTask, setTaskPriority } = useAppStore();
     const isCompleted = task.status === 'COMPLETED';
     const isAgentRunning = task.agentStatus === 'RUNNING';
+    const taskPriority = getTaskPriority(task.priority);
 
     const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setTaskDueDate(task.id, e.target.value || undefined);
@@ -129,9 +134,9 @@ const TaskItem: React.FC<{ task: Task }> = ({ task }) => {
                         >
                              <span className={`${isCompleted ? 'line-through' : ''}`}>{task.title}</span>
                         </label>
-                        <PriorityBadge priority={task.priority} />
+                        <PriorityBadge priority={taskPriority} />
                         <PrioritySelector
-                            value={task.priority}
+                            value={taskPriority}
                             onChange={(priority) => setTaskPriority(task.id, priority)}
                             disabled={isAgentRunning}
                         />
@@ -189,7 +194,7 @@ const TasksPanel: React.FC = () => {
     const filterByPriority = (taskList: Task[]) =>
         priorityFilter === 'ALL'
             ? taskList
-            : taskList.filter(task => task.priority === priorityFilter);
+            : taskList.filter(task => getTaskPriority(task.priority) === priorityFilter);
 
     const filteredPendingTasks = useMemo(
         () => filterByPriority(pendingTasks),
