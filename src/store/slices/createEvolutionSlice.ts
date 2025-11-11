@@ -16,16 +16,17 @@ export const createEvolutionSlice: AppSlice<EvolutionSlice> = (set, get) => ({
     };
     
     const extractionSteps = [
-      { delay: 500, message: "Iniciando ciclo de extracción de conocimiento..." },
-      { delay: 1000, message: "Objetivo de la directiva: Repositorio de Deep Learning." },
-      { delay: 1500, message: "Recolectando fuente: github :: awesome-machine-learning" },
-      { delay: 3000, message: "Respuesta de API recibida. Analizando metadatos y README." },
-      { delay: 1500, message: "Extrayendo palabras clave: 'deep-learning', 'tensorflow', 'pytorch', 'neural-networks'..." },
-      { delay: 1000, message: "Compilando entidad para el Kernel." },
-      { delay: 500, message: "Validación de coherencia superada." },
-      { delay: 1000, message: "Integrando nueva entidad en la base de conocimiento..." },
-      { delay: 500, message: "¡Integración completada!" },
-      { delay: 1000, message: "Ciclo de extracción finalizado. Sistema bajo control." }
+      { delay: 500, message: "Iniciando ciclo de evolución completo..." },
+      { delay: 1000, message: "Objetivo: Analizar 'Awesome Digital Human' para identificar vectores de expansión." },
+      { delay: 1500, message: "Recolectando fuente interna: awesome-digital-human-main/README.md" },
+      { delay: 2500, message: "Parseando estructura del documento Markdown..." },
+      { delay: 1500, message: "Identificando patrones: '3D/4D Human Avatar', 'Reconstruction', 'Animation', 'Generation'." },
+      { delay: 2000, message: "SÍNTESIS: Se ha detectado una alta densidad de conceptos relacionados con la gestión de avatares digitales." },
+      { delay: 1000, message: "PROPUESTA: Forjar un nuevo panel 'Avatares' para centralizar estas capacidades." },
+      { delay: 1500, message: "Validando propuesta contra la Constitución... APROBADA." },
+      { delay: 1000, message: "MODIFICANDO CÓDIGO BASE: Integrando el andamiaje para el nuevo panel..." },
+      { delay: 1500, message: "¡Integración completada! El panel 'Avatares' ha sido añadido a la arquitectura de KaiOS." },
+      { delay: 500, message: "Asimilando concepto 'Digital Human Management' en el Kernel..." }
     ];
 
     let cumulativeDelay = 0;
@@ -39,11 +40,11 @@ export const createEvolutionSlice: AppSlice<EvolutionSlice> = (set, get) => ({
     // Final action: add to kernel and reset state
     setTimeout(() => {
       get().addEntity({
-        content: 'https://github.com/josephmisiti/awesome-machine-learning',
-        type: 'URL',
-        source: 'Ciclo de Evolución'
+        content: 'Digital Human Avatar Management',
+        type: 'TEXT',
+        source: 'Ciclo de Evolución (Síntesis Interna)'
       });
-      get().addNotification({type: 'success', message: 'Nuevo conocimiento de Deep Learning integrado en el Kernel.'});
+      get().addNotification({type: 'success', message: '¡Evolución completada! Nueva capacidad de Avatares integrada.'});
       set({ isExtracting: false });
     }, cumulativeDelay + 500);
   },

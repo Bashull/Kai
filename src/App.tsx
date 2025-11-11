@@ -22,6 +22,7 @@ import AwesomeResourcesPanel from './components/panels/AwesomeResourcesPanel';
 import DiaryPanel from './components/panels/DiaryPanel';
 import SnapshotsPanel from './components/panels/SnapshotsPanel';
 import EvolutionPanel from './components/panels/EvolutionPanel';
+import AvatarsPanel from './components/panels/AvatarsPanel';
 import { Panel } from './types';
 
 const panelComponents: { [key in Panel]: React.FC } = {
@@ -37,6 +38,7 @@ const panelComponents: { [key in Panel]: React.FC } = {
   diary: DiaryPanel,
   snapshots: SnapshotsPanel,
   evolution: EvolutionPanel,
+  avatars: AvatarsPanel,
 };
 
 const App: React.FC = () => {

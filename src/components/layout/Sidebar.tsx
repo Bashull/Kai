@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '../../store/useAppStore';
 import {
     MessageSquare, BrainCircuit, Flame, Bot, CheckSquare, Settings,
-    FileText, Star, BookOpen, Camera, Search, Bell, Menu, X, Radio, Dna
+    FileText, Star, BookOpen, Camera, Search, Bell, Menu, X, Radio, Dna, UserSquare
 } from 'lucide-react';
 import KaiAvatar from '../ui/KaiAvatar';
 import NotificationPopover from '../ui/NotificationPopover';
@@ -19,6 +19,7 @@ const navItems: { id: Panel; label: string; icon: React.ElementType }[] = [
     { id: 'studio', label: 'IA Studio', icon: Bot },
     { id: 'tasks', label: 'Misiones', icon: CheckSquare },
     { id: 'resume', label: 'Constructor CV', icon: FileText },
+    { id: 'avatars', label: 'Avatares', icon: UserSquare },
 ];
 
 const secondaryNavItems: { id: Panel; label: string; icon: React.ElementType }[] = [
@@ -84,6 +85,9 @@ const Sidebar: React.FC = () => {
         isSummarizing,
         isGeneratingCode,
         isGeneratingImages,
+        isGeneratingVideo,
+        isAnalyzing,
+        isEditing,
         isSearching,
         isConnecting,
         isExtracting,
@@ -101,7 +105,7 @@ const Sidebar: React.FC = () => {
         executeSearch();
     };
 
-    const isKaiBusy = isTyping || isSummarizing || isGeneratingCode || isGeneratingImages || isSearching || isConnecting || isExtracting;
+    const isKaiBusy = isTyping || isSummarizing || isGeneratingCode || isGeneratingImages || isSearching || isConnecting || isExtracting || isGeneratingVideo || isAnalyzing || isEditing;
 
     return (
         <aside

@@ -12,7 +12,8 @@ export interface Task {
 }
 
 // --- UI & App State ---
-export type Panel = 'chat' | 'live' | 'kernel' | 'forge' | 'studio' | 'tasks' | 'settings' | 'resume' | 'awesome' | 'diary' | 'snapshots' | 'evolution';
+// FIX: Add 'avatars' to Panel type to support the new AvatarsPanel.
+export type Panel = 'chat' | 'live' | 'kernel' | 'forge' | 'studio' | 'tasks' | 'settings' | 'resume' | 'awesome' | 'diary' | 'snapshots' | 'evolution' | 'avatars';
 export type Theme = 'light' | 'dark';
 
 export interface UISlice {
