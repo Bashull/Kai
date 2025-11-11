@@ -1,6 +1,7 @@
 import { ChatSlice, AppSlice, ChatMessage } from '../../types';
 import { generateId } from '../../utils/helpers';
-import { summarizeText } from '../../services/geminiService';
+// FIX: Corrected import path for geminiService.
+import { summarizeText } from '../../../src/services/geminiService';
 
 export const createChatSlice: AppSlice<ChatSlice> = (set, get) => ({
   isTyping: false,

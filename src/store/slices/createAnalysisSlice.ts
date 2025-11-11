@@ -38,7 +38,7 @@ export const createAnalysisSlice: AppSlice<AnalysisSlice> = (set, get) => ({
     set({ isEditing: true, editedImage: null });
     try {
       const result = await editImageAPI(analysisImage, analysisPrompt);
-      set({ editedImage: result });
+      set({ editedImage: `data:image/png;base64,${result}` });
     } catch (error) {
       console.error("Image editing failed:", error);
       const errorMessage = error instanceof Error ? error.message : "Error desconocido";

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { useAppStore } from '../../store/useAppStore';
-import { checkAIAccess } from '../../services/geminiService';
+// FIX: Corrected import path for geminiService.
+import { checkAIAccess } from '../../../src/services/geminiService';
 import Button from '../ui/Button';
 import { ShieldQuestion, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';

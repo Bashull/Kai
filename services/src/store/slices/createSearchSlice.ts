@@ -1,5 +1,6 @@
 import { AppSlice, SearchSlice } from '../../types';
-import { performAISearch } from '../../services/geminiService';
+// FIX: Corrected import path for geminiService.
+import { performAISearch } from '../../../src/services/geminiService';
 
 export const createSearchSlice: AppSlice<SearchSlice> = (set, get) => ({
   searchQuery: '',

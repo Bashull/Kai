@@ -25,7 +25,11 @@ export const createChatSlice: AppSlice<ChatSlice> = (set, get) => ({
       if (newHistory.length > 0 && newHistory[newHistory.length - 1].role === 'model') {
         newHistory[newHistory.length - 1].content += content;
         if (sources) {
-            newHistory[newHistory.length - 1].sources = [...(newHistory[newHistory.length - 1].sources || []), ...sources];
+            const existingUris = new Set((newHistory[newHistory.length - 1].sources || []).map(s => s.uri));
+            const newSources = sources.filter(s => !existingUris.has(s.uri));
+            if (newSources.length > 0) {
+              newHistory[newHistory.length - 1].sources = [...(newHistory[newHistory.length - 1].sources || []), ...newSources];
+            }
         }
       }
       return { chatHistory: newHistory };

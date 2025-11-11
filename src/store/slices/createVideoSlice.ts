@@ -4,7 +4,6 @@ import { generateVideo as generateVideoAPI } from '../../services/geminiService'
 export const createVideoSlice: AppSlice<VideoSlice> = (set, get) => ({
   videoPrompt: '',
   inputImage: null,
-  // FIX: Renamed property to avoid type conflict
   videoAspectRatio: '16:9',
   isGeneratingVideo: false,
   videoGenerationProgress: '',
@@ -13,7 +12,6 @@ export const createVideoSlice: AppSlice<VideoSlice> = (set, get) => ({
   setInputImage: (image) => set({ inputImage: image }),
   setVideoAspectRatio: (ratio) => set({ videoAspectRatio: ratio }),
   generateVideo: async () => {
-    // FIX: Use the renamed state property
     const { videoPrompt, inputImage, videoAspectRatio } = get();
     if (!videoPrompt.trim() && !inputImage) {
       get().addNotification({ type: 'info', message: 'Se requiere un prompt de texto o una imagen de entrada.' });
@@ -23,12 +21,10 @@ export const createVideoSlice: AppSlice<VideoSlice> = (set, get) => ({
     set({ isGeneratingVideo: true, generatedVideoUrl: null, videoGenerationProgress: 'Iniciando la generación de vídeo...' });
 
     try {
-      // The API service will handle polling and progress updates via callback
       const videoUrl = await generateVideoAPI({
         prompt: videoPrompt,
         image: inputImage ? { imageBytes: inputImage, mimeType: 'image/png' } : undefined,
         config: {
-          // FIX: Pass the renamed variable to the API call
           aspectRatio: videoAspectRatio,
           resolution: '720p',
           numberOfVideos: 1,

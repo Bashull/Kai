@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAppStore } from '../../store/useAppStore';
-import { streamChat } from '../../services/geminiService';
+// FIX: Corrected import path for geminiService.
+import { streamChat } from '../../../src/services/geminiService';
 import MarkdownRenderer from '../ui/MarkdownRenderer';
 import { Send, Mic, MicOff, Volume2, VolumeX, Archive } from 'lucide-react';
 import { formatRelativeTime } from '../../utils/helpers';

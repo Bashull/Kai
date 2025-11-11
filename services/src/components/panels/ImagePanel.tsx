@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAppStore } from '../../store/useAppStore';
-import { generateImages } from '../../services/geminiService';
+// FIX: Corrected import path for geminiService.
+import { generateImages } from '../../../src/services/geminiService';
 import { Image as ImageIcon, Sparkles, Download } from 'lucide-react';
 import { downloadFile, dataUrlToBlob } from '../../utils/helpers';
 import Button from '../ui/Button';

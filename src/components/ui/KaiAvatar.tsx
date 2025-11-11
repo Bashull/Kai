@@ -22,15 +22,17 @@ const KaiAvatar: React.FC<KaiAvatarProps> = ({ size = 'md', className = '', isBu
   const borderTransition = {
     duration: 2.5,
     repeat: Infinity,
+    // FIX: Corrected typing for framer-motion transition properties
     repeatType: 'reverse' as const,
-    ease: 'easeInOut',
+    ease: 'easeInOut' as const,
   };
 
   const coreTransition = {
     duration: isBusy ? 0.4 : 1.8,
     repeat: Infinity,
+    // FIX: Corrected typing for framer-motion transition properties
     repeatType: 'reverse' as const,
-    ease: 'easeInOut',
+    ease: 'easeInOut' as const,
   };
 
 

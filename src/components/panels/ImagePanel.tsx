@@ -6,7 +6,15 @@ import { Image as ImageIcon, Sparkles, Download } from 'lucide-react';
 import { downloadFile, dataUrlToBlob } from '../../utils/helpers';
 import Button from '../ui/Button';
 import Modal from '../ui/Modal';
-import { GeneratedImage } from '../../types';
+import { GeneratedImage, AspectRatio } from '../../types';
+
+const aspectRatios: { label: string, value: AspectRatio }[] = [
+    { label: 'Cuadrado (1:1)', value: '1:1' },
+    { label: 'Vertical (3:4)', value: '3:4' },
+    { label: 'Horizontal (4:3)', value: '4:3' },
+    { label: 'Retrato (9:16)', value: '9:16' },
+    { label: 'Paisaje (16:9)', value: '16:9' },
+];
 
 const ImagePanel: React.FC = () => {
   const {
@@ -16,17 +24,18 @@ const ImagePanel: React.FC = () => {
     setGeneratedImages,
     isGeneratingImages,
     setIsGeneratingImages,
-    addNotification
+    addNotification,
+    imageAspectRatio,
+    setImageAspectRatio,
   } = useAppStore();
   const [selectedImage, setSelectedImage] = useState<GeneratedImage | null>(null);
-
 
   const handleGenerate = async () => {
     if (!imagePrompt.trim()) return;
     setIsGeneratingImages(true);
     setGeneratedImages([]);
     try {
-      const result = await generateImages(imagePrompt);
+      const result = await generateImages(imagePrompt, imageAspectRatio);
       setGeneratedImages(result);
     } catch (error) {
       console.error("Image generation failed:", error);
@@ -44,11 +53,6 @@ const ImagePanel: React.FC = () => {
     } catch(error) {
       console.error("Failed to download image:", error);
       addNotification({ type: 'error', message: 'No se pudo descargar la imagen.' });
-      // Fallback for browsers that might have issues with fetch on data-uri
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${prompt.slice(0, 40).replace(/\s/g, '_') || 'kai-image'}.png`;
-      link.click();
     }
   };
   
@@ -65,9 +69,12 @@ const ImagePanel: React.FC = () => {
           type="text"
           value={imagePrompt}
           onChange={(e) => setImagePrompt(e.target.value)}
-          placeholder="ej: un retrato fotorrealista de un robot sosteniendo un monopatín rojo"
+          placeholder="ej: un retrato fotorrealista de un robot con un monopatín"
           className="form-input flex-grow"
         />
+        <select value={imageAspectRatio} onChange={e => setImageAspectRatio(e.target.value as AspectRatio)} className="form-select">
+            {aspectRatios.map(ar => <option key={ar.value} value={ar.value}>{ar.label}</option>)}
+        </select>
         <Button onClick={handleGenerate} disabled={isGeneratingImages || !imagePrompt.trim()} loading={isGeneratingImages} icon={Sparkles}>
           Generar
         </Button>
@@ -77,7 +84,7 @@ const ImagePanel: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {isGeneratingImages && (
             Array.from({ length: 1 }).map((_, i) => (
-              <div key={i} className="aspect-square bg-kai-surface rounded-lg flex items-center justify-center animate-pulse">
+              <div key={i} className={`aspect-[${imageAspectRatio.replace(':', '/')}] bg-kai-surface rounded-lg flex items-center justify-center animate-pulse`}>
                 <ImageIcon className="w-12 h-12 text-gray-500" />
               </div>
             ))
@@ -89,7 +96,7 @@ const ImagePanel: React.FC = () => {
               initial="initial"
               animate="animate"
               transition={{ duration: 0.3, delay: index * 0.1 }}
-              className="aspect-square rounded-lg overflow-hidden border-2 border-transparent hover:border-kai-primary group relative cursor-pointer"
+              className={`aspect-[${imageAspectRatio.replace(':', '/')}] rounded-lg overflow-hidden border-2 border-transparent hover:border-kai-primary group relative cursor-pointer`}
               onClick={() => setSelectedImage(image)}
             >
               <img src={image.url} alt={image.prompt} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />

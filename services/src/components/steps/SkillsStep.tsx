@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../../store/useAppStore';
-import { generateWithAI } from '../../services/geminiService';
+// FIX: Corrected import path for geminiService.
+import { generateWithAI } from '../../../src/services/geminiService';
 import { AIButton } from '../ui/AIButton';
 import { X } from 'lucide-react';
 import { motion } from 'framer-motion';

@@ -25,7 +25,12 @@ import EvolutionPanel from './components/panels/EvolutionPanel';
 import AvatarsPanel from './components/panels/AvatarsPanel';
 import { Panel } from './types';
 
-const panelComponents: { [key in Panel]: React.FC } = {
+// Lazy load panels that might be heavy
+const VideoPanel = React.lazy(() => import('./components/panels/VideoPanel'));
+const AnalysisPanel = React.lazy(() => import('./components/panels/AnalysisPanel'));
+
+
+const panelComponents: { [key in Panel]: React.FC | React.LazyExoticComponent<React.FC<{}>> } = {
   chat: ChatPanel,
   live: LivePanel,
   kernel: KernelPanel,
@@ -39,6 +44,9 @@ const panelComponents: { [key in Panel]: React.FC } = {
   snapshots: SnapshotsPanel,
   evolution: EvolutionPanel,
   avatars: AvatarsPanel,
+  // FIX: Added 'video' and 'analysis' to panelComponents to match Panel type
+  video: VideoPanel,
+  analysis: AnalysisPanel,
 };
 
 const App: React.FC = () => {
@@ -51,12 +59,8 @@ const App: React.FC = () => {
   }, [theme]);
 
   useEffect(() => {
-    // Set up a global poller for training jobs
-    const intervalId = setInterval(() => {
-      pollJobs();
-    }, 5000); // Poll every 5 seconds
-
-    return () => clearInterval(intervalId); // Cleanup on unmount
+    const intervalId = setInterval(() => { pollJobs(); }, 5000);
+    return () => clearInterval(intervalId);
   }, [pollJobs]);
   
   const ActivePanelComponent = panelComponents[activePanel];
@@ -86,7 +90,9 @@ const App: React.FC = () => {
                     transition={{ duration: 0.3 }}
                     className="h-full"
                  >
-                    {ActivePanelComponent && <ActivePanelComponent />}
+                    <React.Suspense fallback={<div>Loading...</div>}>
+                        {ActivePanelComponent && <ActivePanelComponent />}
+                    </React.Suspense>
                  </motion.div>
             </AnimatePresence>
         </div>
