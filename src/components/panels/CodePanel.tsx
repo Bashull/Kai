@@ -26,7 +26,8 @@ const CodePanel: React.FC = () => {
     codeLanguage,
     setCodeLanguage,
     isGeneratingCode,
-    setIsGeneratingCode
+    setIsGeneratingCode,
+    addNotification
   } = useAppStore();
   const [copyStatus, setCopyStatus] = useState(false);
 
@@ -41,6 +42,7 @@ const CodePanel: React.FC = () => {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       setGeneratedCode(`// Error: ${errorMessage}`);
+      addNotification({ type: 'error', message: 'Fallo en la generación de código.'});
     } finally {
       setIsGeneratingCode(false);
     }
@@ -51,7 +53,10 @@ const CodePanel: React.FC = () => {
     copyToClipboard(generatedCode).then(success => {
         if (success) {
             setCopyStatus(true);
+            addNotification({ type: 'success', message: 'Código copiado al portapapeles.' });
             setTimeout(() => setCopyStatus(false), 2000);
+        } else {
+            addNotification({ type: 'error', message: 'No se pudo copiar el código.' });
         }
     });
   };

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '../../store/useAppStore';
 import {
     MessageSquare, BrainCircuit, Flame, Bot, CheckSquare, Settings,
-    FileText, Star, BookOpen, Camera, Search, Bell, Menu, X, Radio
+    FileText, Star, BookOpen, Camera, Search, Bell, Menu, X, Radio, Dna
 } from 'lucide-react';
 import KaiAvatar from '../ui/KaiAvatar';
 import NotificationPopover from '../ui/NotificationPopover';
@@ -14,6 +14,7 @@ const navItems: { id: Panel; label: string; icon: React.ElementType }[] = [
     { id: 'chat', label: 'Chat', icon: MessageSquare },
     { id: 'live', label: 'Live', icon: Radio },
     { id: 'kernel', label: 'Kernel', icon: BrainCircuit },
+    { id: 'evolution', label: 'Evolución', icon: Dna },
     { id: 'forge', label: 'La Forja', icon: Flame },
     { id: 'studio', label: 'IA Studio', icon: Bot },
     { id: 'tasks', label: 'Misiones', icon: CheckSquare },
@@ -79,6 +80,13 @@ const Sidebar: React.FC = () => {
         tasks,
         showNotifications,
         toggleNotifications,
+        isTyping,
+        isSummarizing,
+        isGeneratingCode,
+        isGeneratingImages,
+        isSearching,
+        isConnecting,
+        isExtracting,
     } = useAppStore();
 
     const [dueTasks, setDueTasks] = useState<any[]>([]);
@@ -92,6 +100,8 @@ const Sidebar: React.FC = () => {
         e.preventDefault();
         executeSearch();
     };
+
+    const isKaiBusy = isTyping || isSummarizing || isGeneratingCode || isGeneratingImages || isSearching || isConnecting || isExtracting;
 
     return (
         <aside
@@ -107,7 +117,7 @@ const Sidebar: React.FC = () => {
                 ) : (
                     <div className="flex items-center justify-between w-full">
                         <div className="flex items-center gap-2">
-                             <KaiAvatar size="sm"/>
+                             <KaiAvatar size="sm" isBusy={isKaiBusy} />
                              <h1 className="text-xl font-bold font-orbitron">KaiOS</h1>
                         </div>
                         <button onClick={toggleSidebar} className="text-text-secondary hover:text-text-primary p-2">

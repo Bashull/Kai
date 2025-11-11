@@ -1,4 +1,4 @@
-import { GoogleGenAI, FunctionCall } from "@google/genai";
+import { GoogleGenAI, FunctionCall, Modality } from "@google/genai";
 import { GeneratedImage, CodeLanguage, Entity } from "../types";
 import { kaiTools } from './kaiTools';
 import { apiClient } from './apiClient';
@@ -198,6 +198,142 @@ export const generateImages = async (prompt: string): Promise<GeneratedImage[]> 
         // Propagate the error to be handled by the UI
         throw error;
     }
+};
+
+/**
+ * Analyzes an image with an optional text prompt.
+ * @param base64ImageData The base64 encoded image data.
+ * @param prompt The text prompt to go with the image.
+ * @returns The text response from the model.
+ */
+export const analyzeImage = async (base64ImageData: string, prompt: string): Promise<string> => {
+    const imagePart = {
+        inlineData: {
+            mimeType: 'image/png', // Assuming PNG for simplicity
+            data: base64ImageData,
+        },
+    };
+    const textPart = {
+        text: prompt
+    };
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: { parts: [imagePart, textPart] },
+        });
+        return response.text;
+    } catch (error) {
+        console.error("Image Analysis failed:", error);
+        if (error instanceof Error) {
+            throw new Error(error.message);
+        }
+        throw new Error("An unknown error occurred during image analysis.");
+    }
+};
+
+/**
+ * Edits an image based on a text prompt.
+ * @param base64ImageData The base64 encoded image data to edit.
+ * @param prompt The text prompt describing the edit.
+ * @returns The base64 encoded string of the edited image.
+ */
+export const editImage = async (base64ImageData: string, prompt: string): Promise<string> => {
+    const imagePart = {
+        inlineData: {
+            data: base64ImageData,
+            mimeType: 'image/png', // Assuming png for simplicity
+        },
+    };
+    const textPart = {
+        text: prompt,
+    };
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash-image',
+            contents: {
+                parts: [imagePart, textPart],
+            },
+            config: {
+                responseModalities: [Modality.IMAGE],
+            },
+        });
+
+        for (const part of response.candidates[0].content.parts) {
+            if (part.inlineData) {
+                return part.inlineData.data; // Return the new base64 data
+            }
+        }
+        throw new Error("No edited image was returned from the API.");
+
+    } catch (error) {
+        console.error("Image Editing failed:", error);
+        if (error instanceof Error) {
+            throw new Error(error.message);
+        }
+        throw new Error("An unknown error occurred during image editing.");
+    }
+};
+
+
+interface GenerateVideoParams {
+  prompt?: string;
+  image?: {
+    imageBytes: string;
+    mimeType: string;
+  };
+  config: {
+    aspectRatio: '16:9' | '9:16';
+    resolution: '720p' | '1080p';
+    numberOfVideos: number;
+  };
+  onProgress: (message: string) => void;
+}
+
+/**
+ * Generates a video from a text prompt and/or an image.
+ * @param params The parameters for video generation.
+ * @returns A promise that resolves to the video URL.
+ */
+export const generateVideo = async ({ prompt, image, config, onProgress }: GenerateVideoParams): Promise<string> => {
+  onProgress('Solicitando generación de video al modelo Veo...');
+  
+  let operation = await ai.models.generateVideos({
+    model: 'veo-3.1-fast-generate-preview',
+    prompt: prompt,
+    image: image,
+    config: {
+      ...config,
+    }
+  });
+
+  onProgress('Operación iniciada. Esperando la finalización del video...');
+  let pollCount = 0;
+
+  while (!operation.done) {
+    await new Promise(resolve => setTimeout(resolve, 10000)); // Poll every 10 seconds
+    pollCount++;
+    onProgress(`Comprobando el estado... (Intento ${pollCount})`);
+    operation = await ai.operations.getVideosOperation({ operation: operation });
+  }
+
+  if (operation.error) {
+    const errorMessage = (operation.error as any).message || 'Unknown error';
+    onProgress(`Error en la generación: ${errorMessage}`);
+    throw new Error(`Video generation failed: ${errorMessage}`);
+  }
+
+  const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
+
+  if (!downloadLink) {
+    onProgress('No se pudo obtener el enlace de descarga del video.');
+    throw new Error("Failed to get video download link.");
+  }
+  
+  onProgress('Video generado. Obteniendo URL de descarga...');
+  
+  // The URL needs the API key to be fetched.
+  return `${downloadLink}&key=${process.env.API_KEY!}`;
 };
 
 /**
