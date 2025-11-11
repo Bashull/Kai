@@ -8,24 +8,28 @@ const initialTasks: Task[] = [
         status: 'PENDING',
         createdAt: new Date().toISOString(),
         dueDate: new Date().toISOString().split('T')[0], // Due today
+        priority: 'HIGH',
     },
     {
         id: 'task-2',
         title: 'Asimilar una nueva entidad de tipo URL en el Kernel.',
         status: 'PENDING',
         createdAt: new Date().toISOString(),
+        priority: 'MEDIUM',
     },
     {
         id: 'task-3',
         title: 'Iniciar un nuevo trabajo de fine-tuning en La Forja.',
         status: 'PENDING',
         createdAt: new Date().toISOString(),
+        priority: 'MEDIUM',
     },
      {
         id: 'task-4',
         title: 'Generar una imagen de "un gato programando en una laptop" en el IA Studio.',
         status: 'COMPLETED',
         createdAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+        priority: 'LOW',
     },
 ];
 
@@ -33,7 +37,7 @@ const initialTasks: Task[] = [
 export const createTaskSlice: AppSlice<TaskSlice> = (set, get) => ({
     tasks: initialTasks,
     isAutonomousMode: false,
-    addTask: (title: string) => set(state => ({
+    addTask: (title: string, priority: Task['priority'] = 'MEDIUM') => set(state => ({
         tasks: [
             {
                 id: generateId(),
@@ -41,6 +45,7 @@ export const createTaskSlice: AppSlice<TaskSlice> = (set, get) => ({
                 status: 'PENDING',
                 agentStatus: 'IDLE',
                 createdAt: new Date().toISOString(),
+                priority,
             },
             ...state.tasks,
         ],
@@ -68,11 +73,16 @@ export const createTaskSlice: AppSlice<TaskSlice> = (set, get) => ({
         ),
     })),
     toggleAutonomousMode: () => set(state => ({ isAutonomousMode: !state.isAutonomousMode })),
+    setTaskPriority: (id, priority) => set(state => ({
+        tasks: state.tasks.map(task =>
+            task.id === id ? { ...task, priority } : task
+        ),
+    })),
     addAgentLog: (taskId, message) => {
         set(state => ({
-            tasks: state.tasks.map(task => 
-                task.id === taskId 
-                ? { ...task, agentLogs: [...(task.agentLogs || []), { timestamp: new Date().toISOString(), message }] } 
+            tasks: state.tasks.map(task =>
+                task.id === taskId
+                ? { ...task, agentLogs: [...(task.agentLogs || []), { timestamp: new Date().toISOString(), message }] }
                 : task
             )
         }));
