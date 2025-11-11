@@ -15,12 +15,20 @@ const EntityCard: React.FC<{ entity: Entity }> = ({ entity }) => {
         DOCUMENT: <FileText size={16} />,
     };
 
+    const cardVariants = {
+        initial: { opacity: 0, y: 50, scale: 0.3 },
+        animate: { opacity: 1, y: 0, scale: 1 },
+        exit: { opacity: 0, scale: 0.5, transition: { duration: 0.2 } },
+    }
+
     return (
+        // @ts-ignore
         <motion.div
             layout
-            initial={{ opacity: 0, y: 50, scale: 0.3 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.5, transition: { duration: 0.2 } }}
+            variants={cardVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
             transition={{ type: 'spring', stiffness: 500, damping: 50, mass: 0.7 }}
             className="bg-kai-surface/50 border border-border-color rounded-lg p-4 transition-colors duration-200 hover:bg-kai-surface"
         >
@@ -105,6 +113,12 @@ const KernelPanel: React.FC = () => {
         if (version && confirm('¿Estás seguro de que quieres revertir a esta versión? Los cambios actuales se guardarán como una nueva versión.')) {
             revertToVersion(version);
         }
+    };
+
+    const emptyStateVariants = {
+        initial: { opacity: 0 },
+        animate: { opacity: 1 },
+        exit: { opacity: 0 },
     };
 
 
@@ -257,9 +271,10 @@ const KernelPanel: React.FC = () => {
                                 <AnimatePresence>
                                     {entities.length === 0 && (
                                         <motion.div
-                                            initial={{ opacity: 0 }}
-                                            animate={{ opacity: 1 }}
-                                            exit={{ opacity: 0 }}
+                                            variants={emptyStateVariants}
+                                            initial="initial"
+                                            animate="animate"
+                                            exit="exit"
                                             className="text-center py-16 text-gray-500"
                                         >
                                             <p>El Kernel está vacío. Añade una entidad para empezar.</p>
