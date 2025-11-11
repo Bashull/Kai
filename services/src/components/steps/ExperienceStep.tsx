@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAppStore } from '../../store/useAppStore';
-// FIX: Corrected import path for geminiService.
-import { generateWithAI } from '../../../src/services/geminiService';
+// FIX: Corrected import path for geminiService to point to the implementation in the `src` directory.
+import { generateWithAI } from '../../../../src/services/geminiService';
 import { AIButton } from '../ui/AIButton';
 import Button from '../ui/Button';
 import { Plus, Trash2 } from 'lucide-react';

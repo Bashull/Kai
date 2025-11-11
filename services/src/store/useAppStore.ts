@@ -2,7 +2,8 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { AppState } from '../types';
 import { createUISlice } from './slices/createUISlice';
-import { createChatSlice } from './slices/createChatSlice';
+// FIX: Corrected import path to point to the correct file in the `src` directory.
+import { createChatSlice } from '../../../src/store/slices/createChatSlice';
 import { createKernelSlice } from './slices/createKernelSlice';
 import { createForgeSlice } from './slices/createForgeSlice';
 import { createStudioSlice } from './slices/createStudioSlice';
@@ -12,7 +13,8 @@ import { createTaskSlice } from './slices/createTaskSlice';
 import { createConstitutionSlice } from './slices/createConstitutionSlice';
 import { createResumeSlice } from './slices/createResumeSlice';
 import { createNotificationSlice } from './slices/createNotificationSlice';
-import { createSearchSlice } from './slices/createSearchSlice';
+// FIX: Corrected import path to point to the correct file in the `src` directory.
+import { createSearchSlice } from '../../../src/store/slices/createSearchSlice';
 import { createAwesomeResourceSlice } from './slices/createAwesomeResourceSlice';
 import { createDiarySlice } from './slices/createDiarySlice';
 import { createSnapshotSlice } from './slices/createSnapshotSlice';

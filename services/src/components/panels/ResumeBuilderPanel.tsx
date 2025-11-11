@@ -5,8 +5,10 @@ import StepIndicator from '../steps/StepIndicator';
 import PersonalInfoStep from '../steps/PersonalInfoStep';
 import ExperienceStep from '../steps/ExperienceStep';
 import EducationStep from '../steps/EducationStep';
-import SkillsStep from '../steps/SkillsStep';
-import SummaryStep from '../steps/SummaryStep';
+// FIX: Corrected import path to point to the correct file in the `src` directory.
+import SkillsStep from '../../../../src/components/steps/SkillsStep';
+// FIX: Corrected import path to point to the correct file in the `src` directory.
+import SummaryStep from '../../../../src/components/steps/SummaryStep';
 import ResumePreview from '../steps/ResumePreview';
 import Button from '../ui/Button';
 import { RESUME_STEPS } from '../../constants';
