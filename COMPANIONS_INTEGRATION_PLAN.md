@@ -342,3 +342,65 @@ interface CompanionsSlice {
 **Versión**: 1.0 - Plan Inicial  
 **Fecha**: 14 Nov 2025  
 **Estado**: 📋 En Planificación
+
+---
+
+## 🧬 CHI-Genome Integration
+
+### Sistema de Física Cognitiva
+
+El avatar Companions incluye el sistema **CHI-Genome v0.1** - física cognitiva que define cómo "respira" y evoluciona el avatar.
+
+#### Variables CHI
+
+- **Energía (E)**: Capacidad de procesar (0-1)
+- **Coherencia (C)**: Claridad de pensamiento (0-1)
+- **Entropía (H)**: Creatividad/caos (0-1)
+- **Fatiga**: Cansancio acumulado (0-1)
+
+#### Integración en Companions
+
+```typescript
+// CompanionsSlice incluye CHI state
+interface CompanionsSlice {
+  // ... campos existentes
+  chiEngine: CHIEngine;
+  chiState: CHIState;
+  emotionalState: EmotionalState;
+}
+
+// Avatar reacciona al CHI state
+const AvatarEngine = () => {
+  const { chiState } = useCompanions();
+  const visuals = calculateVisualEffects(chiState);
+  
+  return <Avatar visuals={visuals} />;
+};
+```
+
+#### Actualización Automática
+
+- Cada input del usuario actualiza CHI state
+- Estado emocional deriva de E/C/H
+- Animaciones reflejan estado interno
+- Auto-adaptación cada 10 minutos
+- Persistencia en localStorage
+
+#### Efectos Visuales CHI
+
+| Variable | Efecto Visual |
+|----------|---------------|
+| Alta Energía | Partículas rápidas, brillo |
+| Alta Coherencia | Anillo de enfoque, estabilidad |
+| Alta Entropía | Partículas caóticas, colores |
+| Alta Fatiga | Opacidad reducida, temblor |
+
+#### Documentación
+
+- **docs/CHI_GENOME_SPEC.md**: Especificación completa
+- **src/services/chiEngine.ts**: Implementación TypeScript
+
+---
+
+**Actualizado**: 14 Nov 2025  
+**CHI-Genome**: v0.1 Integrado
