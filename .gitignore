@@ -22,3 +22,22 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Temporary and archive files
+*.zip
+*.tar.gz
+*.rar
+
+# Infrastructure as code (if not part of project)
+*.tf
+*.tfvars
+*.hcl
+
+# Build artifacts and temporary scripts
+kai_system_rewrite*.py
+*.pyc
+__pycache__/
+
+# API specs (if generated)
+openapi.yaml
+swagger.yaml
