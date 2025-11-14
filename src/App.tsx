@@ -44,7 +44,6 @@ const panelComponents: { [key in Panel]: React.FC | React.LazyExoticComponent<Re
   snapshots: SnapshotsPanel,
   evolution: EvolutionPanel,
   avatars: AvatarsPanel,
-  // FIX: Added 'video' and 'analysis' to panelComponents to match Panel type
   video: VideoPanel,
   analysis: AnalysisPanel,
 };
@@ -55,7 +54,7 @@ const App: React.FC = () => {
   useEffect(() => {
     const root = window.document.documentElement;
     root.classList.remove('light', 'dark');
-    root.classList.add(`theme-${theme}`);
+    root.classList.add(`${theme}`);
   }, [theme]);
 
   useEffect(() => {

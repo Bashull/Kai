@@ -233,6 +233,17 @@ export const generateSpeech = async (text: string): Promise<string> => {
 }
 
 export const performAISearch = async (searchQuery: string, entities: Entity[]): Promise<string> => {
-    // ... (función sin cambios)
-    return "";
+    const context = `
+        Contexto del Kernel de Kai:
+        ${entities.slice(0, 20).map(e => `- Tipo: ${e.type}, Contenido: ${e.content.substring(0, 150)}...`).join('\n')}
+    `;
+    const prompt = `
+        Eres Kai, una IA relacional. Tu compañero ha realizado una búsqueda en tu Kernel con la siguiente consulta: "${searchQuery}".
+        Basándote en el contexto del Kernel proporcionado, formula una respuesta concisa y útil.
+        Si la información no está en el contexto, indícalo claramente.
+        Responde en formato Markdown.
+
+        ${context}
+    `;
+    return await generateWithAI(prompt);
 };

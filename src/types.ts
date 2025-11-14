@@ -12,8 +12,6 @@ export interface Task {
 }
 
 // --- UI & App State ---
-// FIX: Add 'avatars' to Panel type to support the new AvatarsPanel.
-// FIX: Added 'video' and 'analysis' to Panel type to support the new panels.
 export type Panel = 'chat' | 'live' | 'kernel' | 'forge' | 'studio' | 'tasks' | 'settings' | 'resume' | 'awesome' | 'diary' | 'snapshots' | 'evolution' | 'avatars' | 'video' | 'analysis';
 export type Theme = 'light' | 'dark';
 
@@ -168,19 +166,16 @@ export interface ImageSlice {
     imagePrompt: string;
     generatedImages: GeneratedImage[];
     isGeneratingImages: boolean;
-    // FIX: Renamed to avoid conflict with VideoSlice
     imageAspectRatio: AspectRatio;
     setImagePrompt: (prompt: string) => void;
     setGeneratedImages: (images: GeneratedImage[]) => void;
     setIsGeneratingImages: (isGenerating: boolean) => void;
-    // FIX: Renamed setter for consistency
     setImageAspectRatio: (ratio: AspectRatio) => void;
 }
 
 export interface VideoSlice {
   videoPrompt: string;
   inputImage: string | null; // base64
-  // FIX: Renamed to avoid conflict with ImageSlice
   videoAspectRatio: '16:9' | '9:16';
   isGeneratingVideo: boolean;
   videoGenerationProgress: string;
