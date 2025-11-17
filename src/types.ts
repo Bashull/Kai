@@ -1,6 +1,8 @@
 import { StateCreator } from 'zustand';
 
 // --- Tasks (Missions) ---
+export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH';
+
 export interface Task {
   id: string;
   title: string;
@@ -9,6 +11,7 @@ export interface Task {
   dueDate?: string;
   agentStatus?: 'IDLE' | 'RUNNING' | 'COMPLETED';
   agentLogs?: { timestamp: string; message: string }[];
+  priority: TaskPriority;
 }
 
 // --- UI & App State ---
@@ -204,13 +207,14 @@ export interface AnalysisSlice {
 export interface TaskSlice {
   tasks: Task[];
   isAutonomousMode: boolean;
-  addTask: (title: string) => void;
+  addTask: (title: string, priority?: TaskPriority) => void;
   toggleTask: (id: string) => void;
   clearCompletedTasks: () => void;
   setTaskDueDate: (id: string, dueDate?: string) => void;
   toggleAutonomousMode: () => void;
   addAgentLog: (taskId: string, message: string) => void;
   startAutonomousTask: (id: string) => void;
+  setTaskPriority: (id: string, priority: TaskPriority) => void;
 }
 
 // --- Constitution ---
