@@ -21,9 +21,16 @@ import ResumeBuilderPanel from './components/panels/ResumeBuilderPanel';
 import AwesomeResourcesPanel from './components/panels/AwesomeResourcesPanel';
 import DiaryPanel from './components/panels/DiaryPanel';
 import SnapshotsPanel from './components/panels/SnapshotsPanel';
+import EvolutionPanel from './components/panels/EvolutionPanel';
+import AvatarsPanel from './components/panels/AvatarsPanel';
 import { Panel } from './types';
 
-const panelComponents: { [key in Panel]: React.FC } = {
+// Lazy load panels that might be heavy
+const VideoPanel = React.lazy(() => import('./components/panels/VideoPanel'));
+const AnalysisPanel = React.lazy(() => import('./components/panels/AnalysisPanel'));
+
+
+const panelComponents: { [key in Panel]: React.FC | React.LazyExoticComponent<React.FC<{}>> } = {
   chat: ChatPanel,
   live: LivePanel,
   kernel: KernelPanel,
@@ -35,6 +42,10 @@ const panelComponents: { [key in Panel]: React.FC } = {
   awesome: AwesomeResourcesPanel,
   diary: DiaryPanel,
   snapshots: SnapshotsPanel,
+  evolution: EvolutionPanel,
+  avatars: AvatarsPanel,
+  video: VideoPanel,
+  analysis: AnalysisPanel,
 };
 
 const App: React.FC = () => {
@@ -43,16 +54,12 @@ const App: React.FC = () => {
   useEffect(() => {
     const root = window.document.documentElement;
     root.classList.remove('light', 'dark');
-    root.classList.add(`theme-${theme}`);
+    root.classList.add(`${theme}`);
   }, [theme]);
 
   useEffect(() => {
-    // Set up a global poller for training jobs
-    const intervalId = setInterval(() => {
-      pollJobs();
-    }, 5000); // Poll every 5 seconds
-
-    return () => clearInterval(intervalId); // Cleanup on unmount
+    const intervalId = setInterval(() => { pollJobs(); }, 5000);
+    return () => clearInterval(intervalId);
   }, [pollJobs]);
   
   const ActivePanelComponent = panelComponents[activePanel];
@@ -82,7 +89,9 @@ const App: React.FC = () => {
                     transition={{ duration: 0.3 }}
                     className="h-full"
                  >
-                    {ActivePanelComponent && <ActivePanelComponent />}
+                    <React.Suspense fallback={<div>Loading...</div>}>
+                        {ActivePanelComponent && <ActivePanelComponent />}
+                    </React.Suspense>
                  </motion.div>
             </AnimatePresence>
         </div>

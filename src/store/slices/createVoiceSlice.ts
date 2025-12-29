@@ -1,11 +1,10 @@
 import { VoiceSlice, AppSlice } from '../../types';
+import { generateSpeech } from '../../services/geminiService';
+import { decode, decodeAudioData } from '../../utils/helpers';
 
-// Declare SpeechRecognition interfaces for cross-browser compatibility
+// Browser SpeechRecognition for input
 declare global {
-  interface Window {
-    SpeechRecognition: any;
-    webkitSpeechRecognition: any;
-  }
+  interface Window { SpeechRecognition: any; webkitSpeechRecognition: any; }
 }
 
 let recognition: any | null = null;
@@ -16,6 +15,19 @@ if (typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitS
   recognition.lang = 'es-ES';
   recognition.interimResults = false;
 }
+
+// Web Audio API for output
+let outputAudioContext: AudioContext | null = null;
+let outputNode: GainNode | null = null;
+let currentSource: AudioBufferSourceNode | null = null;
+
+const initializeAudioContext = () => {
+    if (!outputAudioContext) {
+        outputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+        outputNode = outputAudioContext.createGain();
+        outputNode.connect(outputAudioContext.destination);
+    }
+};
 
 export const createVoiceSlice: AppSlice<VoiceSlice> = (set, get) => ({
   isRecording: false,
@@ -36,44 +48,49 @@ export const createVoiceSlice: AppSlice<VoiceSlice> = (set, get) => ({
       recognition.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
         callback(transcript);
-        recognition.onresult = null; // Clean up
+        recognition.onresult = null;
       };
       recognition.stop();
       set({ isRecording: false });
     }
   },
 
-  speakMessage: (messageId, text) => {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      get().stopSpeaking(); // Stop any currently playing speech
-      
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'es-ES';
-      utterance.rate = 1.0;
-      utterance.pitch = 1.0;
+  speakMessage: async (messageId, text) => {
+    get().stopSpeaking();
+    set({ isSpeaking: true, spokenMessageId: messageId });
 
-      utterance.onstart = () => {
-        set({ isSpeaking: true, spokenMessageId: messageId });
+    try {
+      initializeAudioContext();
+      const base64Audio = await generateSpeech(text);
+      const audioBuffer = await decodeAudioData(decode(base64Audio), outputAudioContext!, 24000, 1);
+
+      // If another speech was requested while we were generating, don't play this one.
+      if (get().spokenMessageId !== messageId) return;
+
+      currentSource = outputAudioContext!.createBufferSource();
+      currentSource.buffer = audioBuffer;
+      currentSource.connect(outputNode!);
+      currentSource.onended = () => {
+        // Check if this was the message that was supposed to be playing
+        if (get().spokenMessageId === messageId) {
+          set({ isSpeaking: false, spokenMessageId: null });
+        }
+        currentSource = null;
       };
-
-      utterance.onend = () => {
-        set({ isSpeaking: false, spokenMessageId: null });
-      };
-      
-      utterance.onerror = () => {
-         set({ isSpeaking: false, spokenMessageId: null });
-      }
-
-      window.speechSynthesis.speak(utterance);
-    } else {
-         get().addNotification({ type: 'error', message: 'La síntesis de voz no es compatible con este navegador.' });
+      currentSource.start();
+    } catch (error) {
+      console.error("Failed to speak message:", error);
+      get().addNotification({ type: 'error', message: 'No se pudo reproducir la respuesta de voz.' });
+      set({ isSpeaking: false, spokenMessageId: null });
     }
   },
 
   stopSpeaking: () => {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      set({ isSpeaking: false, spokenMessageId: null });
+    if (currentSource) {
+      currentSource.onended = null; // Prevent onended from firing when manually stopped
+      currentSource.stop();
+      currentSource = null;
     }
+    set({ isSpeaking: false, spokenMessageId: null });
   },
 });

@@ -65,7 +65,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
       {...props}
     >
       {loading ? (
-        <Loader2 style={{ width: iconSize, height: iconSize }} className={`animate-spin ${iconMargin}`} />
+        <Loader2 style={{ width: iconSize, height: iconSize }} className={`animate-spin ${children ? 'mr-2' : ''}`} />
       ) : (
         Icon && iconPosition === 'left' && <Icon style={{ width: iconSize, height: iconSize }} className={iconMargin} />
       )}

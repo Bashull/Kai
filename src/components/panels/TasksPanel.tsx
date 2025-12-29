@@ -111,7 +111,7 @@ const TaskItem: React.FC<{ task: Task }> = ({ task }) => {
     );
 };
 
-const TasksPanel: React.FC = () => {
+export const TasksPanel: React.FC = () => {
     const { tasks, addTask, clearCompletedTasks, isAutonomousMode, toggleAutonomousMode } = useAppStore();
     const [newTaskTitle, setNewTaskTitle] = useState('');
 

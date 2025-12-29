@@ -6,6 +6,8 @@ export const createChatSlice: AppSlice<ChatSlice> = (set, get) => ({
   isTyping: false,
   chatHistory: [],
   isSummarizing: false,
+  thinkingMode: false,
+  grounding: 'none',
   addChatMessage: (message: Pick<ChatMessage, 'role' | 'content'>) =>
     set((state) => ({
       chatHistory: [
@@ -17,11 +19,18 @@ export const createChatSlice: AppSlice<ChatSlice> = (set, get) => ({
         },
       ],
     })),
-  updateLastChatMessage: (content: string) =>
+  updateLastChatMessage: (content: string, sources?: ChatMessage['sources']) =>
     set((state) => {
       const newHistory = [...state.chatHistory];
       if (newHistory.length > 0 && newHistory[newHistory.length - 1].role === 'model') {
         newHistory[newHistory.length - 1].content += content;
+        if (sources) {
+            const existingUris = new Set((newHistory[newHistory.length - 1].sources || []).map(s => s.uri));
+            const newSources = sources.filter(s => !existingUris.has(s.uri));
+            if (newSources.length > 0) {
+              newHistory[newHistory.length - 1].sources = [...(newHistory[newHistory.length - 1].sources || []), ...newSources];
+            }
+        }
       }
       return { chatHistory: newHistory };
     }),
@@ -56,4 +65,6 @@ export const createChatSlice: AppSlice<ChatSlice> = (set, get) => ({
         set({ isSummarizing: false });
     }
   },
+  toggleThinkingMode: () => set(state => ({ thinkingMode: !state.thinkingMode })),
+  setGrounding: (grounding) => set({ grounding }),
 });

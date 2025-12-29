@@ -69,7 +69,7 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({ tasks, onClos
                             <p className="font-medium text-text-primary truncate group-hover:text-white">{task.title}</p>
                             <p className="text-xs text-kai-primary flex items-center gap-1 mt-1">
                                 <Clock size={12} />
-                                <span>Vence {formatDistanceToNow(new Date(task.dueDate!), { locale: es, addSuffix: true } as any)}</span>
+                                {task.dueDate && <span>Vence {formatDistanceToNow(new Date(task.dueDate), { locale: es, addSuffix: true })}</span>}
                             </p>
                         </a>
                     </li>

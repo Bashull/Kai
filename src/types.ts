@@ -12,7 +12,7 @@ export interface Task {
 }
 
 // --- UI & App State ---
-export type Panel = 'chat' | 'live' | 'kernel' | 'forge' | 'studio' | 'tasks' | 'settings' | 'resume' | 'awesome' | 'diary' | 'snapshots';
+export type Panel = 'chat' | 'live' | 'kernel' | 'forge' | 'studio' | 'tasks' | 'settings' | 'resume' | 'awesome' | 'diary' | 'snapshots' | 'evolution' | 'avatars' | 'video' | 'analysis';
 export type Theme = 'light' | 'dark';
 
 export interface UISlice {
@@ -34,16 +34,21 @@ export interface ChatMessage {
   timestamp: string;
   role: 'user' | 'model';
   content: string;
+  sources?: { uri: string; title: string }[];
 }
 
 export interface ChatSlice {
   isTyping: boolean;
   chatHistory: ChatMessage[];
   isSummarizing: boolean;
-  addChatMessage: (message: Pick<ChatMessage, 'role' | 'content'>) => void;
-  updateLastChatMessage: (content: string) => void;
+  thinkingMode: boolean;
+  grounding: 'none' | 'web' | 'maps';
+  addChatMessage: (message: Pick<ChatMessage, 'role' | 'content'> & { sources?: ChatMessage['sources'] }) => void;
+  updateLastChatMessage: (content: string, sources?: ChatMessage['sources']) => void;
   setTyping: (isTyping: boolean) => void;
   summarizeAndSaveChat: () => Promise<void>;
+  toggleThinkingMode: () => void;
+  setGrounding: (grounding: 'none' | 'web' | 'maps') => void;
 }
 
 // --- Voice ---
@@ -121,7 +126,7 @@ export interface ForgeSlice {
   pollJobs: () => Promise<void>;
 }
 
-// --- Studio (Code, Image, Console) ---
+// --- Studio (Code, Image, Console, Video, Analysis) ---
 export type CodeLanguage = 'javascript' | 'typescript' | 'python' | 'html' | 'css' | 'json' | 'markdown';
 
 export interface GeneratedImage {
@@ -155,14 +160,45 @@ export interface CodeSlice {
     setIsGeneratingCode: (isGenerating: boolean) => void;
 }
 
+export type AspectRatio = "1:1" | "3:4" | "4:3" | "9:16" | "16:9";
+
 export interface ImageSlice {
     imagePrompt: string;
     generatedImages: GeneratedImage[];
     isGeneratingImages: boolean;
+    imageAspectRatio: AspectRatio;
     setImagePrompt: (prompt: string) => void;
     setGeneratedImages: (images: GeneratedImage[]) => void;
     setIsGeneratingImages: (isGenerating: boolean) => void;
+    setImageAspectRatio: (ratio: AspectRatio) => void;
 }
+
+export interface VideoSlice {
+  videoPrompt: string;
+  inputImage: string | null; // base64
+  videoAspectRatio: '16:9' | '9:16';
+  isGeneratingVideo: boolean;
+  videoGenerationProgress: string;
+  generatedVideoUrl: string | null;
+  setVideoPrompt: (prompt: string) => void;
+  setInputImage: (image: string | null) => void;
+  setVideoAspectRatio: (ratio: '16:9' | '9:16') => void;
+  generateVideo: () => Promise<void>;
+}
+
+export interface AnalysisSlice {
+  analysisImage: string | null; // base64
+  analysisPrompt: string;
+  isAnalyzing: boolean;
+  analysisResult: string;
+  isEditing: boolean;
+  editedImage: string | null;
+  setAnalysisImage: (image: string | null) => void;
+  setAnalysisPrompt: (prompt: string) => void;
+  analyzeImage: () => Promise<void>;
+  editImage: () => Promise<void>;
+}
+
 
 // --- TaskSlice Definition ---
 export interface TaskSlice {
@@ -344,6 +380,19 @@ export interface SnapshotSlice {
   deleteSnapshot: (id: string) => void;
 }
 
+// --- Evolution ---
+export interface EvolutionLog {
+  id: string;
+  timestamp: string;
+  message: string;
+}
+
+export interface EvolutionSlice {
+  isExtracting: boolean;
+  extractionLogs: EvolutionLog[];
+  runExtractionCycle: () => void;
+}
+
 
 // --- Main App State & Slice Creator ---
 export interface AppState extends
@@ -356,6 +405,8 @@ export interface AppState extends
     StudioSlice,
     CodeSlice,
     ImageSlice,
+    VideoSlice,
+    AnalysisSlice,
     TaskSlice,
     ConstitutionSlice,
     ResumeSlice,
@@ -363,6 +414,7 @@ export interface AppState extends
     SearchSlice,
     AwesomeResourceSlice,
     DiarySlice,
-    SnapshotSlice {}
+    SnapshotSlice,
+    EvolutionSlice {}
 
 export type AppSlice<T> = StateCreator<AppState, [['zustand/persist', unknown]], [], T>;

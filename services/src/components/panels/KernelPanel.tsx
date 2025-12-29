@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useAppStore } from '../store/useAppStore';
+import { useAppStore } from '../../store/useAppStore';
 import { AnimatePresence, motion } from 'framer-motion';
-import Button from './ui/Button';
-import { BrainCircuit, Link, FileText, Type as TypeIcon, BookOpen, Edit, Save, Plus, Trash2, History, RotateCcw } from 'lucide-react';
-// FIX: Corrected import path for types.
-import { Entity, EntityType, Constitution } from '../types';
-import EntityStatusBadge from './ui/EntityStatusBadge';
-import { formatRelativeTime } from '../utils/helpers';
+import Button from '../ui/Button';
+import { BrainCircuit, Link, FileText, Type as TypeIcon, BookOpen, Edit, Save, Plus, Trash2, History, RotateCcw, Search } from 'lucide-react';
+import { Entity, EntityType, Constitution } from '../../types';
+import EntityStatusBadge from '../ui/EntityStatusBadge';
+import { formatRelativeTime } from '../../utils/helpers';
 import { format } from 'date-fns';
 
 const EntityCard: React.FC<{ entity: Entity }> = ({ entity }) => {
@@ -16,7 +15,6 @@ const EntityCard: React.FC<{ entity: Entity }> = ({ entity }) => {
         DOCUMENT: <FileText size={16} />,
     };
 
-    // FIX: Using variants for framer-motion animations to resolve typing issues.
     const cardVariants = {
         initial: { opacity: 0, y: 50, scale: 0.3 },
         animate: { opacity: 1, y: 0, scale: 1 },
@@ -24,7 +22,6 @@ const EntityCard: React.FC<{ entity: Entity }> = ({ entity }) => {
     }
 
     return (
-        // FIX: Added @ts-ignore for the 'layout' prop due to a type definition issue.
         // @ts-ignore
         <motion.div
             layout
@@ -36,7 +33,7 @@ const EntityCard: React.FC<{ entity: Entity }> = ({ entity }) => {
             className="bg-kai-surface/50 border border-border-color rounded-lg p-4 transition-colors duration-200 hover:bg-kai-surface"
         >
             <div className="flex justify-between items-start gap-4">
-                <div className="flex-grow">
+                <div className="flex-grow overflow-hidden">
                     <div className="flex items-center gap-2 text-text-secondary text-sm mb-2">
                         {iconMap[entity.type]}
                         <span>{entity.type}</span>
@@ -61,6 +58,14 @@ const KernelPanel: React.FC = () => {
     }));
     const [content, setContent] = useState('');
     const [type, setType] = useState<EntityType>('TEXT');
+    
+    // Search state and actions
+    const { searchQuery, setSearchQuery, executeSearch } = useAppStore();
+
+    const handleSearchSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        executeSearch();
+    };
 
     const handleEntitySubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -110,7 +115,6 @@ const KernelPanel: React.FC = () => {
         }
     };
 
-    // FIX: Using variants for framer-motion animations to resolve typing issues.
     const emptyStateVariants = {
         initial: { opacity: 0 },
         animate: { opacity: 1 },
@@ -124,6 +128,28 @@ const KernelPanel: React.FC = () => {
             <p className="p-subtitle">Mi memoria central, base de conocimientos y principios fundamentales.</p>
             
             <div className="mt-8 space-y-12">
+                 {/* Search Section */}
+                <section>
+                    <div className="panel-container">
+                        <div className="flex items-center gap-3 mb-4">
+                            <Search className="w-6 h-6 text-kai-primary" />
+                            <h2 className="text-xl font-bold">Buscar en el Kernel</h2>
+                        </div>
+                        <form onSubmit={handleSearchSubmit} className="flex flex-col sm:flex-row gap-2">
+                            <div className="relative flex-grow">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-secondary pointer-events-none" />
+                                <input
+                                    type="text"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    placeholder="Pregúntale al Kernel sobre tus datos..."
+                                    className="form-input w-full pl-10"
+                                />
+                            </div>
+                            <Button type="submit" className="w-full sm:w-auto">Buscar</Button>
+                        </form>
+                    </div>
+                </section>
                 {/* Constitution Section */}
                 <section>
                     <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-4">
@@ -244,7 +270,6 @@ const KernelPanel: React.FC = () => {
                             <div className="space-y-4 max-h-[calc(100vh-20rem)] overflow-y-auto pr-2">
                                 <AnimatePresence>
                                     {entities.length === 0 && (
-                                        // FIX: Switched to using variants for framer-motion props to avoid type errors.
                                         <motion.div
                                             variants={emptyStateVariants}
                                             initial="initial"

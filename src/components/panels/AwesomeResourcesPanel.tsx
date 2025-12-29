@@ -1,125 +1,75 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useAppStore } from '../../store/useAppStore';
+import { motion } from 'framer-motion';
+import { Link, Star } from 'lucide-react';
 import { AwesomeResource } from '../../types';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Star, ExternalLink, Search } from 'lucide-react';
-import Button from '../ui/Button';
 
-const ResourceItem: React.FC<{ item: AwesomeResource['items'][0] }> = ({ item }) => (
-  <motion.div
-    layout
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0 }}
-    className="bg-kai-surface/50 border border-border-color rounded-lg p-4 transition-colors duration-200 hover:bg-kai-surface group"
-  >
-    <div className="flex justify-between items-start gap-4">
-      <div>
-        <h3 className="font-bold text-text-primary group-hover:text-kai-primary transition-colors">
-          <a href={item.url} target="_blank" rel="noopener noreferrer">{item.title}</a>
-        </h3>
-        <p className="text-sm text-text-secondary mt-1">{item.description}</p>
-      </div>
-      <Button
-        as="a"
-        href={item.url}
-        target="_blank"
+const ResourceCard: React.FC<{ item: AwesomeResource['items'][0] }> = ({ item }) => (
+    <a 
+        href={item.url} 
+        target="_blank" 
         rel="noopener noreferrer"
-        variant="ghost"
-        size="sm"
-        className="!p-2"
-        aria-label={`Open ${item.title}`}
-      >
-        <ExternalLink size={16} />
-      </Button>
-    </div>
-  </motion.div>
+        className="block p-4 bg-kai-surface/50 border border-border-color rounded-lg transition-colors duration-200 hover:bg-kai-surface hover:border-kai-primary"
+    >
+        <h4 className="font-semibold text-text-primary flex items-center gap-2">
+            <Link size={14} />
+            {item.title}
+        </h4>
+        <p className="text-sm text-text-secondary mt-1">{item.description}</p>
+    </a>
 );
 
 const AwesomeResourcesPanel: React.FC = () => {
-  const { awesomeResources, fetchAwesomeResources } = useAppStore();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filteredResources, setFilteredResources] = useState<AwesomeResource[]>([]);
+    const { awesomeResources, fetchAwesomeResources } = useAppStore();
 
-  useEffect(() => {
-    if (awesomeResources.length === 0) {
-      fetchAwesomeResources();
-    }
-  }, [fetchAwesomeResources, awesomeResources.length]);
+    useEffect(() => {
+        if (awesomeResources.length === 0) {
+            fetchAwesomeResources();
+        }
+    }, [fetchAwesomeResources, awesomeResources.length]);
 
-  useEffect(() => {
-    if (!searchTerm) {
-      setFilteredResources(awesomeResources);
-      return;
-    }
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        show: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.1,
+            },
+        },
+    };
 
-    const lowercasedTerm = searchTerm.toLowerCase();
-    const filtered = awesomeResources
-      .map(category => {
-        const items = category.items.filter(
-          item =>
-            item.title.toLowerCase().includes(lowercasedTerm) ||
-            item.description.toLowerCase().includes(lowercasedTerm)
-        );
-        return { ...category, items };
-      })
-      .filter(category => category.items.length > 0);
-    
-    setFilteredResources(filtered);
-  }, [searchTerm, awesomeResources]);
+    const itemVariants = {
+        hidden: { opacity: 0, y: 20 },
+        show: { opacity: 1, y: 0 },
+    };
 
-  const sectionVariants = {
-    initial: { opacity: 0 },
-    animate: { opacity: 1 },
-    exit: { opacity: 0 },
-  };
-  
-  return (
-    <div>
-      <h1 className="h1-title">Recursos Awesome</h1>
-      <p className="p-subtitle">Una colección curada de listas "awesome" y recursos para el desarrollo y la IA.</p>
-      
-       <div className="relative my-6">
-            <input
-                type="text"
-                placeholder="Filtrar recursos..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="form-input w-full pl-10"
-            />
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-secondary pointer-events-none" />
-        </div>
+    return (
+        <div>
+            <h1 className="h1-title">Recursos Awesome</h1>
+            <p className="p-subtitle">Una lista curada de recursos y herramientas que forman parte de mi base de conocimiento y capacidades evolutivas.</p>
 
-      <div className="space-y-8">
-        <AnimatePresence>
-          {filteredResources.map(category => (
-            <motion.section 
-              key={category.category}
-              variants={sectionVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
+            <motion.div 
+                className="mt-6 space-y-8"
+                variants={containerVariants}
+                initial="hidden"
+                animate="show"
             >
-              <h2 className="text-xl font-bold text-text-primary mb-4 flex items-center gap-2">
-                <Star size={20} className="text-yellow-400" />
-                {category.category}
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {category.items.map(item => (
-                  <ResourceItem key={item.url} item={item} />
+                {awesomeResources.map(category => (
+                    <motion.section key={category.category} variants={itemVariants}>
+                        <div className="flex items-center gap-3 mb-4">
+                            <Star className="w-6 h-6 text-yellow-400" />
+                            <h2 className="text-xl font-bold">{category.category}</h2>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {category.items.map(item => (
+                                <ResourceCard key={item.url} item={item} />
+                            ))}
+                        </div>
+                    </motion.section>
                 ))}
-              </div>
-            </motion.section>
-          ))}
-        </AnimatePresence>
-        {awesomeResources.length > 0 && filteredResources.length === 0 && (
-             <div className="text-center py-16 text-gray-500">
-                <p>No se encontraron recursos que coincidan con tu búsqueda.</p>
-            </div>
-        )}
-      </div>
-    </div>
-  );
+            </motion.div>
+        </div>
+    );
 };
 
 export default AwesomeResourcesPanel;

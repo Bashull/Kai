@@ -21,12 +21,14 @@ const ResumePreview: React.FC = () => {
     if (printContent) {
         const title = document.title;
         const resumeData = useAppStore.getState().resumeData;
-        const filename = `${resumeData.personalInfo.fullName.replace(' ', '_')}_Resume.pdf`
+        const filename = `${resumeData.personalInfo.fullName.replace(/\s/g, '_') || 'Resume'}.pdf`
         document.title = filename;
         window.print();
         document.title = title;
     }
   };
+  
+  const ActiveTemplateComponent = templates[activeTemplate];
 
   return (
     <div>
@@ -45,7 +47,7 @@ const ResumePreview: React.FC = () => {
       </div>
       
       <div id="resume-preview" ref={resumeRef} className="bg-white text-gray-800 p-2 rounded-lg shadow-lg max-h-[calc(100vh-32rem)] overflow-y-auto">
-        {React.createElement(templates[activeTemplate])}
+        <ActiveTemplateComponent />
       </div>
     </div>
   );

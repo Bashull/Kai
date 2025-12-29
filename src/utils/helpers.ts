@@ -1,5 +1,5 @@
 import { formatDistanceToNow } from 'date-fns';
-import { es } from 'date-fns/locale/es';
+import { es } from 'date-fns/locale';
 import { Blob } from '@google/genai';
 
 export const formatRelativeTime = (date: string | number | Date): string => {
