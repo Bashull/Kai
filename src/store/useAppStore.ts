@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { AppState } from '../types';
+import { normalizeTaskPriority } from '../utils/taskPriority';
 import { createUISlice } from './slices/createUISlice';
 import { createChatSlice } from './slices/createChatSlice';
 import { createKernelSlice } from './slices/createKernelSlice';
@@ -64,6 +65,17 @@ export const useAppStore = create<AppState>()(
         entities: state.entities,
         trainingJobs: state.trainingJobs,
       }),
+      version: 1,
+      migrate: (persistedState: AppState | undefined) => {
+        if (!persistedState) {
+          return persistedState;
+        }
+
+        return {
+          ...persistedState,
+          tasks: persistedState.tasks?.map(normalizeTaskPriority) ?? persistedState.tasks,
+        };
+      },
     }
   )
 );
