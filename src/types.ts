@@ -353,6 +353,8 @@ export interface SnapshotableState {
     entities: Entity[];
     constitution: Constitution;
     versionHistory: ConstitutionVersion[];
+    chi: ChiState;
+    chiAudit: ChiAudit | null;
     trainingJobs: TrainingJob[];
     studioLogs: StudioLog[];
     codePrompt: string;
@@ -409,6 +411,7 @@ export interface AppState extends
     AnalysisSlice,
     TaskSlice,
     ConstitutionSlice,
+    ChiSlice,
     ResumeSlice,
     NotificationSlice,
     SearchSlice,
