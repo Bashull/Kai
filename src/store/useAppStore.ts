@@ -21,9 +21,9 @@ import { createLiveSlice } from './slices/createLiveSlice';
 import { createEvolutionSlice } from './slices/createEvolutionSlice';
 import { createVideoSlice } from './slices/createVideoSlice';
 import { createAnalysisSlice } from './slices/createAnalysisSlice';
-import { createChiSlice, ChiSliceDraft } from './slices/createChiSlice';
+import { createChiSlice } from './slices/createChiSlice';
 
-export const useAppStore = create<AppState & ChiSliceDraft>()(
+export const useAppStore = create<AppState>()(
   persist(
     (...a) => ({
       ...createUISlice(...a),
