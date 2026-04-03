@@ -21,8 +21,9 @@ import { createLiveSlice } from './slices/createLiveSlice';
 import { createEvolutionSlice } from './slices/createEvolutionSlice';
 import { createVideoSlice } from './slices/createVideoSlice';
 import { createAnalysisSlice } from './slices/createAnalysisSlice';
+import { createChiSlice, ChiSliceDraft } from './slices/createChiSlice';
 
-export const useAppStore = create<AppState>()(
+export const useAppStore = create<AppState & ChiSliceDraft>()(
   persist(
     (...a) => ({
       ...createUISlice(...a),
@@ -45,6 +46,7 @@ export const useAppStore = create<AppState>()(
       ...createDiarySlice(...a),
       ...createSnapshotSlice(...a),
       ...createEvolutionSlice(...a),
+      ...createChiSlice(...a),
     }),
     {
       name: 'kai-os-v3-storage',
@@ -63,6 +65,8 @@ export const useAppStore = create<AppState>()(
         chatHistory: state.chatHistory,
         entities: state.entities,
         trainingJobs: state.trainingJobs,
+        chi: state.chi,
+        chiAudit: state.chiAudit,
       }),
     }
   )
