@@ -232,6 +232,34 @@ export interface ConstitutionSlice {
   revertToVersion: (version: number) => void;
 }
 
+export type ChiSeverity = 'OPTIMO' | 'ALERTA' | 'CRITICO';
+export type ChiMode = 'charla_barrio' | 'foco' | 'reposo' | 'modo_seguro';
+
+export interface ChiState {
+  energy: number;
+  coherence: number;
+  entropy: number;
+  fatigue: number;
+  cycle: number;
+  mode: ChiMode;
+  lastAlert: string | null;
+}
+
+export interface ChiAudit {
+  severity: ChiSeverity;
+  reason: string;
+  suggestedAction: string;
+  evaluatedAt: string;
+}
+
+export interface ChiSlice {
+  chi: ChiState;
+  chiAudit: ChiAudit | null;
+  adjustChi: (delta?: Partial<Pick<ChiState, 'energy' | 'coherence' | 'entropy' | 'fatigue'>>) => void;
+  auditChi: () => ChiAudit;
+  restoreChi: () => void;
+}
+
 // --- Resume Builder ---
 export interface PersonalInfo {
   fullName: string;
