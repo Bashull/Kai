@@ -1,11 +1,10 @@
 import { buildAbsorptionPlan, evaluateFrontendPlan, FrontendActionPlan, FrontendVerdict } from '../core/constitutionalPlanner';
-import { Constitution } from '../types';
-import { ChiStateDraft } from '../store/slices/createChiSlice';
+import { Constitution, ChiState } from '../types';
 
 export interface PreflightInput {
   prompt: string;
   constitution: Constitution;
-  chi: ChiStateDraft;
+  chi: ChiState;
   touchesMemory?: boolean;
   touchesCodebase?: boolean;
   destructive?: boolean;
