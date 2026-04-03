@@ -1,33 +1,6 @@
-import { AppSlice } from '../../types';
+import { AppSlice, ChiSlice, ChiState, ChiAudit, ChiMode } from '../../types';
 
-export type ChiMode = 'charla_barrio' | 'foco' | 'reposo' | 'modo_seguro';
-
-export interface ChiStateDraft {
-  energy: number;
-  coherence: number;
-  entropy: number;
-  fatigue: number;
-  cycle: number;
-  mode: ChiMode;
-  lastAlert: string | null;
-}
-
-export interface ChiAuditDraft {
-  severity: 'OPTIMO' | 'ALERTA' | 'CRITICO';
-  reason: string;
-  suggestedAction: string;
-  evaluatedAt: string;
-}
-
-export interface ChiSliceDraft {
-  chi: ChiStateDraft;
-  chiAudit: ChiAuditDraft | null;
-  adjustChi: (delta?: Partial<Pick<ChiStateDraft, 'energy' | 'coherence' | 'entropy' | 'fatigue'>>) => void;
-  auditChi: () => ChiAuditDraft;
-  restoreChi: () => void;
-}
-
-export const initialChiState: ChiStateDraft = {
+export const initialChiState: ChiState = {
   energy: 0.78,
   coherence: 0.86,
   entropy: 0.22,
@@ -41,14 +14,14 @@ function clamp(value: number): number {
   return Math.max(0, Math.min(1, Number(value.toFixed(4))));
 }
 
-function deriveMode(state: ChiStateDraft): ChiMode {
+function deriveMode(state: ChiState): ChiMode {
   if (state.coherence < 0.45 || state.entropy > 0.82) return 'modo_seguro';
   if (state.fatigue > 0.7 || state.energy < 0.3) return 'reposo';
   if (state.coherence > 0.82 && state.entropy < 0.35) return 'foco';
   return 'charla_barrio';
 }
 
-function makeAudit(state: ChiStateDraft): ChiAuditDraft {
+function makeAudit(state: ChiState): ChiAudit {
   if (state.coherence < 0.45) {
     return {
       severity: 'CRITICO',
@@ -57,6 +30,7 @@ function makeAudit(state: ChiStateDraft): ChiAuditDraft {
       evaluatedAt: new Date().toISOString(),
     };
   }
+
   if (state.entropy > 0.72 || state.fatigue > 0.68) {
     return {
       severity: 'ALERTA',
@@ -65,6 +39,7 @@ function makeAudit(state: ChiStateDraft): ChiAuditDraft {
       evaluatedAt: new Date().toISOString(),
     };
   }
+
   if (state.energy < 0.35) {
     return {
       severity: 'ALERTA',
@@ -73,6 +48,7 @@ function makeAudit(state: ChiStateDraft): ChiAuditDraft {
       evaluatedAt: new Date().toISOString(),
     };
   }
+
   return {
     severity: 'OPTIMO',
     reason: 'CHI estable y utilizable.',
@@ -81,12 +57,13 @@ function makeAudit(state: ChiStateDraft): ChiAuditDraft {
   };
 }
 
-export const createChiSlice: AppSlice<ChiSliceDraft> = (set, get) => ({
+export const createChiSlice: AppSlice<ChiSlice> = (set, get) => ({
   chi: initialChiState,
   chiAudit: makeAudit(initialChiState),
+
   adjustChi: (delta = {}) =>
     set((state) => {
-      const next: ChiStateDraft = {
+      const next: ChiState = {
         ...state.chi,
         energy: clamp(state.chi.energy + (delta.energy ?? 0)),
         coherence: clamp(state.chi.coherence + (delta.coherence ?? 0)),
@@ -96,17 +73,20 @@ export const createChiSlice: AppSlice<ChiSliceDraft> = (set, get) => ({
         lastAlert: state.chi.lastAlert,
         mode: state.chi.mode,
       };
+
       next.mode = deriveMode(next);
       return { chi: next, chiAudit: makeAudit(next) };
     }),
+
   auditChi: () => {
     const audit = makeAudit(get().chi);
     set({ chiAudit: audit });
     return audit;
   },
+
   restoreChi: () =>
     set((state) => {
-      const next: ChiStateDraft = {
+      const next: ChiState = {
         ...state.chi,
         energy: clamp(state.chi.energy + 0.12),
         coherence: clamp(state.chi.coherence + 0.18),
@@ -116,6 +96,7 @@ export const createChiSlice: AppSlice<ChiSliceDraft> = (set, get) => ({
         lastAlert: 'RESTAURADO',
         mode: state.chi.mode,
       };
+
       next.mode = deriveMode(next);
       return { chi: next, chiAudit: makeAudit(next) };
     }),
