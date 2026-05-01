@@ -8,6 +8,7 @@ import DynamicBackground from './components/ui/DynamicBackground';
 import CustomCursor from './components/ui/CustomCursor';
 import { ToastContainer } from './components/ui/Toast';
 import SearchResultsModal from './components/ui/SearchResultsModal';
+import ErrorBoundary from './components/ui/ErrorBoundary';
 
 // Panels
 import ChatPanel from './components/panels/ChatPanel';
@@ -49,7 +50,7 @@ const panelComponents: { [key in Panel]: React.FC | React.LazyExoticComponent<Re
 };
 
 const App: React.FC = () => {
-  const { activePanel, theme, sidebarCollapsed, pollJobs } = useAppStore();
+  const { activePanel, theme, sidebarCollapsed, pollJobs, trainingJobs } = useAppStore();
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -57,10 +58,13 @@ const App: React.FC = () => {
     root.classList.add(`${theme}`);
   }, [theme]);
 
+  const hasActiveJobs = trainingJobs?.some(j => j.status === 'QUEUED' || j.status === 'TRAINING');
+
   useEffect(() => {
+    if (!hasActiveJobs) return;
     const intervalId = setInterval(() => { pollJobs(); }, 5000);
     return () => clearInterval(intervalId);
-  }, [pollJobs]);
+  }, [pollJobs, hasActiveJobs]);
   
   const ActivePanelComponent = panelComponents[activePanel];
 
@@ -89,9 +93,11 @@ const App: React.FC = () => {
                     transition={{ duration: 0.3 }}
                     className="h-full"
                  >
-                    <React.Suspense fallback={<div>Loading...</div>}>
+                    <ErrorBoundary>
+                      <React.Suspense fallback={<div className="flex items-center justify-center h-full text-gray-400">Cargando panel...</div>}>
                         {ActivePanelComponent && <ActivePanelComponent />}
-                    </React.Suspense>
+                      </React.Suspense>
+                    </ErrorBoundary>
                  </motion.div>
             </AnimatePresence>
         </div>

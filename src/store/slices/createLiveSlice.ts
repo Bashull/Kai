@@ -1,6 +1,7 @@
 import { AppSlice, LiveSlice } from '../../types';
 import { GoogleGenAI, LiveServerMessage, Modality } from '@google/genai';
 import { generateId, decode, decodeAudioData, createBlob } from '../../utils/helpers';
+import { MODELS } from '../../config/constants';
 
 // Module-level variables to manage audio contexts and streams
 let inputAudioContext: AudioContext | null = null;
@@ -34,7 +35,7 @@ export const createLiveSlice: AppSlice<LiveSlice> = (set, get) => ({
             outputNode.connect(outputAudioContext.destination);
 
             const sessionPromise = ai.live.connect({
-                model: 'gemini-2.5-flash-native-audio-preview-09-2025',
+                model: MODELS.LIVE_AUDIO,
                 callbacks: {
                     onopen: async () => {
                         set({ isConnecting: false, isConnected: true });

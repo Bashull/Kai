@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { AppState } from '../types';
+import { STORAGE_LIMITS } from '../config/constants';
 import { createUISlice } from './slices/createUISlice';
 import { createChatSlice } from './slices/createChatSlice';
 import { createKernelSlice } from './slices/createKernelSlice';
@@ -60,11 +61,11 @@ export const useAppStore = create<AppState>()(
         constitution: state.constitution,
         versionHistory: state.versionHistory,
         resumeData: state.resumeData,
-        diary: state.diary,
-        snapshots: state.snapshots,
-        chatHistory: state.chatHistory,
-        entities: state.entities,
-        trainingJobs: state.trainingJobs,
+        diary: state.diary.slice(-STORAGE_LIMITS.DIARY),
+        snapshots: state.snapshots.slice(-STORAGE_LIMITS.SNAPSHOTS),
+        chatHistory: state.chatHistory.slice(-STORAGE_LIMITS.CHAT_HISTORY),
+        entities: state.entities.slice(-STORAGE_LIMITS.ENTITIES),
+        trainingJobs: state.trainingJobs.slice(-STORAGE_LIMITS.TRAINING_JOBS),
         chi: state.chi,
         chiAudit: state.chiAudit,
       }),

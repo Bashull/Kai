@@ -7,6 +7,7 @@ import { Send, Mic, MicOff, Volume2, VolumeX, Archive, Brain, Globe } from 'luci
 import { formatRelativeTime } from '../../utils/helpers';
 import Button from '../ui/Button';
 import { AnimatePresence, motion } from 'framer-motion';
+import { INPUT_LIMITS } from '../../config/constants';
 
 const ChatPanel: React.FC = () => {
   const [input, setInput] = useState('');
@@ -49,6 +50,10 @@ const ChatPanel: React.FC = () => {
 
   const handleSend = async () => {
     if (!input.trim() || isTyping) return;
+    if (input.length > INPUT_LIMITS.CHAT_MAX_CHARS) {
+      addNotification?.({ type: 'error', message: `El mensaje supera el límite de ${INPUT_LIMITS.CHAT_MAX_CHARS.toLocaleString()} caracteres.` });
+      return;
+    }
 
     const userMessageContent = input.trim();
 
@@ -335,14 +340,20 @@ const ChatPanel: React.FC = () => {
 
             <textarea
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(e) => setInput(e.target.value.slice(0, INPUT_LIMITS.CHAT_MAX_CHARS))}
               onKeyDown={handleKeyDown}
               placeholder={isRecording ? '' : 'Envíame un mensaje...'}
               className="form-textarea w-full pr-28"
               rows={2}
               disabled={isTyping}
               aria-label="Mensaje de chat"
+              maxLength={INPUT_LIMITS.CHAT_MAX_CHARS}
             />
+            {input.length > INPUT_LIMITS.CHAT_MAX_CHARS * 0.9 && (
+              <span className="absolute bottom-1 left-3 text-xs text-yellow-400">
+                {input.length}/{INPUT_LIMITS.CHAT_MAX_CHARS}
+              </span>
+            )}
 
             <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
               <Button

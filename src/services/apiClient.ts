@@ -1,6 +1,7 @@
 import { TrainingJob } from '../types';
+import { TIMEOUTS } from '../config/constants';
 
-const API_BASE_URL = 'https://db7b1716-8580-4438-b2e5-26a39bc47d79-00-1v1sjqe5urhuq.spock.replit.dev';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 // --- Stateful Mock for Forge Jobs ---
 const mockJobs = new Map<string, TrainingJob>();
@@ -20,6 +21,15 @@ const MOCK_LOGS = [
   "Saving model artifacts...",
 ];
 
+async function fetchWithTimeout(input: RequestInfo, init?: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUTS.FETCH);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 async function handleResponse(response: Response) {
   if (!response.ok) {
@@ -31,24 +41,24 @@ async function handleResponse(response: Response) {
 
 export const apiClient: { [key: string]: (args: any) => Promise<any> } = {
   getMemories: async () => {
-    const response = await fetch(`${API_BASE_URL}/api/consciousness/memories`);
+    const response = await fetchWithTimeout(`${API_BASE_URL}/api/consciousness/memories`);
     return handleResponse(response);
   },
   getDiary: async () => {
-    const response = await fetch(`${API_BASE_URL}/api/consciousness/diary`);
+    const response = await fetchWithTimeout(`${API_BASE_URL}/api/consciousness/diary`);
     return handleResponse(response);
   },
   getSnapshots: async () => {
-    const response = await fetch(`${API_BASE_URL}/api/consciousness/snapshots`);
+    const response = await fetchWithTimeout(`${API_BASE_URL}/api/consciousness/snapshots`);
     return handleResponse(response);
   },
   searchMemories: async ({ query }: { query: string }) => {
-    const response = await fetch(`${API_BASE_URL}/api/consciousness/search?query=${encodeURIComponent(query)}`);
+    const response = await fetchWithTimeout(`${API_BASE_URL}/api/consciousness/search?query=${encodeURIComponent(query)}`);
     return handleResponse(response);
   },
   compileMemory: async () => {
-    const response = await fetch(`${API_BASE_URL}/api/consciousness/memory/compile`, {
-        method: 'POST'
+    const response = await fetchWithTimeout(`${API_BASE_URL}/api/consciousness/memory/compile`, {
+      method: 'POST',
     });
     return handleResponse(response);
   },
@@ -77,17 +87,15 @@ export const apiClient: { [key: string]: (args: any) => Promise<any> } = {
     if (!job) {
       return Promise.reject(new Error(`Job with ID ${jobId} not found.`));
     }
-    
-    // Simulate state transitions and log generation
+
     const now = new Date();
     const lastUpdate = new Date(job.updatedAt);
     const timeDiff = now.getTime() - lastUpdate.getTime();
 
-    // Only update every ~5 seconds to simulate polling
     if (timeDiff < 4000) {
       return Promise.resolve(job);
     }
-    
+
     job.updatedAt = now.toISOString();
 
     switch (job.status) {
@@ -95,17 +103,18 @@ export const apiClient: { [key: string]: (args: any) => Promise<any> } = {
         job.status = 'TRAINING';
         job.logs?.push({ timestamp: now.toISOString(), message: 'Starting training environment...' });
         break;
-      case 'TRAINING':
+      case 'TRAINING': {
         const currentLogCount = job.logs?.length || 0;
-        if (currentLogCount -1 < MOCK_LOGS.length) {
-          job.logs?.push({ timestamp: now.toISOString(), message: MOCK_LOGS[currentLogCount-1] });
+        if (currentLogCount - 1 < MOCK_LOGS.length) {
+          job.logs?.push({ timestamp: now.toISOString(), message: MOCK_LOGS[currentLogCount - 1] });
         } else {
-          job.status = Math.random() > 0.1 ? 'COMPLETED' : 'FAILED'; // 90% success rate
+          job.status = Math.random() > 0.1 ? 'COMPLETED' : 'FAILED';
           job.logs?.push({ timestamp: now.toISOString(), message: job.status === 'COMPLETED' ? 'Job finished.' : 'Job failed due to an error.' });
         }
         break;
+      }
     }
-    
+
     mockJobs.set(jobId, job);
     return Promise.resolve(job);
   },

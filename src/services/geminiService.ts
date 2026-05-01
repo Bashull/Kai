@@ -2,6 +2,7 @@ import { GoogleGenAI, FunctionCall, Modality } from "@google/genai";
 import { GeneratedImage, CodeLanguage, Entity, AspectRatio, ChatMessage, Constitution, ChiState } from "../types";
 import { kaiTools } from './kaiTools';
 import { runConstitutionalPreflight } from './constitutionalPreflight';
+import { MODELS, TIMEOUTS } from '../config/constants';
 
 // Initialize the Google AI client
 const getAiClient = () => new GoogleGenAI({ apiKey: process.env.API_KEY! });
@@ -19,11 +20,11 @@ export const streamChat = async function* (
   options?: StreamChatOptions
 ): AsyncGenerator<{ text?: string, sources?: ChatMessage['sources'] }> {
   const ai = getAiClient();
-  const model = thinkingMode ? 'gemini-2.5-pro' : 'gemini-2.5-flash';
+  const model = thinkingMode ? MODELS.CHAT_PRO : MODELS.CHAT_FAST;
 
   const config: any = {};
   if (thinkingMode) {
-    config.thinkingConfig = { thinkingBudget: 32768 };
+    config.thinkingConfig = { thinkingBudget: TIMEOUTS.THINKING_BUDGET };
   }
 
   if (grounding !== 'none') {
@@ -38,33 +39,35 @@ export const streamChat = async function* (
     config,
   });
 
-  const result = await chat.sendMessageStream({ message: prompt });
-  const functionCalls: FunctionCall[] = [];
+  try {
+    const result = await chat.sendMessageStream({ message: prompt });
+    const functionCalls: FunctionCall[] = [];
 
-  for await (const chunk of result) {
-    if (chunk.text) {
-      yield { text: chunk.text };
-    }
+    for await (const chunk of result) {
+      if (chunk.text) {
+        yield { text: chunk.text };
+      }
 
-    if (chunk.candidates && chunk.candidates[0].groundingMetadata?.groundingChunks) {
-      const sources = chunk.candidates[0].groundingMetadata.groundingChunks
-        .map(c => c.web || c.maps)
-        .filter(Boolean);
+      const groundingChunks = chunk.candidates?.[0]?.groundingMetadata?.groundingChunks;
+      if (groundingChunks) {
+        const sources = groundingChunks
+          .map((c: any) => c.web || c.maps)
+          .filter(Boolean);
 
-      if (sources.length > 0) {
-        yield {
-          sources: sources.map((s: any) => ({
-            uri: s.uri,
-            title: s.title,
-          })),
-        };
+        if (sources.length > 0) {
+          yield {
+            sources: sources.map((s: { uri: string; title: string }) => ({
+              uri: s.uri,
+              title: s.title,
+            })),
+          };
+        }
+      }
+
+      if (chunk.functionCalls) {
+        functionCalls.push(...chunk.functionCalls);
       }
     }
-
-    if (chunk.functionCalls) {
-      functionCalls.push(...chunk.functionCalls);
-    }
-  }
 
   if (functionCalls.length > 0) {
     const toolNames = functionCalls.map(fc => fc.name).join(', ');
@@ -107,6 +110,10 @@ export const streamChat = async function* (
         `**Nota:** la capa de ejecución automática de function-calling sigue pendiente de remate.\n` +
         `De momento Kai detecta, evalúa y frena o deja pasar, pero todavía no ejecuta estas herramientas automáticamente desde este flujo.\n\n`
     };
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Error desconocido en el stream.';
+    yield { text: `\n\n**Error de comunicación con Gemini:** ${message}` };
   }
 };
 
@@ -114,7 +121,7 @@ export const generateWithAI = async (prompt: string): Promise<string> => {
   try {
     const ai = getAiClient();
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: MODELS.CHAT_FAST,
       contents: prompt,
     });
     return response.text;
@@ -130,7 +137,7 @@ export const summarizeText = async (text: string): Promise<string> => {
   try {
     const ai = getAiClient();
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: MODELS.CHAT_FAST,
       contents: prompt
     });
     return response.text;
@@ -145,7 +152,7 @@ export const checkAIAccess = async (): Promise<string> => {
   try {
     const ai = getAiClient();
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: MODELS.CHAT_FAST,
       contents: "Respond with only the word 'PONG'. Nothing else.",
       config: { temperature: 0 }
     });
@@ -162,7 +169,7 @@ export const generateCode = async (prompt: string, language: CodeLanguage): Prom
   try {
     const ai = getAiClient();
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: MODELS.CHAT_FAST,
       contents: fullPrompt
     });
     const text = response.text;
@@ -180,7 +187,7 @@ export const generateImages = async (prompt: string, aspectRatio: AspectRatio): 
   try {
     const ai = getAiClient();
     const response = await ai.models.generateImages({
-      model: 'imagen-4.0-generate-001',
+      model: MODELS.IMAGE_GEN,
       prompt,
       config: {
         numberOfImages: 1,
@@ -207,7 +214,7 @@ export const analyzeImage = async (base64ImageData: string, prompt: string): Pro
   try {
     const ai = getAiClient();
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: MODELS.CHAT_FAST,
       contents: { parts: [imagePart, textPart] }
     });
     return response.text;
@@ -224,11 +231,11 @@ export const editImage = async (base64ImageData: string, prompt: string): Promis
   try {
     const ai = getAiClient();
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
+      model: MODELS.IMAGE_EDIT,
       contents: { parts: [imagePart, textPart] },
       config: { responseModalities: [Modality.IMAGE] },
     });
-    for (const part of response.candidates[0].content.parts) {
+    for (const part of response.candidates?.[0]?.content?.parts ?? []) {
       if (part.inlineData) return part.inlineData.data;
     }
     throw new Error("No edited image was returned from the API.");
@@ -257,7 +264,7 @@ export const generateVideo = async ({ prompt, image, config, onProgress }: Gener
   let operation;
   try {
     operation = await ai.models.generateVideos({
-      model: 'veo-3.1-fast-generate-preview',
+      model: MODELS.VIDEO_GEN,
       prompt,
       image,
       config
@@ -274,9 +281,12 @@ export const generateVideo = async ({ prompt, image, config, onProgress }: Gener
   onProgress('Operación iniciada. Esperando la finalización del video (esto puede tardar varios minutos)...');
   let pollCount = 0;
   while (!operation.done) {
-    await new Promise(resolve => setTimeout(resolve, 10000));
+    if (pollCount >= TIMEOUTS.VIDEO_MAX_POLLS) {
+      throw new Error('Tiempo de espera agotado. La generación de video tardó demasiado.');
+    }
+    await new Promise(resolve => setTimeout(resolve, TIMEOUTS.VIDEO_POLL_INTERVAL));
     pollCount++;
-    onProgress(`Comprobando el estado... (Intento ${pollCount})`);
+    onProgress(`Comprobando el estado... (Intento ${pollCount}/${TIMEOUTS.VIDEO_MAX_POLLS})`);
     operation = await ai.operations.getVideosOperation({ operation });
   }
 
@@ -292,15 +302,20 @@ export const generateVideo = async ({ prompt, image, config, onProgress }: Gener
     throw new Error("Failed to get video download link.");
   }
 
-  onProgress('Video generado. Obteniendo URL de descarga...');
-  return `${downloadLink}&key=${process.env.API_KEY!}`;
+  onProgress('Video generado. Descargando...');
+  const videoResponse = await fetch(downloadLink, {
+    headers: { 'X-Goog-Api-Key': process.env.API_KEY! },
+  });
+  if (!videoResponse.ok) throw new Error('No se pudo descargar el video generado.');
+  const blob = await videoResponse.blob();
+  return URL.createObjectURL(blob);
 };
 
 export const generateSpeech = async (text: string): Promise<string> => {
   try {
     const ai = getAiClient();
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-preview-tts",
+      model: MODELS.TTS,
       contents: [{ parts: [{ text }] }],
       config: {
         responseModalities: [Modality.AUDIO],
