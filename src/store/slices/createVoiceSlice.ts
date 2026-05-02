@@ -32,6 +32,7 @@ const initializeAudioContext = () => {
 export const createVoiceSlice: AppSlice<VoiceSlice> = (set, get) => ({
   isRecording: false,
   isSpeaking: false,
+  isSpeakingLoading: false,
   spokenMessageId: null,
 
   startRecording: () => {
@@ -57,7 +58,7 @@ export const createVoiceSlice: AppSlice<VoiceSlice> = (set, get) => ({
 
   speakMessage: async (messageId, text) => {
     get().stopSpeaking();
-    set({ isSpeaking: true, spokenMessageId: messageId });
+    set({ isSpeaking: true, isSpeakingLoading: true, spokenMessageId: messageId });
 
     try {
       initializeAudioContext();
@@ -67,13 +68,14 @@ export const createVoiceSlice: AppSlice<VoiceSlice> = (set, get) => ({
       // If another speech was requested while we were generating, don't play this one.
       if (get().spokenMessageId !== messageId) return;
 
+      set({ isSpeakingLoading: false });
+
       currentSource = outputAudioContext!.createBufferSource();
       currentSource.buffer = audioBuffer;
       currentSource.connect(outputNode!);
       currentSource.onended = () => {
-        // Check if this was the message that was supposed to be playing
         if (get().spokenMessageId === messageId) {
-          set({ isSpeaking: false, spokenMessageId: null });
+          set({ isSpeaking: false, isSpeakingLoading: false, spokenMessageId: null });
         }
         currentSource = null;
       };
@@ -81,16 +83,16 @@ export const createVoiceSlice: AppSlice<VoiceSlice> = (set, get) => ({
     } catch (error) {
       console.error("Failed to speak message:", error);
       get().addNotification({ type: 'error', message: 'No se pudo reproducir la respuesta de voz.' });
-      set({ isSpeaking: false, spokenMessageId: null });
+      set({ isSpeaking: false, isSpeakingLoading: false, spokenMessageId: null });
     }
   },
 
   stopSpeaking: () => {
     if (currentSource) {
-      currentSource.onended = null; // Prevent onended from firing when manually stopped
+      currentSource.onended = null;
       currentSource.stop();
       currentSource = null;
     }
-    set({ isSpeaking: false, spokenMessageId: null });
+    set({ isSpeaking: false, isSpeakingLoading: false, spokenMessageId: null });
   },
 });

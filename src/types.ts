@@ -55,6 +55,7 @@ export interface ChatSlice {
 export interface VoiceSlice {
     isRecording: boolean;
     isSpeaking: boolean;
+    isSpeakingLoading: boolean;
     spokenMessageId: string | null;
     startRecording: () => void;
     stopRecording: (callback: (transcript: string) => void) => void;

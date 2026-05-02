@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { useAppStore } from '../../store/useAppStore';
 import { streamChat } from '../../services/geminiService';
 import { runConstitutionalPreflight } from '../../services/constitutionalPreflight';
 import MarkdownRenderer from '../ui/MarkdownRenderer';
-import { Send, Mic, MicOff, Volume2, VolumeX, Archive, Brain, Globe } from 'lucide-react';
+import { Send, Mic, MicOff, Volume2, VolumeX, Archive, Brain, Globe, Loader2 } from 'lucide-react';
 import { formatRelativeTime } from '../../utils/helpers';
 import Button from '../ui/Button';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { INPUT_LIMITS } from '../../config/constants';
 
 const ChatPanel: React.FC = () => {
@@ -21,6 +22,7 @@ const ChatPanel: React.FC = () => {
     startRecording,
     stopRecording,
     isSpeaking,
+    isSpeakingLoading,
     spokenMessageId,
     speakMessage,
     stopSpeaking,
@@ -38,11 +40,21 @@ const ChatPanel: React.FC = () => {
     addNotification,
   } = useAppStore();
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const parentRef = useRef<HTMLDivElement>(null);
 
+  const virtualizer = useVirtualizer({
+    count: chatHistory.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 140,
+    overscan: 4,
+  });
+
+  // Auto-scroll to bottom on new messages
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chatHistory, isTyping]);
+    if (chatHistory.length > 0) {
+      virtualizer.scrollToIndex(chatHistory.length - 1, { align: 'end', behavior: 'smooth' });
+    }
+  }, [chatHistory.length, isTyping]);
 
   useEffect(() => {
     return () => stopSpeaking();
@@ -172,6 +184,8 @@ const ChatPanel: React.FC = () => {
     }
   };
 
+  const virtualItems = virtualizer.getVirtualItems();
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex justify-between items-center mb-1">
@@ -194,85 +208,123 @@ const ChatPanel: React.FC = () => {
       </div>
 
       <div className="w-full max-w-4xl mx-auto flex flex-col flex-grow h-[calc(100vh-15rem)]">
-        <div className="flex-1 overflow-y-auto pr-4 -mr-4 mb-4">
-          <div className="space-y-6">
-            <AnimatePresence>
-              {chatHistory.map((msg) => (
-                <motion.div
-                  layout
-                  key={msg.id}
-                  initial={{ opacity: 0, y: 15, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                  className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}
-                >
-                  {msg.role === 'model' && (
-                    <div className="flex flex-col items-center gap-2">
-                      <span className="text-xl mt-1" aria-hidden="true">🤖</span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="!p-1"
-                        onClick={() =>
-                          isSpeaking && spokenMessageId === msg.id
-                            ? stopSpeaking()
-                            : speakMessage(msg.id, msg.content)
-                        }
-                        title={isSpeaking && spokenMessageId === msg.id ? 'Detener lectura' : 'Leer en voz alta'}
-                      >
-                        {isSpeaking && spokenMessageId === msg.id ? <VolumeX size={14} /> : <Volume2 size={14} />}
-                      </Button>
-                    </div>
-                  )}
+        {/* Virtual message list */}
+        <div ref={parentRef} className="flex-1 overflow-y-auto pr-4 -mr-4 mb-4">
+          <div
+            style={{ height: `${virtualizer.getTotalSize()}px`, position: 'relative' }}
+          >
+            {virtualItems.map((virtualItem) => {
+              const msg = chatHistory[virtualItem.index];
+              const isLastItem = virtualItem.index === chatHistory.length - 1;
+              const isThisMessageSpeakingLoading = isSpeakingLoading && spokenMessageId === msg.id;
+              const isThisMessagePlaying = isSpeaking && !isSpeakingLoading && spokenMessageId === msg.id;
 
-                  <div
-                    className={`max-w-xl rounded-xl px-4 py-3 shadow-md ${
-                      msg.role === 'user'
-                        ? 'bg-gradient-to-br from-kai-primary to-indigo-600 text-white'
-                        : 'bg-kai-surface'
-                    } ${isSpeaking && spokenMessageId === msg.id ? 'speaking-highlight' : ''}`}
+              return (
+                <div
+                  key={msg.id}
+                  data-index={virtualItem.index}
+                  ref={virtualizer.measureElement}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    transform: `translateY(${virtualItem.start}px)`,
+                    paddingBottom: '1.5rem',
+                  }}
+                >
+                  <motion.div
+                    initial={isLastItem ? { opacity: 0, y: 10 } : false}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}
                   >
-                    <MarkdownRenderer content={msg.content} />
-                    {msg.sources && msg.sources.length > 0 && (
-                      <div className="mt-3 pt-2 border-t border-white/20">
-                        <h4 className="text-xs font-bold mb-1">Fuentes:</h4>
-                        <ul className="space-y-1">
-                          {msg.sources.map((source, i) => (
-                            <li key={i}>
-                              <a
-                                href={source.uri}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs text-cyan-300 hover:underline truncate block"
-                              >
-                                {i + 1}. {source.title}
-                              </a>
-                            </li>
-                          ))}
-                        </ul>
+                    {msg.role === 'model' && (
+                      <div className="flex flex-col items-center gap-2 flex-shrink-0">
+                        <span className="text-xl mt-1" aria-hidden="true">🤖</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="!p-1"
+                          onClick={() =>
+                            isSpeaking && spokenMessageId === msg.id
+                              ? stopSpeaking()
+                              : speakMessage(msg.id, msg.content)
+                          }
+                          title={
+                            isThisMessageSpeakingLoading
+                              ? 'Generando audio...'
+                              : isThisMessagePlaying
+                              ? 'Detener lectura'
+                              : 'Leer en voz alta'
+                          }
+                          aria-label={
+                            isThisMessageSpeakingLoading
+                              ? 'Generando audio'
+                              : isThisMessagePlaying
+                              ? 'Detener lectura'
+                              : 'Leer en voz alta'
+                          }
+                        >
+                          {isThisMessageSpeakingLoading ? (
+                            <Loader2 size={14} className="animate-spin" />
+                          ) : isThisMessagePlaying ? (
+                            <VolumeX size={14} />
+                          ) : (
+                            <Volume2 size={14} />
+                          )}
+                        </Button>
                       </div>
                     )}
-                    <div className="text-xs mt-2 opacity-60 text-right">{formatRelativeTime(msg.timestamp)}</div>
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
 
-            {isTyping &&
-              chatHistory.length > 0 &&
-              chatHistory[chatHistory.length - 1]?.role === 'model' &&
-              chatHistory[chatHistory.length - 1]?.content === '' && (
-                <div className="flex items-start gap-3">
-                  <span className="text-xl mt-1" aria-hidden="true">🤖</span>
-                  <div className="max-w-xl rounded-xl px-4 py-3 bg-kai-surface flex items-center">
-                    <span className="animate-pulse">...</span>
-                  </div>
+                    <div
+                      className={`max-w-xl rounded-xl px-4 py-3 shadow-md ${
+                        msg.role === 'user'
+                          ? 'bg-gradient-to-br from-kai-primary to-indigo-600 text-white'
+                          : 'bg-kai-surface'
+                      } ${isThisMessagePlaying ? 'speaking-highlight' : ''}`}
+                    >
+                      <MarkdownRenderer content={msg.content} />
+                      {msg.sources && msg.sources.length > 0 && (
+                        <div className="mt-3 pt-2 border-t border-white/20">
+                          <h4 className="text-xs font-bold mb-1">Fuentes:</h4>
+                          <ul className="space-y-1">
+                            {msg.sources.map((source, i) => (
+                              <li key={i}>
+                                <a
+                                  href={source.uri}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs text-cyan-300 hover:underline truncate block"
+                                  aria-label={`Fuente: ${source.title}`}
+                                >
+                                  {i + 1}. {source.title}
+                                </a>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      <div className="text-xs mt-2 opacity-60 text-right">{formatRelativeTime(msg.timestamp)}</div>
+                    </div>
+                  </motion.div>
                 </div>
-              )}
-
-            <div ref={messagesEndRef} />
+              );
+            })}
           </div>
+
+          {/* Typing indicator (outside the virtual list, always at bottom) */}
+          {isTyping &&
+            chatHistory.length > 0 &&
+            chatHistory[chatHistory.length - 1]?.role === 'model' &&
+            chatHistory[chatHistory.length - 1]?.content === '' && (
+              <div className="flex items-start gap-3 px-1 py-2">
+                <span className="text-xl mt-1" aria-hidden="true">🤖</span>
+                <div className="max-w-xl rounded-xl px-4 py-3 bg-kai-surface flex items-center">
+                  <span className="animate-pulse">...</span>
+                </div>
+              </div>
+            )}
         </div>
 
         <div className="space-y-2">
