@@ -1,6 +1,6 @@
 from __future__ import annotations
 from pydantic import BaseModel, Field
-from typing import Optional, Literal
+from typing import Any, Optional, Literal
 from datetime import datetime
 
 
@@ -93,6 +93,60 @@ class SearchRequest(BaseModel):
 class SearchResponse(BaseModel):
     results: list[str]
     query: str
+
+
+# --- Q-CHI Motor v1 ---
+
+class NucleusVoteRequest(BaseModel):
+    nucleus: str
+    perception: float = Field(ge=0.0, le=1.0)
+    reflection: float = Field(ge=0.0, le=1.0)
+    confidence: float = Field(ge=0.0)
+    risk: float = Field(ge=0.0, le=1.0, default=0.0)
+    proposal: str
+    metadata: dict[str, Any] = {}
+
+
+class QCHIProcessRequest(BaseModel):
+    nuclei_votes: list[NucleusVoteRequest] = []
+    impact: float = Field(default=0.0, ge=-1.0, le=1.0)
+    operational_noise: float = Field(default=0.0, ge=0.0, le=1.0)
+    workload: float = Field(default=0.0, ge=0.0, le=1.0)
+    recovery: float = Field(default=0.0, ge=0.0, le=1.0)
+    context_bias: float = Field(default=0.0, ge=-1.0, le=1.0)
+
+
+class PituitaryStateResponse(BaseModel):
+    quantum_seed: str
+    quantum_variation: float
+    creative_aperture: float
+    mood_state: float
+    vote_modulation: float
+    risk_tolerance: float
+
+
+class VoteOutcomeResponse(BaseModel):
+    winning_nucleus: str
+    winning_proposal: str
+    weighted_score: float
+    conflicts_detected: bool
+    total_votes: int
+
+
+class FingerprintResponse(BaseModel):
+    timestamp: str
+    hash_value: str
+    nuclei_called: list[str]
+    mode: str
+
+
+class QCHIProcessResponse(BaseModel):
+    chi: dict[str, Any]
+    audit: dict[str, Any]
+    pituitary: PituitaryStateResponse
+    vote_outcome: VoteOutcomeResponse
+    fingerprint: FingerprintResponse
+    final_output: str
 
 
 # --- GENERIC ---

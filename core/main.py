@@ -23,6 +23,14 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from chi_engine import CHIEngine
 from constitution_engine import ConstitutionEngine
+from brain.q_chi import (
+    CHIEngine as QCHIEngine,
+    EntropicFingerprintBuilder,
+    NhipTheVote,
+    NucleusVote,
+    PituitaryModulator,
+    QCHIRuntime,
+)
 from schemas import (
     ActionPlanRequest,
     ChiAuditResponse,
@@ -30,12 +38,18 @@ from schemas import (
     ChiStateResponse,
     ConstitutionVerdictResponse,
     DiaryEntry,
+    FingerprintResponse,
     HealthResponse,
+    NucleusVoteRequest,
+    PituitaryStateResponse,
+    QCHIProcessRequest,
+    QCHIProcessResponse,
     SearchResponse,
     StartTrainingRequest,
     TrainingJobResponse,
     TrainingJobStatusResponse,
     TrainingLogEntry,
+    VoteOutcomeResponse,
 )
 
 load_dotenv()
@@ -69,6 +83,15 @@ app.add_middleware(
 
 chi_engine = CHIEngine()
 constitution_engine = ConstitutionEngine()
+
+# Q-CHI Motor v1 — wired runtime
+_qchi_engine = QCHIEngine()
+_qchi_runtime = QCHIRuntime(
+    chi_engine=_qchi_engine,
+    pituitary=PituitaryModulator(),
+    voter=NhipTheVote(),
+    fingerprint_builder=EntropicFingerprintBuilder(),
+)
 
 # In-memory diary and training store (replace with DB in production)
 _diary: list[dict] = []
@@ -271,4 +294,55 @@ async def get_training_job(job_id: str):
         createdAt=job["createdAt"],
         updatedAt=job["updatedAt"],
         logs=[TrainingLogEntry(**l) for l in job["logs"]],
+    )
+
+
+# ---------------------------------------------------------------------------
+# Q-CHI Motor v1 — Cerebro canónico
+# ---------------------------------------------------------------------------
+
+@app.get("/api/qchi/state", tags=["qchi"])
+async def get_qchi_state():
+    snap = _qchi_runtime.snapshot()
+    audit = _qchi_runtime.audit()
+    return {"chi": snap, "audit": audit}
+
+
+@app.post("/api/qchi/restore", tags=["qchi"])
+async def restore_qchi():
+    snap = _qchi_runtime.restore()
+    audit = _qchi_runtime.audit()
+    return {"chi": snap, "audit": audit}
+
+
+@app.post("/api/qchi/process", response_model=QCHIProcessResponse, tags=["qchi"])
+async def process_qchi(body: QCHIProcessRequest):
+    votes = [
+        NucleusVote(
+            nucleus=v.nucleus,
+            perception=v.perception,
+            reflection=v.reflection,
+            confidence=v.confidence,
+            risk=v.risk,
+            proposal=v.proposal,
+            metadata=v.metadata,
+        )
+        for v in body.nuclei_votes
+    ]
+    result = _qchi_runtime.process(
+        input_payload={},
+        nuclei_votes=votes,
+        impact=body.impact,
+        operational_noise=body.operational_noise,
+        workload=body.workload,
+        recovery=body.recovery,
+        context_bias=body.context_bias,
+    )
+    return QCHIProcessResponse(
+        chi=result["chi"],
+        audit=result["audit"],
+        pituitary=PituitaryStateResponse(**result["pituitary"]),
+        vote_outcome=VoteOutcomeResponse(**result["vote_outcome"]),
+        fingerprint=FingerprintResponse(**result["fingerprint"]),
+        final_output=result["final_output"],
     )
