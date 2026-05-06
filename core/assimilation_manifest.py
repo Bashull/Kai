@@ -138,7 +138,50 @@ SEED_SOURCES: tuple[AbsorbedSource, ...] = (
 )
 
 
-ALL_SOURCES: tuple[AbsorbedSource, ...] = SEED_SOURCES + FUSIONAI_V03_SOURCES + FUSIONAI_PROTOCOLO_SOURCES
+BLOQUE_6_SOURCES: tuple[AbsorbedSource, ...] = (
+    AbsorbedSource(
+        title="mem0ai/mem0 — Universal memory layer for AI Agents",
+        category="memoria_semantica",
+        source_url="https://github.com/mem0ai/mem0",
+        core_signal="Patrón A.U.D.N. (Add/Update/Delete/No-op) para deduplicación inteligente de memorias. Hybrid retrieval 3 señales: semántica + BM25 + entity matching. Factory pattern para 24+ vector store adapters. Scoping user/session/agent. 54k★ Apache 2.0. Bloque 6 R1: decisión C (patrón propio).",
+        target_section="core/ingestor/memory_core.py :: DeduplicationEngine + HybridQueryEngine",
+        target_reason="Define el patrón de gestión de memorias (qué recordar, cómo deduplicar, cómo recuperar) para FusionMemoryCore v1.0.",
+    ),
+    AbsorbedSource(
+        title="chroma-core/chroma — Search infrastructure for AI",
+        category="memoria_semantica",
+        source_url="https://github.com/chroma-core/chroma",
+        core_signal="Vector store Python-first. PersistentClient → persistencia en disco sin config. HNSW index (fork hnswlib) + BruteForce buffer. Auto-embedding con SentenceTransformer. Metadata filters (where). Segmentos: .bin HNSW + SQLite metadata + embeddings raw. Apache 2.0, 100% local. Bloque 6 R1: decisión A (dependencia real ligera).",
+        target_section="core/ingestor/memory_core.py :: VectorAdapter (chroma PersistentClient)",
+        target_reason="Backend de vector storage para FusionMemoryCore v1.0 — reemplaza el dict BM25-lite actual con índice HNSW real y persistencia en disco.",
+    ),
+    AbsorbedSource(
+        title="letta-ai/letta — Stateful agents with persistent memory (ex MemGPT)",
+        category="memoria_semantica",
+        source_url="https://github.com/letta-ai/letta",
+        core_signal="Arquitectura 3-tier: Core Memory (RAM/context window, secciones editables), Recall Memory (historial SQLite searchable), Archival Memory (vector store frío, tool-based access). BaseMemory extensible. Context Repositories (git-based versioning). UC Berkeley, Apache 2.0. Bloque 6 R1: decisión B (inspiración arquitectónica).",
+        target_section="core/ingestor/memory_core.py :: 3-tier architecture (Core/Recall/Archival)",
+        target_reason="Modelo mental tiered para FusionMemoryCore v1.0 — mapea directamente a los 3 niveles de acceso de memoria de Kai según el BrainStateMachine.",
+    ),
+    AbsorbedSource(
+        title="topoteretes/cognee — Memory control plane for AI Agents",
+        category="memoria_semantica",
+        source_url="https://github.com/topoteretes/cognee",
+        core_signal="Pipeline ECL (Extract, Cognify, Load) de 6 etapas: classify→permissions→chunk→extract_graph→summarize→index. Dual storage: vector + graph (networkx ligero). Dedup 2 capas: content-hash + pipeline-status. Temporal cognification (timestamp + validity window). Tasks composables. MCP server. Apache 2.0. Bloque 6 R1: decisión C (patrón ECL propio).",
+        target_section="core/ingestor/memory_core.py :: CognifyPipeline + TemporalIndex",
+        target_reason="Patrón ECL como pipeline de ingestión a memoria. Temporal index y dual storage (vector + graph networkx) para FusionMemoryCore v1.0.",
+    ),
+    AbsorbedSource(
+        title="microsoft/graphrag — Graph-based RAG with community detection",
+        category="memoria_semantica",
+        source_url="https://github.com/microsoft/graphrag",
+        core_signal="Leiden community detection (graspologic) sobre knowledge graph → resúmenes jerárquicos por comunidad (C0/C1/C2). Dual query: local (entity similarity) vs global (community summaries). Patrón para síntesis global del corpus. MIT. Bloque 6 R1: decisión B/D (inspiración para FusionSynthesizer, descartado como dep directa por costo LLM).",
+        target_section="core/synthesizer.py :: SynthesisLayer (Bloque 8 — futuro)",
+        target_reason="Patrón community detection para síntesis jerárquica de la memoria de Kai en modo Forja/Sueño. No en Bloque 6, marcado para Bloque 8.",
+    ),
+)
+
+ALL_SOURCES: tuple[AbsorbedSource, ...] = SEED_SOURCES + FUSIONAI_V03_SOURCES + FUSIONAI_PROTOCOLO_SOURCES + BLOQUE_6_SOURCES
 
 
 class AssimilationManifest:
@@ -174,4 +217,4 @@ class AssimilationManifest:
         }
 
 
-__all__ = ["AbsorbedSource", "AssimilationManifest", "SEED_SOURCES", "FUSIONAI_V03_SOURCES", "FUSIONAI_PROTOCOLO_SOURCES", "ALL_SOURCES"]
+__all__ = ["AbsorbedSource", "AssimilationManifest", "SEED_SOURCES", "FUSIONAI_V03_SOURCES", "FUSIONAI_PROTOCOLO_SOURCES", "BLOQUE_6_SOURCES", "ALL_SOURCES"]
