@@ -12,7 +12,7 @@ class ChiStateResponse(BaseModel):
     entropy: float = Field(ge=0.0, le=1.0)
     fatigue: float = Field(ge=0.0, le=1.0)
     cycle: int
-    mode: Literal['charla_barrio', 'foco', 'reposo', 'modo_seguro']
+    mode: Literal['charla_barrio', 'foco', 'reposo', 'modo_seguro', 'forja', 'restauracion']
     lastAlert: Optional[str] = None
 
 
@@ -149,10 +149,43 @@ class QCHIProcessResponse(BaseModel):
     final_output: str
 
 
+# --- BRAIN STATE MACHINE ---
+
+BrainStateName = Literal['Normal', 'Estrés', 'Restauración', 'Forja', 'Sueño']
+
+
+class BrainTransitionRequest(BaseModel):
+    trigger: str = Field(default="auto", description="Evento que dispara la evaluación de transición")
+    operational_noise: float = Field(default=0.0, ge=0.0, le=1.0)
+    workload: float = Field(default=0.0, ge=0.0, le=1.0)
+    recovery: float = Field(default=0.0, ge=0.0, le=1.0)
+    impact: float = Field(default=0.0, ge=-1.0, le=1.0)
+
+
+class BrainTransitionResponse(BaseModel):
+    previous_state: BrainStateName
+    new_state: BrainStateName
+    changed: bool
+    trigger: str
+    crown_required: bool
+    timestamp: str
+    protocols_activated: list[str]
+    dominant_nuclei: list[str]
+
+
+class BrainStateSnapshotResponse(BaseModel):
+    current_state: BrainStateName
+    dominant_nuclei: list[str]
+    protocols_active: list[str]
+    history_length: int
+    last_transition: Optional[dict[str, Any]] = None
+
+
 # --- GENERIC ---
 
 class HealthResponse(BaseModel):
     status: str
     version: str
     chi_mode: str
+    brain_state: str
     timestamp: str

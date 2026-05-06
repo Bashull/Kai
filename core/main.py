@@ -31,8 +31,12 @@ from brain.q_chi import (
     PituitaryModulator,
     QCHIRuntime,
 )
+from brain.state_machine import BrainStateMachine, BrainStateEnum
 from schemas import (
     ActionPlanRequest,
+    BrainStateSnapshotResponse,
+    BrainTransitionRequest,
+    BrainTransitionResponse,
     ChiAuditResponse,
     ChiFullResponse,
     ChiStateResponse,
@@ -93,6 +97,9 @@ _qchi_runtime = QCHIRuntime(
     fingerprint_builder=EntropicFingerprintBuilder(),
 )
 
+# Brain Core v1 — State Machine
+_brain_sm = BrainStateMachine()
+
 # In-memory diary and training store (replace with DB in production)
 _diary: list[dict] = []
 _training_jobs: dict[str, dict] = {}
@@ -120,10 +127,12 @@ MOCK_LOGS = [
 @app.get("/health", response_model=HealthResponse, tags=["system"])
 async def health():
     snap = chi_engine.snapshot()
+    brain_snap = _brain_sm.snapshot()
     return HealthResponse(
         status="ok",
         version="3.0.0",
         chi_mode=snap.get("mode", "unknown"),
+        brain_state=brain_snap["current_state"],
         timestamp=datetime.now().isoformat(),
     )
 
@@ -345,4 +354,37 @@ async def process_qchi(body: QCHIProcessRequest):
         vote_outcome=VoteOutcomeResponse(**result["vote_outcome"]),
         fingerprint=FingerprintResponse(**result["fingerprint"]),
         final_output=result["final_output"],
+    )
+
+
+# ---------------------------------------------------------------------------
+# Brain Core v1 — State Machine
+# ---------------------------------------------------------------------------
+
+@app.get("/api/brain/state", response_model=BrainStateSnapshotResponse, tags=["brain"])
+async def get_brain_state():
+    snap = _brain_sm.snapshot()
+    return BrainStateSnapshotResponse(**snap)
+
+
+@app.post("/api/brain/transition", response_model=BrainTransitionResponse, tags=["brain"])
+async def brain_transition(body: BrainTransitionRequest):
+    # Apply operational inputs to the shared Q-CHI engine so CHI reflects reality
+    _qchi_engine.adjust(
+        impact=body.impact,
+        operational_noise=body.operational_noise,
+        workload=body.workload,
+        recovery=body.recovery,
+    )
+    chi = _qchi_engine.state
+    result = _brain_sm.evaluate(chi, trigger=body.trigger)
+    return BrainTransitionResponse(
+        previous_state=result.previous_state.value,
+        new_state=result.new_state.value,
+        changed=result.changed,
+        trigger=result.trigger,
+        crown_required=result.crown_required,
+        timestamp=result.timestamp,
+        protocols_activated=result.protocols_activated,
+        dominant_nuclei=result.dominant_nuclei,
     )
