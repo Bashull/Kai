@@ -32,16 +32,20 @@ from brain.q_chi import (
     QCHIRuntime,
 )
 from brain.state_machine import BrainStateMachine, BrainStateEnum
+from ingestor import ChatExtractor
 from schemas import (
     ActionPlanRequest,
     BrainStateSnapshotResponse,
     BrainTransitionRequest,
     BrainTransitionResponse,
+    ChatExtractRequest,
+    ChatExtractResponse,
     ChiAuditResponse,
     ChiFullResponse,
     ChiStateResponse,
     ConstitutionVerdictResponse,
     DiaryEntry,
+    FichaArchivoResponse,
     FingerprintResponse,
     HealthResponse,
     NucleusVoteRequest,
@@ -50,6 +54,7 @@ from schemas import (
     QCHIProcessResponse,
     SearchResponse,
     StartTrainingRequest,
+    TesoroResponse,
     TrainingJobResponse,
     TrainingJobStatusResponse,
     TrainingLogEntry,
@@ -99,6 +104,9 @@ _qchi_runtime = QCHIRuntime(
 
 # Brain Core v1 — State Machine
 _brain_sm = BrainStateMachine()
+
+# Ingestor — Chat Extractor
+_chat_extractor = ChatExtractor()
 
 # In-memory diary and training store (replace with DB in production)
 _diary: list[dict] = []
@@ -387,4 +395,41 @@ async def brain_transition(body: BrainTransitionRequest):
         timestamp=result.timestamp,
         protocols_activated=result.protocols_activated,
         dominant_nuclei=result.dominant_nuclei,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Ingestor — Chat Extractor (EXTRACCIÓN MAESTRA+)
+# ---------------------------------------------------------------------------
+
+@app.post("/api/ingestor/extract-chat", response_model=ChatExtractResponse, tags=["ingestor"])
+async def extract_chat(body: ChatExtractRequest):
+    result = _chat_extractor.extract(
+        body.raw_text,
+        title=body.title,
+        tema=body.tema,
+        tipo=body.tipo,
+        stability=body.stability,
+    )
+    nodes = result.to_memory_nodes(stability=body.stability)
+    return ChatExtractResponse(
+        titulo=result.titulo,
+        tema_principal=result.tema_principal,
+        esencia=result.esencia,
+        ideas_count=len(result.ideas_clave),
+        decisiones_count=len(result.decisiones),
+        tesoros=[TesoroResponse(nombre=t.nombre, descripcion=t.descripcion) for t in result.tesoros],
+        ficha=FichaArchivoResponse(
+            tema=result.ficha.tema,
+            estado=result.ficha.estado,
+            valor=result.ficha.valor,
+            proyectos_relacionados=result.ficha.proyectos_relacionados,
+            requiere_seguimiento=result.ficha.requiere_seguimiento,
+            prioridad=result.ficha.prioridad,
+        ),
+        memory_nodes_count=len(nodes),
+        hash_value=result.hash_value,
+        source_hash=result.source_hash,
+        extracted_at=result.extracted_at,
+        markdown=result.to_markdown(),
     )

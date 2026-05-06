@@ -149,6 +149,45 @@ class QCHIProcessResponse(BaseModel):
     final_output: str
 
 
+# --- INGESTOR / CHAT EXTRACTOR ---
+
+class ChatExtractRequest(BaseModel):
+    raw_text: str = Field(min_length=1, description="Texto bruto del chat a extraer")
+    title: str = Field(default="", description="Título del chat (opcional)")
+    tema: str = Field(default="", description="Tema principal (opcional)")
+    tipo: str = Field(default="", description="Tipo de chat (opcional)")
+    stability: str = Field(default="stable", description="Estabilidad de memoria: stable / provisional")
+
+
+class TesoroResponse(BaseModel):
+    nombre: str
+    descripcion: str
+
+
+class FichaArchivoResponse(BaseModel):
+    tema: str
+    estado: str
+    valor: str
+    proyectos_relacionados: list[str]
+    requiere_seguimiento: bool
+    prioridad: str
+
+
+class ChatExtractResponse(BaseModel):
+    titulo: str
+    tema_principal: str
+    esencia: str
+    ideas_count: int
+    decisiones_count: int
+    tesoros: list[TesoroResponse]
+    ficha: FichaArchivoResponse
+    memory_nodes_count: int
+    hash_value: str
+    source_hash: str
+    extracted_at: str
+    markdown: str
+
+
 # --- BRAIN STATE MACHINE ---
 
 BrainStateName = Literal['Normal', 'Estrés', 'Restauración', 'Forja', 'Sueño']

@@ -24,6 +24,25 @@ class AbsorbedSource:
 # v0.3 sources — FusionAI Canon Maestro + Drive Master Map + Ingestor v0.5
 # ---------------------------------------------------------------------------
 
+FUSIONAI_PROTOCOLO_SOURCES: tuple[AbsorbedSource, ...] = (
+    AbsorbedSource(
+        title="FusionAI_Protocolo_5x5_Forja_Canon_v1",
+        category="metodologia",
+        source_url="local:uploads/FusionAI_Protocolo_5x5_Forja_Canon_v1.md",
+        core_signal="Método operativo canon: 1 bloque × 5 fuentes × 5 rondas → paquete maestro real. Reglas: inspiración vs dependencia, código propio mínimo, pruebas obligatorias, cierre con canon. Validado con Bloque 5 (Ingestor Universal v0.5).",
+        target_section="docs/PROTOCOLO_5x5_FORJA_CANON_v1.md + docs/templates/",
+        target_reason="Metodología de investigación y construcción canónica de bloques FusionAI.",
+    ),
+    AbsorbedSource(
+        title="PROTOCOLO_DE_EXTRACCION_DE_CHATS_Kai — Demo SOLOLAND",
+        category="protocolo",
+        source_url="local:uploads/PROTOCOLO_DE_EXTRACCION_DE_CHATS_Kai.pdf",
+        core_signal="Formato EXTRACCIÓN MAESTRA+ de 13 secciones: Identificación, Resumen Estructural, Ideas Clave, Proyectos, Datos Técnicos, Identidad/Memoria, Prompts, Decisiones, Materiales, Cronología, Conocimiento Reutilizable, Pendientes, Salida Final (Esencia + Tesoros + Ficha de Archivo). Demo sobre chat SOLOLAND Intro Anime.",
+        target_section="core/ingestor/chat_extractor.py + docs/templates/EXTRACCION_MAESTRA_TEMPLATE.md",
+        target_reason="Define el protocolo estructurado que Kai debe seguir para preservar conocimiento de conversaciones.",
+    ),
+)
+
 FUSIONAI_V03_SOURCES: tuple[AbsorbedSource, ...] = (
     AbsorbedSource(
         title="FUSIONAI_CANON_MAESTRO_v0_3",
@@ -119,7 +138,7 @@ SEED_SOURCES: tuple[AbsorbedSource, ...] = (
 )
 
 
-ALL_SOURCES: tuple[AbsorbedSource, ...] = SEED_SOURCES + FUSIONAI_V03_SOURCES
+ALL_SOURCES: tuple[AbsorbedSource, ...] = SEED_SOURCES + FUSIONAI_V03_SOURCES + FUSIONAI_PROTOCOLO_SOURCES
 
 
 class AssimilationManifest:
@@ -155,4 +174,4 @@ class AssimilationManifest:
         }
 
 
-__all__ = ["AbsorbedSource", "AssimilationManifest", "SEED_SOURCES", "FUSIONAI_V03_SOURCES", "ALL_SOURCES"]
+__all__ = ["AbsorbedSource", "AssimilationManifest", "SEED_SOURCES", "FUSIONAI_V03_SOURCES", "FUSIONAI_PROTOCOLO_SOURCES", "ALL_SOURCES"]

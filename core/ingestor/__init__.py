@@ -8,6 +8,7 @@ Implements the Tríada+ pattern (Canon v0.3 section 31):
 Reference: FusionAI_Ingestor_MasterSpec_v0_5.md
 """
 from .router import FusionIngestorRouter, IngestOptions, IngestTarget, write_output_bundle
+from .chat_extractor import ChatExtractor, ChatExtractionResult, IdeaClave, Tesoro, FichaArchivo
 from .schemas import (
     BinaryInput,
     DetectedAsset,
@@ -24,6 +25,11 @@ __all__ = [
     "IngestOptions",
     "IngestTarget",
     "write_output_bundle",
+    "ChatExtractor",
+    "ChatExtractionResult",
+    "IdeaClave",
+    "Tesoro",
+    "FichaArchivo",
     "BinaryInput",
     "DetectedAsset",
     "DocumentElement",
