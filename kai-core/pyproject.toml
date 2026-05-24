@@ -13,11 +13,9 @@ kai = "kai_core.cli.main:main"
 requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools]
-packages = ["kai_core"]
-
-[tool.setuptools.package-dir]
-kai_core = "kai_core"
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["kai_core*"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

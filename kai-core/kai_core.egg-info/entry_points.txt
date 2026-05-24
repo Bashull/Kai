@@ -1,0 +1,2 @@
+[console_scripts]
+kai = kai_core.cli.main:main
