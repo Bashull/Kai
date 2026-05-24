@@ -1,0 +1,10 @@
+version: "3.9"
+services:
+  kai-core:
+    image: python:3.12-slim
+    working_dir: /app
+    command: sh -c "pip install -e . && kai chiq"
+    env_file:
+      - .env.example
+    volumes:
+      - .:/app
