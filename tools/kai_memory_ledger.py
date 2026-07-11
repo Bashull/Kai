@@ -376,11 +376,11 @@ class MemoryLedger:
             if content_limit <= 0:
                 content = ""
             elif len(content) > content_limit:
-                content = content[: max(0, content_limit - 1)].rstrip() + "ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦"
+                content = content[: max(0, content_limit - 3)].rstrip() + "..."
         meta = f"{record['confidence']}; priority {record['priority']}"
         line = f"- **{record['title']}** [{meta}]"
         if content:
-            line += f" ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â {content}"
+            line += f" -- {content}"
         return line
 
     def _render_boot_markdown(

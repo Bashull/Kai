@@ -108,6 +108,8 @@ class MemoryLedgerTests(unittest.TestCase):
             second = ledger.build_boot_packet(max_chars=1500, project="kai")
             self.assertEqual(first["markdown"], second["markdown"])
             self.assertLessEqual(len(first["markdown"]), 1500)
+            self.assertNotIn("Ã", first["markdown"])
+            self.assertIn(" -- ", first["markdown"])
             self.assertIn("Companion identity", first["markdown"])
             self.assertIn("Next work", first["markdown"])
 
