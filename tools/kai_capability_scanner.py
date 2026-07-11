@@ -39,6 +39,71 @@ SECRET_CONTENT_PATTERNS = (
     ("PASSWORD_FIELD", re.compile(r"[\"']?(?:password|passwd|pwd)[\"']?\s*[:=]", re.I)),
 )
 
+
+SECRET_FIELD_LABELS = {
+    "client_secret": "CLIENT_SECRET_FIELD",
+    "api_key": "API_KEY_FIELD",
+    "apikey": "API_KEY_FIELD",
+    "access_token": "TOKEN_FIELD",
+    "auth_token": "TOKEN_FIELD",
+    "token": "TOKEN_FIELD",
+    "password": "PASSWORD_FIELD",
+    "passwd": "PASSWORD_FIELD",
+    "pwd": "PASSWORD_FIELD",
+}
+
+
+def _normalized_secret_key(value: str) -> str:
+    return value.strip().lower().replace("-", "_")
+
+
+def _is_internal_security_label(value: Any) -> bool:
+    return isinstance(value, str) and bool(re.fullmatch(r"[A-Z][A-Z0-9_]{3,}", value))
+
+
+def _constant_string(node: ast.AST | None) -> str | None:
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return node.value
+    return None
+
+def _python_secret_assignment_signals(text: str) -> list[str]:
+    try:
+        tree = ast.parse(text)
+    except (SyntaxError, ValueError):
+        return []
+
+    signals: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Dict):
+            for key_node, value_node in zip(node.keys, node.values):
+                key = _constant_string(key_node)
+                value = _constant_string(value_node)
+                if key is None:
+                    continue
+                label = SECRET_FIELD_LABELS.get(_normalized_secret_key(key))
+                if label and value is not None and not _is_internal_security_label(value):
+                    signals.add(label)
+
+        elif isinstance(node, ast.Assign):
+            value = _constant_string(node.value)
+            if value is None or _is_internal_security_label(value):
+                continue
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    label = SECRET_FIELD_LABELS.get(_normalized_secret_key(target.id))
+                    if label:
+                        signals.add(label)
+
+        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+            value = _constant_string(node.value)
+            if value is None or _is_internal_security_label(value):
+                continue
+            label = SECRET_FIELD_LABELS.get(_normalized_secret_key(node.target.id))
+            if label:
+                signals.add(label)
+
+    return sorted(signals)
+
 CAPABILITY_KEYWORDS = {
     "memory": ("memory", "memoria", "diary", "journal", "recuerdo", "snapshot"),
     "repository_mapping": ("mapper", "map_repository", "repo map", "inventory", "deep_map", "repository"),
@@ -73,10 +138,19 @@ def detect_secret_signals(path: Path, text: str | None) -> list[str]:
     for marker, label in SECRET_FILENAME_SIGNALS.items():
         if marker in lower_name:
             signals.add(label)
+
     if text:
-        for label, pattern in SECRET_CONTENT_PATTERNS:
-            if pattern.search(text):
-                signals.add(label)
+        private_key_pattern = SECRET_CONTENT_PATTERNS[0][1]
+        if private_key_pattern.search(text):
+            signals.add("PRIVATE_KEY_HEADER")
+
+        if path.suffix.lower() == ".py":
+            signals.update(_python_secret_assignment_signals(text))
+        else:
+            for label, pattern in SECRET_CONTENT_PATTERNS[1:]:
+                if pattern.search(text):
+                    signals.add(label)
+
     return sorted(signals)
 
 def extract_python_structure(text: str) -> dict[str, Any]:

@@ -67,6 +67,16 @@ class CapabilityScannerTests(unittest.TestCase):
 
 
 
+    def test_secret_detector_definition_is_not_treated_as_real_secret(self):
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "security_scanner.py"
+            path.write_text(
+                'SECRET_FILENAME_SIGNALS = {"client_secret": "CLIENT_SECRET_FILENAME"}\n',
+                encoding="utf-8",
+            )
+            result = scan_artifact(path)
+            self.assertNotEqual(result["decision"], "QUARANTINED")
+            self.assertEqual(result["secret_signals"], [])
 class CapabilityScannerCliTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
