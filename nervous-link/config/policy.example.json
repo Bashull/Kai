@@ -1,0 +1,30 @@
+{
+  "default": "deny",
+  "capabilities": {
+    "system.read": true,
+    "process.list": true,
+    "process.kill": false,
+    "file.read": true,
+    "file.write": true,
+    "command.execute.safe": true,
+    "emergency.kill": true
+  },
+  "roots": {
+    "file.read": [
+      "C:/Users/ASIER/OneDrive/Desktop/KAI"
+    ],
+    "file.write": [
+      "C:/Users/ASIER/OneDrive/Desktop/KAI/_KAI_BRIDGE"
+    ]
+  },
+  "commands": {
+    "safe": ["python", "node", "git", "adb", "docker", "code", "codex"],
+    "blocked_patterns": ["diskpart", "format", "cipher /w", "remove-item -recurse c:/"]
+  },
+  "limits": {
+    "max_command_ms": 30000,
+    "max_output_bytes": 1048576,
+    "max_read_bytes": 10485760,
+    "max_write_bytes": 10485760
+  }
+}
