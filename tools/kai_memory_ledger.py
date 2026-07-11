@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
+import os
 import re
 import sqlite3
 from contextlib import contextmanager
@@ -374,11 +376,11 @@ class MemoryLedger:
             if content_limit <= 0:
                 content = ""
             elif len(content) > content_limit:
-                content = content[: max(0, content_limit - 1)].rstrip() + "â€¦"
+                content = content[: max(0, content_limit - 1)].rstrip() + "ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦"
         meta = f"{record['confidence']}; priority {record['priority']}"
         line = f"- **{record['title']}** [{meta}]"
         if content:
-            line += f" â€” {content}"
+            line += f" ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â {content}"
         return line
 
     def _render_boot_markdown(
@@ -488,6 +490,37 @@ class MemoryLedger:
             {"markdown_path": str(markdown_path), "json_path": str(json_path)},
         )
         return markdown_path, json_path
+    def doctor(self) -> dict[str, Any]:
+        expected_columns = {
+            "memory_id", "created_at", "updated_at", "kind", "scope", "title",
+            "content", "status", "priority", "confidence", "tags_json",
+            "provenance_json", "supersedes_json",
+        }
+        checks = {
+            "database": self.db_path.is_file(),
+            "events_log": self.events_path.is_file(),
+            "sessions_directory": self.sessions_dir.is_dir(),
+            "boot_packet_markdown": (self.home / "boot_packet.md").is_file(),
+            "boot_packet_json": (self.home / "boot_packet.json").is_file(),
+        }
+        try:
+            with self._connect() as conn:
+                rows = conn.execute("PRAGMA table_info(memories)").fetchall()
+                columns = {str(row[1]) for row in rows}
+                memory_count = int(conn.execute("SELECT COUNT(*) FROM memories").fetchone()[0])
+            checks["schema"] = expected_columns.issubset(columns)
+        except sqlite3.Error:
+            checks["schema"] = False
+            memory_count = 0
+
+        healthy = all(checks.values())
+        return {
+            "status": "HEALTHY" if healthy else "DEGRADED",
+            "home": str(self.home),
+            "checks": checks,
+            "memory_count": memory_count,
+        }
+
 SENSITIVE_PATTERNS = (
     ("OPENAI_KEY", re.compile(r"\bsk-(?:proj-)?[A-Za-z0-9_-]{16,}\b")),
     ("GITHUB_TOKEN", re.compile(r"\bgh[pousr]_[A-Za-z0-9]{20,}\b")),
@@ -515,3 +548,144 @@ def redact_value(value: Any) -> Any:
     if isinstance(value, dict):
         return {str(key): redact_value(item) for key, item in value.items()}
     return value
+
+
+def default_memory_home() -> Path:
+    configured = os.environ.get("KAI_MEMORY_HOME", "").strip()
+    return Path(configured).expanduser() if configured else Path.home() / ".kai_memory"
+
+
+def load_json_object(path: Path) -> dict[str, Any]:
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ValueError(f"expected JSON object in {path}")
+    return data
+
+
+def print_json(value: Any) -> None:
+    print(json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True))
+
+
+def add_home_argument(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--home", type=Path, default=None)
+
+
+def build_cli_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Kai durable long-term memory ledger")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    init_parser = subparsers.add_parser("init", help="Initialize memory storage")
+    add_home_argument(init_parser)
+
+    remember = subparsers.add_parser("remember", help="Store a durable memory")
+    add_home_argument(remember)
+    remember.add_argument("--json-file", type=Path)
+    remember.add_argument("--kind", default="CONTEXT")
+    remember.add_argument("--scope", default="global")
+    remember.add_argument("--title")
+    remember.add_argument("--content")
+    remember.add_argument("--priority", type=int, default=50)
+    remember.add_argument("--confidence", default="UNKNOWN")
+    remember.add_argument("--tag", action="append", default=[])
+    remember.add_argument("--source", action="append", default=[])
+
+    search = subparsers.add_parser("search", help="Search active memories")
+    add_home_argument(search)
+    search.add_argument("--query", default="")
+    search.add_argument("--limit", type=int, default=20)
+    search.add_argument("--scope")
+
+    boot = subparsers.add_parser("boot", help="Generate Markdown and JSON boot packets")
+    add_home_argument(boot)
+    boot.add_argument("--project")
+    boot.add_argument("--max-chars", type=int, default=12000)
+
+    session_close = subparsers.add_parser("session-close", help="Record a completed work session")
+    add_home_argument(session_close)
+    session_close.add_argument("--json-file", type=Path, required=True)
+
+    doctor = subparsers.add_parser("doctor", help="Check memory storage health")
+    add_home_argument(doctor)
+
+    export = subparsers.add_parser("export", help="Export canonical memories as deterministic JSON")
+    add_home_argument(export)
+    export.add_argument("--out", type=Path)
+
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = build_cli_parser()
+    args = parser.parse_args(argv)
+    home = (args.home or default_memory_home()).expanduser()
+    ledger = MemoryLedger(home)
+
+    if args.command == "init":
+        print_json({"status": "initialized", "home": str(ledger.home)})
+        return 0
+
+    if args.command == "remember":
+        if args.json_file:
+            record = load_json_object(args.json_file)
+        else:
+            if not args.title or not args.content:
+                parser.error("remember requires --json-file or both --title and --content")
+            record = {
+                "kind": args.kind,
+                "scope": args.scope,
+                "title": args.title,
+                "content": args.content,
+                "priority": args.priority,
+                "confidence": args.confidence,
+                "tags": args.tag,
+                "provenance": [
+                    {"source_type": "CLI", "source": source}
+                    for source in args.source
+                ],
+            }
+        print_json(ledger.add_memory(record))
+        return 0
+
+    if args.command == "search":
+        print_json(ledger.search(args.query, limit=args.limit, scope=args.scope))
+        return 0
+
+    if args.command == "session-close":
+        print_json(ledger.close_session(load_json_object(args.json_file)))
+        return 0
+
+    if args.command == "boot":
+        markdown_path, json_path = ledger.write_boot_packet(
+            max_chars=args.max_chars,
+            project=args.project,
+        )
+        packet = json.loads(json_path.read_text(encoding="utf-8"))
+        print_json({
+            "markdown_path": str(markdown_path),
+            "json_path": str(json_path),
+            "health": packet["health"],
+            "selected_ids": packet["selected_ids"],
+        })
+        return 0
+
+    if args.command == "doctor":
+        diagnosis = ledger.doctor()
+        print_json(diagnosis)
+        return 0 if diagnosis["status"] == "HEALTHY" else 2
+
+    if args.command == "export":
+        exported = ledger.export_json()
+        if args.out:
+            args.out.parent.mkdir(parents=True, exist_ok=True)
+            args.out.write_text(exported + "\n", encoding="utf-8")
+            print_json({"out": str(args.out.resolve())})
+        else:
+            print(exported)
+        return 0
+
+    parser.error(f"unknown command: {args.command}")
+    return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

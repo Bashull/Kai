@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import json
+import os
+import subprocess
+import sys
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -109,5 +112,91 @@ class MemoryLedgerTests(unittest.TestCase):
             self.assertIn("Next work", first["markdown"])
 
 
+
+
+class MemoryLedgerCliTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.tool = Path(__file__).resolve().parents[1] / "tools" / "kai_memory_ledger.py"
+
+    def run_cli(self, *args: str, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+        process_env = os.environ.copy()
+        process_env["PYTHONDONTWRITEBYTECODE"] = "1"
+        if env:
+            process_env.update(env)
+        return subprocess.run(
+            [sys.executable, str(self.tool), *args],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            env=process_env,
+            check=False,
+        )
+
+    def test_cli_init_remember_search_and_export(self):
+        with TemporaryDirectory() as tmp:
+            home = Path(tmp) / "memory"
+            record_file = Path(tmp) / "record.json"
+            record_file.write_text(json.dumps({
+                "kind": "DECISION",
+                "scope": "project:kai",
+                "title": "CLI memory",
+                "content": "Persisted through the command line.",
+                "priority": 88,
+                "confidence": "EXPLICIT",
+                "tags": ["cli"],
+                "provenance": [],
+            }), encoding="utf-8")
+
+            init_result = self.run_cli("init", "--home", str(home))
+            self.assertEqual(init_result.returncode, 0, init_result.stderr)
+            remember = self.run_cli("remember", "--home", str(home), "--json-file", str(record_file))
+            self.assertEqual(remember.returncode, 0, remember.stderr)
+            self.assertEqual(json.loads(remember.stdout)["decision"], "INSERTED")
+
+            search = self.run_cli("search", "--home", str(home), "--query", "CLI memory")
+            self.assertEqual(search.returncode, 0, search.stderr)
+            self.assertEqual(json.loads(search.stdout)[0]["title"], "CLI memory")
+
+            export = self.run_cli("export", "--home", str(home))
+            self.assertEqual(export.returncode, 0, export.stderr)
+            self.assertEqual(json.loads(export.stdout)[0]["title"], "CLI memory")
+
+    def test_cli_session_close_boot_and_doctor(self):
+        with TemporaryDirectory() as tmp:
+            home = Path(tmp) / "memory"
+            session_file = Path(tmp) / "session.json"
+            session_file.write_text(json.dumps({
+                "session_id": "cli-session-001",
+                "scope": "project:kai",
+                "objective": "Exercise CLI continuity",
+                "actions": ["Ran the CLI"],
+                "artifacts": [{"path": "tools/kai_memory_ledger.py"}],
+                "decisions": ["Use durable external memory"],
+                "improvements": ["New chats receive a boot packet"],
+                "pending": ["Sync private recovery copy"],
+                "next_step": "Create GPT memory skill",
+            }), encoding="utf-8")
+
+            close_result = self.run_cli(
+                "session-close", "--home", str(home), "--json-file", str(session_file)
+            )
+            self.assertEqual(close_result.returncode, 0, close_result.stderr)
+            self.assertTrue(Path(json.loads(close_result.stdout)["session_file"]).exists())
+
+            boot = self.run_cli(
+                "boot", "--home", str(home), "--project", "kai", "--max-chars", "4000"
+            )
+            self.assertEqual(boot.returncode, 0, boot.stderr)
+            boot_payload = json.loads(boot.stdout)
+            self.assertTrue(Path(boot_payload["markdown_path"]).exists())
+            self.assertTrue(Path(boot_payload["json_path"]).exists())
+
+            doctor = self.run_cli("doctor", "--home", str(home))
+            self.assertEqual(doctor.returncode, 0, doctor.stderr)
+            diagnosis = json.loads(doctor.stdout)
+            self.assertEqual(diagnosis["status"], "HEALTHY")
+            self.assertTrue(diagnosis["checks"]["boot_packet_markdown"])
+            self.assertTrue(diagnosis["checks"]["boot_packet_json"])
 if __name__ == "__main__":
     unittest.main()
