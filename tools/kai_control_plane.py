@@ -17,6 +17,14 @@ except ModuleNotFoundError:
     sys.path.insert(0, str(local_dir))
     from kai_location_policy import PlacementPolicy
 
+try:
+    from tools.kai_capability_integrations import CapabilityIntegrationManager
+except ModuleNotFoundError:
+    import sys
+    local_dir = Path(__file__).resolve().parent
+    sys.path.insert(0, str(local_dir))
+    from kai_capability_integrations import CapabilityIntegrationManager
+
 
 COMMAND_ALIASES = {
     "/despierta": "wake",
@@ -104,6 +112,10 @@ class KaiControlPlane:
         source = next((path for path in candidates if path.is_file()), candidates[-1])
         cls = load_class(source, "CapabilityRegistry")
         return cls(self.capability_home)
+
+    @property
+    def integration_manager(self):
+        return CapabilityIntegrationManager(self.capability_home)
 
     @staticmethod
     def _validate_skill_name(name: str) -> str:
@@ -293,6 +305,15 @@ class KaiControlPlane:
     def capabilities(self) -> list[dict[str, Any]]:
         return self.capability_registry.current_manifest()
 
+    def integrations(self) -> list[dict[str, Any]]:
+        return self.integration_manager.list_integrations()
+
+    def integration_doctor(self) -> dict[str, Any]:
+        return self.integration_manager.doctor()
+
+    def integration_call(self, slug: str, operation: str, args: list[str] | None = None) -> dict[str, Any]:
+        return self.integration_manager.invoke(slug, operation, list(args or []))
+
     def organize(self, artifact_kind: str) -> dict[str, Any]:
         result = dict(self.where(artifact_kind))
         result["action"] = "RECOMMEND_PLACEMENT"
@@ -344,15 +365,22 @@ class KaiControlPlane:
                 "99_PRIVATE_SENSITIVE",
             )
         )
-        status = "HEALTHY" if (
+        core_status = "HEALTHY" if (
             memory["status"] == "HEALTHY"
             and capabilities["status"] == "HEALTHY"
             and location_valid
         ) else "DEGRADED"
+        integrations = self.integration_doctor()
+        status = "HEALTHY" if (
+            core_status == "HEALTHY"
+            and integrations["status"] in {"HEALTHY", "BLOCKED_EXTERNAL"}
+        ) else "DEGRADED"
         return {
             "status": status,
+            "core_status": core_status,
             "memory": memory,
             "capabilities": capabilities,
+            "integrations": integrations,
             "location_policy": {"valid": location_valid},
             "commands": sorted(COMMAND_ALIASES),
         }

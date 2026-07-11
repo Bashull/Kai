@@ -132,12 +132,14 @@ class KaiControlPlaneTests(unittest.TestCase):
         self.assertTrue(Path(closed["snapshot_path"]).is_file())
         self.assertEqual(closed["boot_health"]["omitted"], 0)
 
-    def test_doctor_aggregates_memory_registry_and_location_policy(self):
+    def test_doctor_aggregates_memory_registry_location_and_integrations(self):
         diagnosis = self.plane.doctor()
-        self.assertEqual(diagnosis["status"], "HEALTHY")
+        self.assertEqual(diagnosis["status"], "DEGRADED")
+        self.assertEqual(diagnosis["core_status"], "HEALTHY")
         self.assertEqual(diagnosis["memory"]["status"], "HEALTHY")
         self.assertEqual(diagnosis["capabilities"]["status"], "HEALTHY")
         self.assertTrue(diagnosis["location_policy"]["valid"])
+        self.assertEqual(diagnosis["integrations"]["status"], "DEGRADED")
 
     def test_promote_wrapper_does_not_bypass_registry_guards(self):
         candidate_path = self.root / "candidate.json"
@@ -157,6 +159,30 @@ class KaiControlPlaneTests(unittest.TestCase):
                 "VALIDATED",
                 {"tests": {"passed": 1, "failed": 0}},
             )
+
+
+    def test_integrations_expose_five_governed_targets(self):
+        items = self.plane.integrations()
+        self.assertEqual(
+            {item["slug"] for item in items},
+            {
+                "storage-commander",
+                "termux-bridge-planner",
+                "backup-manifest",
+                "file-indexer",
+                "local-knowledge-vault",
+            },
+        )
+
+    def test_integration_doctor_degrades_when_required_runtimes_are_missing(self):
+        diagnosis = self.plane.integration_doctor()
+        self.assertEqual(diagnosis["required_count"], 5)
+        self.assertEqual(diagnosis["status"], "DEGRADED")
+        self.assertEqual(len(diagnosis["degraded"]), 5)
+
+    def test_integration_call_respects_adapter_allowlist(self):
+        with self.assertRaisesRegex(ValueError, "operation is not allowlisted"):
+            self.plane.integration_call("storage-commander", "execute", ["{}"])
 
 
 if __name__ == "__main__":
