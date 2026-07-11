@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import sqlite3
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -59,31 +60,32 @@ class MemoryLedger:
             conn.commit()
 
     def _normalize_record(self, record: dict[str, Any]) -> dict[str, Any]:
-        title = str(record.get("title", "")).strip()
-        content = str(record.get("content", "")).strip()
+        safe_record = redact_value(record)
+        title = str(safe_record.get("title", "")).strip()
+        content = str(safe_record.get("content", "")).strip()
         if not title:
             raise ValueError("title is required")
         if not content:
             raise ValueError("content is required")
 
-        confidence = str(record.get("confidence", "UNKNOWN")).upper()
+        confidence = str(safe_record.get("confidence", "UNKNOWN")).upper()
         if confidence not in ALLOWED_CONFIDENCE:
             raise ValueError(f"invalid confidence: {confidence}")
 
-        priority = int(record.get("priority", 50))
+        priority = int(safe_record.get("priority", 50))
         if not 0 <= priority <= 100:
             raise ValueError("priority must be between 0 and 100")
 
-        tags = sorted({str(tag).strip().lower() for tag in record.get("tags", []) if str(tag).strip()})
-        provenance = list(record.get("provenance", []))
-        supersedes = sorted({str(item) for item in record.get("supersedes", []) if str(item)})
+        tags = sorted({str(tag).strip().lower() for tag in safe_record.get("tags", []) if str(tag).strip()})
+        provenance = list(safe_record.get("provenance", []))
+        supersedes = sorted({str(item) for item in safe_record.get("supersedes", []) if str(item)})
 
         return {
-            "kind": str(record.get("kind", "CONTEXT")).upper(),
-            "scope": str(record.get("scope", "global")).strip() or "global",
+            "kind": str(safe_record.get("kind", "CONTEXT")).upper(),
+            "scope": str(safe_record.get("scope", "global")).strip() or "global",
             "title": title,
             "content": content,
-            "status": str(record.get("status", "ACTIVE")).upper(),
+            "status": str(safe_record.get("status", "ACTIVE")).upper(),
             "priority": priority,
             "confidence": confidence,
             "tags": tags,
@@ -211,3 +213,56 @@ class MemoryLedger:
             sort_keys=True,
             separators=(",", ":"),
         )
+
+
+    def supersede(self, old_id: str, new_id: str) -> None:
+        if old_id == new_id:
+            raise ValueError("a memory cannot supersede itself")
+        old_record = self.get_memory(old_id)
+        new_record = self.get_memory(new_id)
+        if old_record is None:
+            raise KeyError(f"unknown memory: {old_id}")
+        if new_record is None:
+            raise KeyError(f"unknown memory: {new_id}")
+
+        now = utc_now()
+        supersedes = sorted(set(new_record["supersedes"] + [old_id]))
+        with self._connect() as conn:
+            conn.execute(
+                "UPDATE memories SET status = 'SUPERSEDED', updated_at = ? WHERE memory_id = ?",
+                (now, old_id),
+            )
+            conn.execute(
+                "UPDATE memories SET supersedes_json = ?, updated_at = ? WHERE memory_id = ?",
+                (json.dumps(supersedes, ensure_ascii=False, sort_keys=True), now, new_id),
+            )
+            conn.commit()
+        self._append_event("MEMORY_SUPERSEDED", old_id, {"superseded_by": new_id})
+
+SENSITIVE_PATTERNS = (
+    ("OPENAI_KEY", re.compile(r"\bsk-(?:proj-)?[A-Za-z0-9_-]{16,}\b")),
+    ("GITHUB_TOKEN", re.compile(r"\bgh[pousr]_[A-Za-z0-9]{20,}\b")),
+    ("GOOGLE_API_KEY", re.compile(r"\bAIza[0-9A-Za-z_-]{30,}\b")),
+)
+
+
+def redact_sensitive(text: str) -> tuple[str, list[str]]:
+    redacted = text
+    labels: list[str] = []
+    for label, pattern in SENSITIVE_PATTERNS:
+        if pattern.search(redacted):
+            labels.append(label)
+            redacted = pattern.sub(f"[REDACTED:{label}]", redacted)
+    return redacted, labels
+
+
+def redact_value(value: Any) -> Any:
+    if isinstance(value, str):
+        return redact_sensitive(value)[0]
+    if isinstance(value, list):
+        return [redact_value(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(redact_value(item) for item in value)
+    if isinstance(value, dict):
+        return {str(key): redact_value(item) for key, item in value.items()}
+    return value

@@ -49,6 +49,30 @@ class MemoryLedgerTests(unittest.TestCase):
             parsed = json.loads(first)
             self.assertEqual(parsed[0]["title"], "Use SHA-256")
 
+    def test_redacts_sensitive_values_before_storage_and_events(self):
+        with TemporaryDirectory() as tmp:
+            ledger = MemoryLedger(Path(tmp))
+            record = self.sample_record()
+            record["content"] = "api_key=AIza" + "A" * 35
+            result = ledger.add_memory(record)
+            stored = ledger.get_memory(result["memory_id"])
+            self.assertIsNotNone(stored)
+            assert stored is not None
+            self.assertNotIn("AIza", stored["content"])
+            self.assertIn("[REDACTED:GOOGLE_API_KEY]", stored["content"])
+            self.assertNotIn("AIza", ledger.events_path.read_text(encoding="utf-8"))
+
+    def test_superseded_record_is_not_in_default_search(self):
+        with TemporaryDirectory() as tmp:
+            ledger = MemoryLedger(Path(tmp))
+            old_record = {**self.sample_record(), "title": "Old path", "content": "Path C:/old"}
+            new_record = {**self.sample_record(), "title": "New path", "content": "Path C:/new"}
+            old_id = ledger.add_memory(old_record)["memory_id"]
+            new_id = ledger.add_memory(new_record)["memory_id"]
+            ledger.supersede(old_id, new_id)
+            self.assertEqual([item["memory_id"] for item in ledger.search("Path")], [new_id])
+            self.assertEqual(ledger.get_memory(old_id)["status"], "SUPERSEDED")
+
 
 if __name__ == "__main__":
     unittest.main()
