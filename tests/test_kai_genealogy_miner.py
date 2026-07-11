@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import os
+import json
+import subprocess
+import sys
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -81,6 +84,34 @@ class GenealogyMinerTests(unittest.TestCase):
             self.assertIsNotNone(result["left"]["structure"]["parse_error"])
             self.assertIsNone(result["right"]["structure"]["parse_error"])
 
+
+
+
+class GenealogyMinerCliTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.tool = Path(__file__).resolve().parents[1] / "tools" / "kai_genealogy_miner.py"
+
+    def test_compare_cli_writes_json_output(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            left = root / "left.py"
+            right = root / "right.py"
+            source = "def pulse():\n    return 'kai'\n"
+            left.write_text(source, encoding="utf-8")
+            right.write_text(source, encoding="utf-8")
+            out = root / "genealogy.json"
+            completed = subprocess.run(
+                [sys.executable, str(self.tool), "compare", "--left", str(left), "--right", str(right), "--out", str(out)],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
+                check=False,
+            )
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            payload = json.loads(out.read_text(encoding="utf-8"))
+            self.assertEqual(payload["relation"], "EXACT_COPY")
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import json
+import os
+import subprocess
+import sys
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -61,6 +64,33 @@ class CapabilityScannerTests(unittest.TestCase):
             self.assertEqual(result["decision"], "PROTOCOL_CANDIDATE")
             self.assertIn("governance_protocols", result["capabilities"])
 
+
+
+
+class CapabilityScannerCliTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.tool = Path(__file__).resolve().parents[1] / "tools" / "kai_capability_scanner.py"
+
+    def test_scan_cli_writes_json_output(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            artifact = root / "kai_mapper.py"
+            artifact.write_text("def map_repository():\n    return True\n", encoding="utf-8")
+            out = root / "scan.json"
+            completed = subprocess.run(
+                [sys.executable, str(self.tool), "scan", "--path", str(artifact), "--out", str(out)],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
+                check=False,
+            )
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            self.assertTrue(out.exists())
+            payload = json.loads(out.read_text(encoding="utf-8"))
+            self.assertEqual(payload["decision"], "TOOL_CANDIDATE")
+            self.assertIn("repository_mapping", payload["capabilities"])
 
 if __name__ == "__main__":
     unittest.main()

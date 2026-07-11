@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import argparse
 import ast
 import hashlib
+import json
 import re
 from pathlib import Path
 from typing import Any
@@ -205,3 +207,57 @@ def scan_artifact(
             "source": str(path.resolve()),
         },
     }
+
+
+def _load_known_hashes(path: Path | None) -> set[str]:
+    if path is None:
+        return set()
+    data = json.loads(path.read_text(encoding="utf-8"))
+    hashes: set[str] = set()
+
+    def visit(value: Any) -> None:
+        if isinstance(value, dict):
+            for key, item in value.items():
+                if key.lower() in {"sha256", "artifact_sha256"} and isinstance(item, str):
+                    if re.fullmatch(r"[0-9a-fA-F]{64}", item):
+                        hashes.add(item.lower())
+                visit(item)
+        elif isinstance(value, list):
+            for item in value:
+                visit(item)
+
+    visit(data)
+    return hashes
+
+
+def _write_json_atomic(path: Path, value: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    tmp.replace(path)
+
+def build_cli_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Kai static capability scanner")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+    scan = subparsers.add_parser("scan", help="Statically scan one artifact")
+    scan.add_argument("--path", type=Path, required=True)
+    scan.add_argument("--out", type=Path, required=True)
+    scan.add_argument("--known-manifest", type=Path)
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = build_cli_parser()
+    args = parser.parse_args(argv)
+    if args.command == "scan":
+        known_hashes = _load_known_hashes(args.known_manifest)
+        result = scan_artifact(args.path, known_hashes=known_hashes)
+        _write_json_atomic(args.out, result)
+        print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+        return 0
+    parser.error(f"unknown command: {args.command}")
+    return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

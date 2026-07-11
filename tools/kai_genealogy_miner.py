@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import argparse
 import ast
 import hashlib
+import json
 import re
 from pathlib import Path
 from typing import Any
@@ -160,3 +162,36 @@ def compare_files(left_path: Path, right_path: Path) -> dict[str, Any]:
         "python_comparison": python_comparison,
         "caution": "Timestamps alone never prove ancestry; use provenance, hashes and structural evidence.",
     }
+
+
+def _write_json_atomic(path: Path, value: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    tmp.replace(path)
+
+
+def build_cli_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Kai evidence-first genealogy miner")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+    compare = subparsers.add_parser("compare", help="Compare two artifacts without executing them")
+    compare.add_argument("--left", type=Path, required=True)
+    compare.add_argument("--right", type=Path, required=True)
+    compare.add_argument("--out", type=Path, required=True)
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = build_cli_parser()
+    args = parser.parse_args(argv)
+    if args.command == "compare":
+        result = compare_files(args.left, args.right)
+        _write_json_atomic(args.out, result)
+        print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+        return 0
+    parser.error(f"unknown command: {args.command}")
+    return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

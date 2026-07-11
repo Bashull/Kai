@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import re
@@ -174,3 +175,109 @@ class CapabilityRegistry:
             {"from": current_state, "to": new_state, "evidence": evidence},
         )
         return {"capability_id": capability_id, "state": new_state}
+
+
+    def doctor(self) -> dict[str, Any]:
+        checks = {
+            "events_log": self.events_path.is_file(),
+            "current_manifest": self.current_path.is_file(),
+        }
+        capability_count = 0
+        event_count = 0
+        try:
+            manifest = self._load_current()
+            capability_count = len(manifest)
+            checks["manifest_shape"] = isinstance(manifest, list) and all(
+                isinstance(item, dict)
+                and "capability_id" in item
+                and item.get("state") in STATES
+                for item in manifest
+            )
+        except (OSError, ValueError, json.JSONDecodeError):
+            checks["manifest_shape"] = False
+
+        try:
+            with self.events_path.open("r", encoding="utf-8") as handle:
+                for line in handle:
+                    if line.strip():
+                        json.loads(line)
+                        event_count += 1
+            checks["event_log_parse"] = True
+        except (OSError, json.JSONDecodeError):
+            checks["event_log_parse"] = False
+
+        healthy = all(checks.values())
+        return {
+            "status": "HEALTHY" if healthy else "DEGRADED",
+            "home": str(self.home),
+            "checks": checks,
+            "capability_count": capability_count,
+            "event_count": event_count,
+        }
+
+
+def load_json_object(path: Path) -> dict[str, Any]:
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ValueError(f"expected JSON object in {path}")
+    return data
+
+
+def print_json(value: Any) -> None:
+    print(json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True))
+
+
+def build_cli_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Kai governed capability registry")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    register = subparsers.add_parser("register", help="Register one scanned capability candidate")
+    register.add_argument("--home", type=Path, required=True)
+    register.add_argument("--candidate", type=Path, required=True)
+
+    transition = subparsers.add_parser("transition", help="Move a capability through a governed state")
+    transition.add_argument("--home", type=Path, required=True)
+    transition.add_argument("--capability-id", required=True)
+    transition.add_argument("--state", required=True)
+    transition.add_argument("--evidence", type=Path, required=True)
+
+    manifest = subparsers.add_parser("manifest", help="Print deterministic current capability manifest")
+    manifest.add_argument("--home", type=Path, required=True)
+
+    doctor = subparsers.add_parser("doctor", help="Check registry integrity")
+    doctor.add_argument("--home", type=Path, required=True)
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = build_cli_parser()
+    args = parser.parse_args(argv)
+    registry = CapabilityRegistry(args.home)
+
+    if args.command == "register":
+        print_json(registry.register(load_json_object(args.candidate)))
+        return 0
+
+    if args.command == "transition":
+        print_json(registry.transition(
+            args.capability_id,
+            args.state,
+            load_json_object(args.evidence),
+        ))
+        return 0
+
+    if args.command == "manifest":
+        print_json(registry.current_manifest())
+        return 0
+
+    if args.command == "doctor":
+        diagnosis = registry.doctor()
+        print_json(diagnosis)
+        return 0 if diagnosis["status"] == "HEALTHY" else 2
+
+    parser.error(f"unknown command: {args.command}")
+    return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
