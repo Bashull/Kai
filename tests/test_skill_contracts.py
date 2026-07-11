@@ -141,6 +141,8 @@ class KaiControlPlaneSkillContractTests(unittest.TestCase):
             "/actualiza-skill", "/actualiza-herramienta",
             "/donde-va", "/promueve", "/organiza",
             "/checkpoint", "/evidencia", "/doctor-global",
+            "/integraciones", "/doctor-integraciones", "/usa-capacidad",
+            "storage-commander", "local-knowledge-vault",
             "kai_control_plane.py",
             "do not bypass guardrails",
         ):

@@ -41,6 +41,9 @@ COMMAND_ALIASES = {
     "/checkpoint": "checkpoint",
     "/evidencia": "evidence",
     "/doctor-global": "doctor",
+    "/integraciones": "integrations",
+    "/doctor-integraciones": "integration-doctor",
+    "/usa-capacidad": "integration-call",
 }
 
 
@@ -459,6 +462,12 @@ def build_cli_parser() -> argparse.ArgumentParser:
     evidence.add_argument("--payload-file", type=Path, required=True)
 
     sub.add_parser("capabilities")
+    sub.add_parser("integrations")
+    sub.add_parser("integration-doctor")
+    integration_call = sub.add_parser("integration-call")
+    integration_call.add_argument("--name", required=True)
+    integration_call.add_argument("--operation", required=True)
+    integration_call.add_argument("args", nargs=argparse.REMAINDER)
 
     promote = sub.add_parser("promote")
     promote.add_argument("--capability-id", required=True)
@@ -541,6 +550,23 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "capabilities":
         print_json(plane.capabilities())
         return 0
+    if args.command == "integrations":
+        print_json(plane.integrations())
+        return 0
+    if args.command == "integration-doctor":
+        diagnosis = plane.integration_doctor()
+        print_json(diagnosis)
+        return 0 if diagnosis["status"] in {"HEALTHY", "BLOCKED_EXTERNAL"} else 2
+    if args.command == "integration-call":
+        call_args = list(args.args)
+        if call_args[:1] == ["--"]:
+            call_args = call_args[1:]
+        try:
+            result = plane.integration_call(args.name, args.operation, call_args)
+        except (KeyError, ValueError) as exc:
+            parser.error(str(exc))
+        print_json(result)
+        return 0 if result["status"] in {"HEALTHY", "BLOCKED_EXTERNAL"} else 2
     if args.command == "promote":
         print_json(plane.promote(
             args.capability_id,
