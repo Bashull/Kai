@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "capability_id": "storage-commander",
+  "name": "Kai Storage Commander",
+  "version": "0.1.0",
+  "state": "VALIDATED_LOCAL_CANDIDATE",
+  "promotion": "NOT_PROMOTED_NOT_CANONICAL",
+  "implementation_type": "python_policy_orchestrator",
+  "source_ancestor": "Kai Termux Storage Agent / kai_bridge.py",
+  "transport": "loopback_http_only",
+  "dependencies": [],
+  "read_only_actions": [
+    "health", "roots", "list", "stat", "read_text", "search", "index",
+    "duplicates_exact", "duplicates_images", "classify"
+  ],
+  "guarded_mutating_actions": ["mkdir", "copy", "move", "rename"],
+  "forbidden_capabilities": ["delete", "shell", "exec", "chmod", "package_install"],
+  "required_runtime_gates": [
+    "deploy_to_isolated_runtime_candidate_location",
+    "run_fresh_test_suite_on_runtime",
+    "real_termux_agent_smoke_test",
+    "verify_source_deployment_sha256_parity",
+    "register_evidence_in_capability_registry"
+  ]
+}
