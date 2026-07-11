@@ -46,7 +46,7 @@ External mobile-data reachability is not yet claimed as verified until a real Cl
 
 A broadly capable runtime such as `node`, `python`, PowerShell or another interpreter can execute code that performs filesystem or network operations. Merely putting such a runtime in the executable allowlist does **not** make arbitrary arguments intrinsically safe.
 
-For personal local testing, the example policy permits `node` because the integration suite needs a portable command fixture. Before treating `command.execute.safe` as production-safe over an Internet-facing transport, add executable-specific argument policies or classify broad runtimes under a higher-risk capability requiring explicit confirmation.
+The example policy now enables `require_arg_rules: true` and uses exact `allowed_argv` combinations. For example, `node --version` is allowed while arbitrary `node -e ...` evaluation is rejected. Broad runtimes must never gain new argv shapes silently; every approved shape should be added deliberately and tested.
 
 ## Emergency bootstrap retained
 
@@ -92,7 +92,7 @@ Never commit:
 - owner tokens;
 - Cloudflare or Tailscale credentials.
 
-Store the paired device credential at the path configured by `credential_path`. The current startup script expects JSON containing a `device_token` field.
+Store the device credential at the path configured by `credential_path`. When that file does not exist, the PC agent starts unpaired, announces a short-lived pairing request, prints the `pairing_id` plus ephemeral code, waits for owner approval, persists the returned device credential atomically, and authenticates without restarting the socket.
 
 ## Start relay locally
 

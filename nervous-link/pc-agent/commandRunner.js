@@ -40,6 +40,19 @@ function runCommand(input, policy) {
     }
   }
 
+  if (policy.commands?.require_arg_rules === true) {
+    const allowedArgv = policy.commands?.rules?.[input.executable]?.allowed_argv ?? [];
+    const approved = allowedArgv.some(candidate =>
+      Array.isArray(candidate) &&
+      candidate.length === args.length &&
+      candidate.every((value, index) => String(value) === args[index])
+    );
+
+    if (!approved) {
+      return Promise.reject(new Error(`Arguments are not approved for: ${input.executable}`));
+    }
+  }
+
   let cwd;
   if (input.cwd) {
     cwd = assertPathAllowed(policy, 'file.read', input.cwd);

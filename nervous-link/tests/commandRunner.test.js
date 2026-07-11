@@ -50,3 +50,28 @@ test('rejects blocked pattern even for allowlisted executable', async () => {
     /blocked pattern/
   );
 });
+
+const strictPolicy = {
+  commands: {
+    safe: ['node'],
+    require_arg_rules: true,
+    rules: {
+      node: { allowed_argv: [['--version']] },
+    },
+    blocked_patterns: [],
+  },
+  limits: { max_command_ms: 2000, max_output_bytes: 256 },
+};
+
+test('strict argument rules allow only approved argv shape', async () => {
+  const result = await runCommand({ executable: 'node', args: ['--version'] }, strictPolicy);
+  assert.equal(result.exit_code, 0);
+  assert.match(result.stdout, /^v\d+/);
+});
+
+test('strict argument rules reject arbitrary runtime eval', async () => {
+  await assert.rejects(
+    () => runCommand({ executable: 'node', args: ['-e', 'console.log("unsafe")'] }, strictPolicy),
+    /arguments are not approved/i
+  );
+});

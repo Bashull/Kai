@@ -10,15 +10,17 @@
     "emergency.kill": true
   },
   "roots": {
-    "file.read": [
-      "C:/Users/ASIER/OneDrive/Desktop/KAI"
-    ],
-    "file.write": [
-      "C:/Users/ASIER/OneDrive/Desktop/KAI/_KAI_BRIDGE"
-    ]
+    "file.read": ["C:/Users/ASIER/OneDrive/Desktop/KAI"],
+    "file.write": ["C:/Users/ASIER/OneDrive/Desktop/KAI/_KAI_BRIDGE"]
   },
   "commands": {
-    "safe": ["python", "node", "git", "adb", "docker", "code", "codex"],
+    "safe": ["node", "git", "adb"],
+    "require_arg_rules": true,
+    "rules": {
+      "node": { "allowed_argv": [["--version"]] },
+      "git": { "allowed_argv": [["status", "--short"], ["rev-parse", "HEAD"]] },
+      "adb": { "allowed_argv": [["devices"]] }
+    },
     "blocked_patterns": ["diskpart", "format", "cipher /w", "remove-item -recurse c:/"]
   },
   "limits": {

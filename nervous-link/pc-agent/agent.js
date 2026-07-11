@@ -15,6 +15,7 @@ const { listProcesses, killProcess } = require('./processOps');
 const { AuditLog } = require('./audit');
 const { KillSwitch } = require('./killSwitch');
 const { startHeartbeat } = require('./heartbeat');
+const { writeCredentialsAtomic } = require('./credentials');
 
 function createPcAgent(options) {
   const state = {
@@ -22,12 +23,17 @@ function createPcAgent(options) {
     authenticated: false,
     stopped: false,
     lastHeartbeatAt: null,
+    pairing: null,
+    lastError: null,
   };
 
   const audit = new AuditLog(options.auditPath);
   const killSwitch = new KillSwitch(options.killSwitchPath);
   let socket = null;
   let stopHeartbeat = null;
+  let deviceToken = options.deviceToken ?? null;
+  const pairingCode = options.pairingCode ?? crypto.randomBytes(5).toString('base64url').slice(0, 8).toUpperCase();
+  const publicIdentity = options.publicIdentity ?? `kai-pc-agent:${os.hostname()}:${options.deviceId}`;
 
   async function executeAction(envelope) {
     switch (envelope.action) {
@@ -124,6 +130,7 @@ function createPcAgent(options) {
   }
 
   function emitAuthenticationProof() {
+    if (!deviceToken) throw new Error('Device token is not available');
     const proofPayload = {
       device_id: options.deviceId,
       socket_id: socket.id,
@@ -131,8 +138,38 @@ function createPcAgent(options) {
     socket.emit('agent:authenticate', {
       device_id: options.deviceId,
       proof_payload: proofPayload,
-      proof: createHmacProof(options.deviceToken, proofPayload),
+      proof: createHmacProof(deviceToken, proofPayload),
     });
+  }
+
+  function announcePairing() {
+    socket.emit('agent:announce-pairing', {
+      device_id: options.deviceId,
+      code: pairingCode,
+      public_identity: publicIdentity,
+      ttl_ms: options.pairingTtlMs ?? 10 * 60_000,
+    });
+  }
+
+  async function persistPairingAndAuthenticate(payload) {
+    if (payload?.device_id !== options.deviceId || typeof payload?.device_token !== 'string') {
+      throw new Error('Invalid paired device credential');
+    }
+
+    const credential = {
+      device_id: payload.device_id,
+      public_identity: payload.public_identity ?? publicIdentity,
+      device_token: payload.device_token,
+      paired_at: payload.paired_at ?? new Date().toISOString(),
+    };
+
+    if (options.credentialPath) {
+      await writeCredentialsAtomic(options.credentialPath, credential);
+    }
+
+    deviceToken = credential.device_token;
+    state.pairing = null;
+    emitAuthenticationProof();
   }
 
   async function start() {
@@ -153,7 +190,9 @@ function createPcAgent(options) {
     socket.on('connect', () => {
       state.connected = true;
       state.authenticated = false;
-      emitAuthenticationProof();
+      state.lastError = null;
+      if (deviceToken) emitAuthenticationProof();
+      else announcePairing();
     });
 
     socket.on('disconnect', () => {
@@ -161,6 +200,18 @@ function createPcAgent(options) {
       state.authenticated = false;
       stopHeartbeat?.();
       stopHeartbeat = null;
+    });
+
+    socket.on('agent:pairing-announced', payload => {
+      state.pairing = { ...payload, code: pairingCode };
+      options.onPairingAnnounced?.(state.pairing);
+    });
+
+    socket.on('agent:paired', payload => {
+      persistPairingAndAuthenticate(payload).catch(error => {
+        state.lastError = error.message;
+        options.onError?.(error);
+      });
     });
 
     socket.on('agent:authenticated', () => {
@@ -189,6 +240,7 @@ function createPcAgent(options) {
       }
     });
 
+    const connectingSocket = socket;
     const firstConnect = new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         cleanup();
@@ -205,15 +257,15 @@ function createPcAgent(options) {
       };
       const cleanup = () => {
         clearTimeout(timer);
-        socket.off('connect', onConnect);
-        socket.off('connect_error', onError);
+        connectingSocket.off('connect', onConnect);
+        connectingSocket.off('connect_error', onError);
       };
 
-      socket.once('connect', onConnect);
-      socket.once('connect_error', onError);
+      connectingSocket.once('connect', onConnect);
+      connectingSocket.once('connect_error', onError);
     });
 
-    socket.connect();
+    connectingSocket.connect();
     await firstConnect;
   }
 

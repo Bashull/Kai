@@ -188,10 +188,12 @@ async function startRoundtripFixture(t) {
     },
     commands: {
       safe: ['node'],
+      require_arg_rules: true,
+      rules: { node: { allowed_argv: [['--version']] } },
       blocked_patterns: ['diskpart'],
     },
     limits: {
-      max_command_ms: 1000,
+      max_command_ms: 3000,
       max_output_bytes: 4096,
       max_read_bytes: 4096,
       max_write_bytes: 4096,
@@ -275,13 +277,13 @@ test('run_command allows allowlisted node and denies unknown executable', async 
     capability: 'command.execute.safe',
     params: {
       executable: 'node',
-      args: ['-e', 'console.log("kai-command-ok")'],
-      timeout_ms: 1000,
+      args: ['--version'],
+      timeout_ms: 2000,
     },
   });
 
   assert.equal(allowed.status, 'ok');
-  assert.match(allowed.result.stdout, /kai-command-ok/);
+  assert.match(allowed.result.stdout, /^v\d+/);
   assert.equal(typeof allowed.audit_id, 'string');
 
   const denied = await requestThroughRelay({
@@ -295,4 +297,16 @@ test('run_command allows allowlisted node and denies unknown executable', async 
 
   assert.equal(denied.status, 'error');
   assert.match(denied.error.message, /not allowlisted/);
+
+  const deniedArgs = await requestThroughRelay({
+    relayUrl,
+    ownerToken: 'owner-test-token',
+    deviceId: 'pc-test',
+    action: 'run_command',
+    capability: 'command.execute.safe',
+    params: { executable: 'node', args: ['-e', 'console.log("nope")'] },
+  });
+
+  assert.equal(deniedArgs.status, 'error');
+  assert.match(deniedArgs.error.message, /arguments are not approved/i);
 });
