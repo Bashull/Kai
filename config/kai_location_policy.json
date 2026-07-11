@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "local": {
+    "repo_root": "C:\\Users\\ASIER\\OneDrive\\Desktop\\KAI\\_KAI_BRIDGE\\worktrees\\kai-memory-forge",
+    "bridge_root": "C:\\Users\\ASIER\\OneDrive\\Desktop\\KAI\\_KAI_BRIDGE",
+    "state_root": "C:\\Users\\ASIER\\.kai_capabilities"
+  },
+  "drive": {
+    "00_KAI_CORE": {
+      "id": "1BJto_JQ_8QookrCUOSxbyX6V5yOiDAjE",
+      "role": "canonical core, identity, memory, governance and indexes"
+    },
+    "10_KAI_LAB_INGESTION_FORENSICS": {
+      "id": "10wfnTi6BAtolXwP6zgac07F79MPoIQSe",
+      "role": "audits, extraction, candidates, evidence and staging"
+    },
+    "20_PROJECTS": {
+      "id": "1rOLgzVUNAq6UAGrEoUfWFjPAeVQTIrrc",
+      "role": "creative and technical projects"
+    },
+    "30_AI_WORKSPACES": {
+      "id": "1Tk9yTBKsy5VdLispiDsyzX6L166SdlIi",
+      "role": "AI Studio, Hugging Face and external AI workspaces"
+    },
+    "40_LIBRARY_REFERENCE": {
+      "id": "1hEerUfq7-KYN_qj28MkJAryWvxtD9fEf",
+      "role": "research, documentation and external reference"
+    },
+    "80_INBOX_UNCLASSIFIED": {
+      "id": "1poM6VSgq9A3wqSgeFY2yUuEZPDr43teE",
+      "role": "mandatory inbox for unclassified material"
+    },
+    "90_ARCHIVE_HISTORICAL": {
+      "id": "1e9oPKLfoNbWhmTh4H1_DlYbdM8HIQrwj",
+      "role": "snapshots, ancestors, superseded and historical sources"
+    },
+    "99_PRIVATE_SENSITIVE": {
+      "id": "14fc3WWi-N-GH3QFenBgwo4Dijkg-3gHr",
+      "role": "personal, legal, financial, secret or sensitive material"
+    }
+  }
+}
