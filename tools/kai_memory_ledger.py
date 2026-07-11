@@ -239,6 +239,255 @@ class MemoryLedger:
             conn.commit()
         self._append_event("MEMORY_SUPERSEDED", old_id, {"superseded_by": new_id})
 
+    @staticmethod
+    def _format_list(values: Any) -> list[str]:
+        if not isinstance(values, list):
+            return []
+        rendered: list[str] = []
+        for value in values:
+            if isinstance(value, dict):
+                path = str(value.get("path", "")).strip()
+                digest = str(value.get("sha256", "")).strip()
+                label = path or json.dumps(value, ensure_ascii=False, sort_keys=True)
+                if digest:
+                    label += f" [sha256={digest}]"
+                rendered.append(label)
+            else:
+                text = str(value).strip()
+                if text:
+                    rendered.append(text)
+        return rendered
+
+    def _format_session_content(self, summary: dict[str, Any]) -> str:
+        lines = [f"Objective: {summary['objective']}"]
+        sections = (
+            ("Actions", "actions"),
+            ("Artifacts", "artifacts"),
+            ("Decisions", "decisions"),
+            ("Improvements", "improvements"),
+            ("Pending", "pending"),
+        )
+        for heading, key in sections:
+            values = self._format_list(summary.get(key, []))
+            if values:
+                lines.append(f"{heading}:")
+                lines.extend(f"- {value}" for value in values)
+        next_step = str(summary.get("next_step", "")).strip()
+        if next_step:
+            lines.append(f"Next step: {next_step}")
+        return "\n".join(lines)
+
+    def close_session(self, summary: dict[str, Any]) -> dict[str, str]:
+        safe_summary = redact_value(summary)
+        if not isinstance(safe_summary, dict):
+            raise TypeError("session summary must be a dictionary")
+        objective = str(safe_summary.get("objective", "")).strip()
+        if not objective:
+            raise ValueError("session objective is required")
+
+        raw_session_id = str(safe_summary.get("session_id", "")).strip()
+        if not raw_session_id:
+            seed = objective + "|" + utc_now()
+            raw_session_id = "session-" + hashlib.sha256(seed.encode("utf-8")).hexdigest()[:16]
+        session_id = re.sub(r"[^A-Za-z0-9._-]+", "-", raw_session_id).strip("-._")
+        if not session_id:
+            raise ValueError("session_id has no safe characters")
+
+        captured_at = str(safe_summary.get("captured_at", "")).strip() or utc_now()
+        payload = dict(safe_summary)
+        payload["session_id"] = session_id
+        payload["captured_at"] = captured_at
+        payload.setdefault("scope", "project:kai")
+        payload.setdefault("actions", [])
+        payload.setdefault("artifacts", [])
+        payload.setdefault("decisions", [])
+        payload.setdefault("improvements", [])
+        payload.setdefault("pending", [])
+        payload.setdefault("next_step", "")
+
+        session_file = self.sessions_dir / f"{session_id}.json"
+        serialized = json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+        try:
+            with session_file.open("x", encoding="utf-8") as handle:
+                handle.write(serialized)
+        except FileExistsError:
+            existing = session_file.read_text(encoding="utf-8")
+            if existing != serialized:
+                raise FileExistsError(f"session already exists with different content: {session_id}")
+
+        memory_result = self.add_memory({
+            "kind": "SESSION",
+            "scope": str(payload.get("scope", "project:kai")),
+            "title": objective,
+            "content": self._format_session_content(payload),
+            "priority": 85,
+            "confidence": "EVIDENCED",
+            "tags": ["session", "continuity", session_id],
+            "provenance": [{"source_type": "SESSION_FILE", "source": str(session_file)}],
+        })
+        self._append_event(
+            "SESSION_CLOSED",
+            memory_result["memory_id"],
+            {"session_id": session_id, "session_file": str(session_file)},
+        )
+        return {
+            "session_id": session_id,
+            "session_file": str(session_file),
+            "memory_id": memory_result["memory_id"],
+            "decision": memory_result["decision"],
+        }
+
+    def _boot_records(self, project: str | None) -> list[dict[str, Any]]:
+        sql = "SELECT * FROM memories WHERE status = 'ACTIVE'"
+        params: list[Any] = []
+        if project:
+            project_scope = f"project:{project}"
+            sql += " AND (scope = 'global' OR scope = ? OR scope LIKE ?)"
+            params.extend([project_scope, project_scope + ":%"])
+        sql += " ORDER BY priority DESC, updated_at DESC, memory_id ASC"
+        with self._connect() as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(sql, params).fetchall()
+        return [self._row_to_record(row) for row in rows]
+
+    @staticmethod
+    def _boot_section(kind: str) -> str:
+        mapping = {
+            "CORE_IDENTITY": "Identity and directives",
+            "PREFERENCE": "Collaboration preferences",
+            "PROJECT_STATE": "Current project state",
+            "DECISION": "Validated decisions",
+            "ACTION": "Recent work",
+            "SESSION": "Recent work",
+            "ARTIFACT": "Artifacts and locations",
+            "IMPROVEMENT": "Improvements and capabilities",
+            "PENDING": "Pending work",
+            "LESSON": "Lessons",
+            "CONTEXT": "Additional context",
+        }
+        return mapping.get(kind, "Additional context")
+
+    @staticmethod
+    def _boot_item(record: dict[str, Any], content_limit: int | None = None) -> str:
+        content = " ".join(str(record["content"]).split())
+        if content_limit is not None:
+            if content_limit <= 0:
+                content = ""
+            elif len(content) > content_limit:
+                content = content[: max(0, content_limit - 1)].rstrip() + "â€¦"
+        meta = f"{record['confidence']}; priority {record['priority']}"
+        line = f"- **{record['title']}** [{meta}]"
+        if content:
+            line += f" â€” {content}"
+        return line
+
+    def _render_boot_markdown(
+        self,
+        records: list[dict[str, Any]],
+        project: str | None,
+        content_limit: int | None = None,
+    ) -> str:
+        project_label = project or "all"
+        lines = [
+            "# Kai Long-Term Memory Boot Packet",
+            "",
+            f"Project: {project_label}",
+            "",
+            "Use this packet as durable external context. Verify exact paths, versions and claims against provenance when precision matters.",
+        ]
+        section_order = (
+            "Identity and directives",
+            "Collaboration preferences",
+            "Current project state",
+            "Validated decisions",
+            "Recent work",
+            "Artifacts and locations",
+            "Improvements and capabilities",
+            "Pending work",
+            "Lessons",
+            "Additional context",
+        )
+        grouped: dict[str, list[dict[str, Any]]] = {section: [] for section in section_order}
+        for record in records:
+            grouped[self._boot_section(record["kind"])].append(record)
+
+        for section in section_order:
+            items = grouped[section]
+            if not items:
+                continue
+            lines.extend(["", f"## {section}", ""])
+            lines.extend(self._boot_item(record, content_limit) for record in items)
+
+        return "\n".join(lines).rstrip() + "\n"
+
+    def build_boot_packet(
+        self,
+        max_chars: int = 12000,
+        project: str | None = None,
+    ) -> dict[str, Any]:
+        if max_chars < 256:
+            raise ValueError("max_chars must be at least 256")
+
+        records = self._boot_records(project)
+        critical_kinds = {"CORE_IDENTITY", "PENDING"}
+        critical = [record for record in records if record["kind"] in critical_kinds]
+        optional = [record for record in records if record["kind"] not in critical_kinds]
+
+        selected = list(critical)
+        markdown = self._render_boot_markdown(selected, project)
+        if len(markdown) > max_chars:
+            for limit in (240, 160, 100, 60, 30, 0):
+                markdown = self._render_boot_markdown(selected, project, content_limit=limit)
+                if len(markdown) <= max_chars:
+                    break
+        if len(markdown) > max_chars:
+            raise ValueError("critical memory titles exceed boot packet budget")
+
+        for record in optional:
+            candidate = selected + [record]
+            candidate_markdown = self._render_boot_markdown(candidate, project)
+            if len(candidate_markdown) <= max_chars:
+                selected = candidate
+                markdown = candidate_markdown
+
+        selected_ids = [record["memory_id"] for record in selected]
+        return {
+            "schema_version": 1,
+            "generated_at": utc_now(),
+            "project": project,
+            "max_chars": max_chars,
+            "selected_ids": selected_ids,
+            "health": {
+                "active_total": len(records),
+                "selected": len(selected),
+                "omitted": len(records) - len(selected),
+            },
+            "markdown": markdown,
+        }
+
+    def write_boot_packet(
+        self,
+        max_chars: int = 12000,
+        project: str | None = None,
+    ) -> tuple[Path, Path]:
+        packet = self.build_boot_packet(max_chars=max_chars, project=project)
+        markdown_path = self.home / "boot_packet.md"
+        json_path = self.home / "boot_packet.json"
+        markdown_tmp = markdown_path.with_suffix(".md.tmp")
+        json_tmp = json_path.with_suffix(".json.tmp")
+        markdown_tmp.write_text(packet["markdown"], encoding="utf-8")
+        json_tmp.write_text(
+            json.dumps(packet, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        markdown_tmp.replace(markdown_path)
+        json_tmp.replace(json_path)
+        self._append_event(
+            "BOOT_PACKET_WRITTEN",
+            "boot_packet",
+            {"markdown_path": str(markdown_path), "json_path": str(json_path)},
+        )
+        return markdown_path, json_path
 SENSITIVE_PATTERNS = (
     ("OPENAI_KEY", re.compile(r"\bsk-(?:proj-)?[A-Za-z0-9_-]{16,}\b")),
     ("GITHUB_TOKEN", re.compile(r"\bgh[pousr]_[A-Za-z0-9]{20,}\b")),

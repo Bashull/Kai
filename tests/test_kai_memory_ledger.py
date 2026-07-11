@@ -73,6 +73,41 @@ class MemoryLedgerTests(unittest.TestCase):
             self.assertEqual([item["memory_id"] for item in ledger.search("Path")], [new_id])
             self.assertEqual(ledger.get_memory(old_id)["status"], "SUPERSEDED")
 
+    def test_session_close_records_context(self):
+        with TemporaryDirectory() as tmp:
+            ledger = MemoryLedger(Path(tmp))
+            result = ledger.close_session({
+                "session_id": "session-001",
+                "scope": "project:kai",
+                "objective": "Build persistent memory",
+                "actions": ["Created persistent ledger"],
+                "artifacts": [{"path": "tools/kai_memory_ledger.py", "sha256": "synthetic-hash"}],
+                "decisions": ["Use SQLite plus JSONL"],
+                "improvements": ["Context survives process restart"],
+                "pending": ["Publish current boot packet to private Drive"],
+                "next_step": "Create GPT memory skill",
+            })
+            self.assertTrue(Path(result["session_file"]).exists())
+            saved = json.loads(Path(result["session_file"]).read_text(encoding="utf-8"))
+            self.assertEqual(saved["objective"], "Build persistent memory")
+            packet = ledger.build_boot_packet(project="kai")
+            self.assertIn("Build persistent memory", packet["markdown"])
+            self.assertIn("Publish current boot packet to private Drive", packet["markdown"])
+
+    def test_boot_packet_is_deterministic_and_budgeted(self):
+        with TemporaryDirectory() as tmp:
+            ledger = MemoryLedger(Path(tmp))
+            ledger.add_memory({"kind": "CORE_IDENTITY", "scope": "global", "title": "Companion identity", "content": "Kai preserves truth, provenance and continuity with Asier.", "priority": 100, "confidence": "EXPLICIT", "tags": ["identity"], "provenance": []})
+            ledger.add_memory({"kind": "PENDING", "scope": "project:kai", "title": "Next work", "content": "Finish the continuous improvement forge.", "priority": 100, "confidence": "EXPLICIT", "tags": ["pending"], "provenance": []})
+            for index in range(20):
+                ledger.add_memory({"kind": "CONTEXT", "scope": "project:kai", "title": f"Context {index:02d}", "content": "x" * 300, "priority": index, "confidence": "EVIDENCED", "tags": ["bulk"], "provenance": []})
+            first = ledger.build_boot_packet(max_chars=1500, project="kai")
+            second = ledger.build_boot_packet(max_chars=1500, project="kai")
+            self.assertEqual(first["markdown"], second["markdown"])
+            self.assertLessEqual(len(first["markdown"]), 1500)
+            self.assertIn("Companion identity", first["markdown"])
+            self.assertIn("Next work", first["markdown"])
+
 
 if __name__ == "__main__":
     unittest.main()
