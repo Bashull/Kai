@@ -1,0 +1,8 @@
+{
+  "device_id": "pc-asier-main",
+  "relay_url": "http://127.0.0.1:8787",
+  "policy_path": "./config/policy.local.json",
+  "credential_path": "%USERPROFILE%/.kai/nervous-link/device.json",
+  "audit_path": "%USERPROFILE%/.kai/nervous-link/audit.jsonl",
+  "kill_switch_path": "%USERPROFILE%/.kai/nervous-link/STOP"
+}
