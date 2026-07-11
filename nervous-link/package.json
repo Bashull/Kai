@@ -5,7 +5,7 @@
   "description": "Secure remote nervous system for Kai",
   "main": "relay/server.js",
   "scripts": {
-    "test": "node --test tests/*.test.js",
+    "test": "node --test --test-concurrency=1 tests/*.test.js",
     "test:unit": "node --test tests/protocol.test.js tests/policy.test.js tests/commandRunner.test.js tests/fileOps.test.js tests/audit.test.js tests/killSwitch.test.js",
     "test:integration": "node --test tests/pairing.test.js tests/relay-agent.integration.test.js",
     "relay": "node scripts/start-relay.js",

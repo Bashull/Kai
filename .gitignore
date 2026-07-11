@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# KAI Nervous Link local state and secrets
+nervous-link/.env
+nervous-link/data/
+nervous-link/config/agent.local.json
+nervous-link/config/policy.local.json
+nervous-link/config/*.secret.json
