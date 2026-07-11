@@ -3,9 +3,10 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { ACTION_CAPABILITY } = require('./capabilities');
+const { loadJsonFile } = require('./jsonConfig');
 
 function loadPolicy(policyPath) {
-  return JSON.parse(fs.readFileSync(policyPath, 'utf8'));
+  return loadJsonFile(policyPath);
 }
 
 function authorizeAction(policy, request) {

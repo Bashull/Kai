@@ -6,6 +6,7 @@ const os = require('node:os');
 const { createPcAgent } = require('../pc-agent/agent');
 const { loadPolicy } = require('../pc-agent/policy');
 const { readCredentials } = require('../pc-agent/credentials');
+const { loadJsonFile } = require('../pc-agent/jsonConfig');
 
 function expandHome(value) {
   if (typeof value !== 'string') return value;
@@ -18,7 +19,7 @@ async function main() {
   const projectRoot = path.join(__dirname, '..');
   const configPath = process.env.KAI_NERVOUS_LINK_AGENT_CONFIG
     ?? path.join(projectRoot, 'config', 'agent.local.json');
-  const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  const config = loadJsonFile(configPath);
   const credentialPath = expandHome(config.credential_path);
   const credentials = await readCredentials(credentialPath);
   const policy = loadPolicy(path.resolve(projectRoot, config.policy_path));
