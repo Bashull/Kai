@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import argparse
 import importlib.util
@@ -13,8 +13,9 @@ try:
     from tools.kai_location_policy import PlacementPolicy
 except ModuleNotFoundError:
     import sys
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-    from tools.kai_location_policy import PlacementPolicy
+    local_dir = Path(__file__).resolve().parent
+    sys.path.insert(0, str(local_dir))
+    from kai_location_policy import PlacementPolicy
 
 
 COMMAND_ALIASES = {

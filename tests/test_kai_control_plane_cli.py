@@ -86,3 +86,22 @@ class KaiControlPlaneCliTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class KaiControlPlaneDeployedRuntimeTests(unittest.TestCase):
+    def test_deployed_script_imports_sibling_location_policy_without_tools_package(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            runtime = root / "bridge" / "agent_tools" / "kai_control_plane"
+            runtime.mkdir(parents=True)
+            source_root = Path(__file__).resolve().parents[1]
+            script = runtime / "kai_control_plane.py"
+            policy_module = runtime / "kai_location_policy.py"
+            script.write_bytes((source_root / "tools" / "kai_control_plane.py").read_bytes())
+            policy_module.write_bytes((source_root / "tools" / "kai_location_policy.py").read_bytes())
+            result = subprocess.run(
+                [sys.executable, str(script), "--help"],
+                text=True,
+                capture_output=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
