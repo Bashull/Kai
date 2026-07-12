@@ -5,8 +5,10 @@ import os
 import sqlite3
 import subprocess
 import unittest
+from unittest.mock import MagicMock, patch
 
 from tools.kai_source_adapters import (
+    AdbTreeAdapter,
     BackupManifestAdapter,
     ConnectorSnapshotAdapter,
     FileIndexDatabaseAdapter,
@@ -129,3 +131,30 @@ class InventoryEvidenceAdapterTests(unittest.TestCase):
             result = FileIndexDatabaseAdapter("pc:file-index", db).collect(max_items=10)
             self.assertEqual(len(result.records), 1)
             self.assertEqual(result.records[0].sha256, "c" * 64)
+
+
+class LiveAdapterTests(unittest.TestCase):
+    @patch("tools.kai_source_adapters.subprocess.Popen")
+    def test_adb_tree_adapter_is_bounded_and_uses_shell_false(self, popen):
+        process = MagicMock()
+        process.stdout = iter([
+            "/sdcard/Kai_Nido/a.txt\n",
+            "/sdcard/Kai_Nido/b.py\n",
+            "/sdcard/Kai_Nido/c.json\n",
+        ])
+        process.wait.return_value = 0
+        popen.return_value = process
+
+        adapter = AdbTreeAdapter(
+            source_id="s24:kai-nido",
+            adb_executable=Path("adb"),
+            serial="SM-S928B",
+            remote_root="/sdcard/Kai_Nido",
+        )
+        result = adapter.collect(max_items=2)
+        self.assertEqual(len(result.records), 2)
+        self.assertTrue(result.truncated)
+        self.assertEqual(result.records[0].source_kind, "S24_ADB")
+        kwargs = popen.call_args.kwargs
+        self.assertFalse(kwargs["shell"])
+        self.assertIsInstance(popen.call_args.args[0], list)

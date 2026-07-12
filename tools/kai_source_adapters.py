@@ -281,3 +281,90 @@ class FileIndexDatabaseAdapter:
             truncated,
             next_cursor,
         )
+
+
+class AdbTreeAdapter:
+    def __init__(
+        self,
+        source_id: str,
+        adb_executable: Path,
+        serial: str,
+        remote_root: str,
+        timeout_seconds: int = 60,
+    ):
+        self.source_id = source_id
+        self.adb_executable = Path(adb_executable)
+        self.serial = serial
+        self.remote_root = remote_root.rstrip("/") or "/"
+        self.timeout_seconds = timeout_seconds
+
+    def collect(self, max_items: int, cursor: str | None = None) -> AdapterResult:
+        if cursor is not None:
+            raise ValueError("cursor is not supported for direct ADB probes")
+        if max_items < 1:
+            raise ValueError("max_items must be at least 1")
+        command = [
+            str(self.adb_executable),
+            "-s",
+            self.serial,
+            "shell",
+            "find",
+            self.remote_root,
+            "-type",
+            "f",
+            "-print",
+        ]
+        process = subprocess.Popen(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            shell=False,
+        )
+        lines: list[str] = []
+        try:
+            if process.stdout is None:
+                process.kill()
+                process.wait()
+                return AdapterResult("DEGRADED", [], ["ADB_STDOUT_UNAVAILABLE"], 0)
+            for raw in process.stdout:
+                value = raw.strip()
+                if value:
+                    lines.append(value)
+                if len(lines) > max_items:
+                    process.terminate()
+                    break
+            process.wait(timeout=self.timeout_seconds)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait()
+            return AdapterResult("DEGRADED", [], ["ADB_TIMEOUT"], 0)
+
+        truncated = len(lines) > max_items
+        selected = lines[:max_items]
+        records: list[SourceRecord] = []
+        for remote_path in selected:
+            relative = remote_path.removeprefix(self.remote_root).lstrip("/")
+            records.append(SourceRecord(
+                source_id=self.source_id,
+                source_kind="S24_ADB",
+                source_uri=f"adb://{self.serial}{remote_path}",
+                physical_path=remote_path,
+                logical_path=relative or Path(remote_path).name,
+                filename=Path(remote_path).name,
+                extension=Path(remote_path).suffix.lower() or None,
+                extraction_state="PATH_ONLY",
+                provenance={
+                    "adapter": "AdbTreeAdapter",
+                    "serial": self.serial,
+                    "remote_root": self.remote_root,
+                },
+            ))
+        return AdapterResult(
+            status="HEALTHY",
+            records=records,
+            warnings=[],
+            observed_count=len(lines),
+            truncated=truncated,
+            next_cursor=None,
+        )
