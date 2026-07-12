@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "sources": [
+    {
+      "enabled": true,
+      "kind": "GOOGLE_DRIVE",
+      "source_id": "drive:kai",
+      "uri": "gdrive://my-drive"
+    },
+    {
+      "enabled": true,
+      "kind": "GITHUB",
+      "source_id": "github:bashull",
+      "uri": "https://github.com/Bashull"
+    },
+    {
+      "enabled": true,
+      "kind": "GIT_LOCAL",
+      "source_id": "pc:git-repos",
+      "uri": "file:///C:/Users/ASIER/OneDrive/Desktop/KAI"
+    },
+    {
+      "enabled": true,
+      "kind": "PC",
+      "source_id": "pc:kai-root",
+      "uri": "file:///C:/Users/ASIER/OneDrive/Desktop/KAI"
+    },
+    {
+      "enabled": true,
+      "kind": "S24",
+      "source_id": "s24:kai-nido",
+      "uri": "adb://SM-S928B/sdcard/Kai_Nido"
+    }
+  ]
+}
