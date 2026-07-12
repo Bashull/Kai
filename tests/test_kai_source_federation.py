@@ -58,3 +58,22 @@ class FederationLedgerTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class FederationBatchTests(unittest.TestCase):
+    def test_upsert_many_is_idempotent_and_uses_one_logical_batch(self):
+        with TemporaryDirectory() as tmp:
+            ledger = FederationLedger(Path(tmp))
+            records = [SourceRecord(
+                source_id="pc:batch",
+                source_kind="PC",
+                source_uri="file:///batch",
+                logical_path=f"f{index}.txt",
+                filename=f"f{index}.txt",
+                sha256=f"{index + 1:064x}"[-64:],
+            ) for index in range(50)]
+            first = ledger.upsert_many(records)
+            second = ledger.upsert_many(records)
+            self.assertEqual(len(first), 50)
+            self.assertEqual([item.record_id for item in first], [item.record_id for item in second])
+            self.assertEqual(len(ledger.query(limit=100)), 50)

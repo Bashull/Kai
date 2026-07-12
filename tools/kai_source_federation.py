@@ -135,6 +135,41 @@ class FederationLedger:
             con.close()
         return normalized
 
+    def upsert_many(self, records: list[SourceRecord]) -> list[SourceRecord]:
+        if not records:
+            return []
+        columns = [
+            "record_id", "source_id", "source_kind", "source_uri", "physical_path",
+            "logical_path", "filename", "extension", "size_bytes", "modified_at",
+            "created_at", "sha256", "git_repository", "git_commit", "git_branch",
+            "mime_type", "sensitivity", "availability", "extraction_state",
+            "canonical_status", "provenance_json", "relationships_json",
+        ]
+        normalized_records: list[SourceRecord] = []
+        rows: list[list[Any]] = []
+        for record in records:
+            _validate_sha256(record.sha256)
+            normalized = record if record.record_id else replace(record, record_id=_stable_record_id(record))
+            values = normalized.to_dict()
+            values["provenance_json"] = json.dumps(normalized.provenance, ensure_ascii=False, sort_keys=True)
+            values["relationships_json"] = json.dumps(normalized.relationships, ensure_ascii=False, sort_keys=True)
+            normalized_records.append(normalized)
+            rows.append([values.get(column) for column in columns])
+
+        placeholders = ",".join("?" for _ in columns)
+        updates = ",".join(f"{column}=excluded.{column}" for column in columns if column != "record_id")
+        sql = (
+            f"INSERT INTO records({','.join(columns)}) VALUES({placeholders}) "
+            f"ON CONFLICT(record_id) DO UPDATE SET {updates}"
+        )
+        con = self._connect()
+        try:
+            with con:
+                con.executemany(sql, rows)
+        finally:
+            con.close()
+        return normalized_records
+
     def get_record(self, record_id: str) -> SourceRecord:
         con = self._connect()
         try:

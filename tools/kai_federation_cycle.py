@@ -59,10 +59,8 @@ class FederationCycleRunner:
                     max_items=config.max_items_per_source,
                     cursor=cursor,
                 )
-                stored = 0
-                for record in result.records:
-                    self.ledger.upsert_record(record)
-                    stored += 1
+                stored_records = self.ledger.upsert_many(result.records)
+                stored = len(stored_records)
                 total_stored += stored
                 if result.next_cursor is None:
                     cursors.pop(source_id, None)
