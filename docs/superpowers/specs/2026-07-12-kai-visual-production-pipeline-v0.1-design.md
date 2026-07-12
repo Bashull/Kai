@@ -801,3 +801,261 @@ The PC performs heavy work.
 Drive and GitHub preserve evidence and source.  
 The capability registry controls trust and promotion.  
 Asier remains the final authority for aesthetic acceptance and canonical approval.
+
+## 21. Dual 5/5 Protocol: Quality Gate + Repository Fusion
+
+This pipeline now uses two complementary meanings of `5/5`.
+
+### 21.1 Quality 5/5
+
+Every critical stage must pass five evidence axes:
+
+1. Fidelity.
+2. Functionality.
+3. Technical integrity.
+4. Provenance.
+5. Recoverability.
+
+A stage advances only on `PASS_5_OF_5`.
+
+### 21.2 Repository 5/5
+
+When a demonstrated capability gap may benefit from external prior art, the system must research:
+
+- 5 relevant GitHub repositories.
+- 5 relevant Hugging Face repositories, models or Spaces.
+
+The target is ten relevant sources, not ten filler results. If fewer than five credible candidates exist on either platform, the system records `UNDERCOVERED` with the search evidence and proceeds without inventing candidates.
+
+### 21.3 Five-step fusion hierarchy
+
+#### Step 1 — DEFINE THE GAP
+
+Write the exact capability gap before searching.
+
+Required fields:
+
+- problem statement;
+- desired input/output contract;
+- execution nodes;
+- resource constraints;
+- licensing constraints;
+- what existing Kai capabilities already cover;
+- what must not be duplicated.
+
+Output: `GAP_SPEC`.
+
+#### Step 2 — HARVEST 5 + 5
+
+Search and shortlist five GitHub and five Hugging Face candidates.
+
+Every candidate records:
+
+- repository ID;
+- source platform;
+- exact URL or stable repo identifier;
+- current availability;
+- license or `UNKNOWN`;
+- primary capability;
+- why it is relevant;
+- whether code, model weights, documentation or architectural ideas are being considered.
+
+Output: `REPO_5X5_INVENTORY`.
+
+#### Step 3 — SCORE THE DNA
+
+Each candidate is scored across five repository-fusion axes:
+
+1. Relevance to the exact gap.
+2. Maturity and evidence.
+3. Portability across Kai nodes.
+4. License and reuse safety.
+5. Composability with existing Kai capabilities.
+
+Allowed per-axis labels:
+
+- `PASS`
+- `FAIL`
+- `UNVERIFIED`
+
+No repository is fused merely because it is popular or new.
+
+Output: `REPO_5X5_SCORECARD`.
+
+#### Step 4 — UNIFY, DO NOT BLINDLY COPY
+
+Extract reusable DNA only:
+
+- architecture;
+- interface ideas;
+- algorithms;
+- workflow patterns;
+- test strategies;
+- model choices;
+- deployment patterns;
+- failure handling;
+- metadata/provenance contracts.
+
+Code or weights are not copied automatically. Reuse must respect license, provenance, security, size, mutability and deployment cost.
+
+The fusion result must state for every source:
+
+- `ADOPT`
+- `ADAPT`
+- `REFERENCE_ONLY`
+- `REJECT`
+- `BLOCKED`
+
+Output: `FUSION_BLUEPRINT`.
+
+#### Step 5 — BUILD, TEST, PROMOTE
+
+Build the smallest Kai-native capability that closes the gap.
+
+Mandatory sequence:
+
+1. source-first implementation in isolated worktree;
+2. TDD or deterministic contract tests;
+3. quality `PASS_5_OF_5`;
+4. provenance and hashes;
+5. capability-registry lifecycle;
+6. deployment only after validation;
+7. memory and rollback evidence.
+
+Output: tested candidate capability and evidence bundle.
+
+### 21.4 Fusion law
+
+The complete protocol is therefore:
+
+```text
+QUALITY 5/5
+Fidelity
+Functionality
+Technical integrity
+Provenance
+Recoverability
+        +
+REPOSITORY 5/5
+5 GitHub
+5 Hugging Face
+        +
+FUSION 5 STEPS
+Define
+Harvest
+Score
+Unify
+Build/Test/Promote
+```
+
+This is one protocol, not three unrelated checklists.
+
+### 21.5 Search and truth constraints
+
+- Never pad the 5+5 with irrelevant repositories.
+- Never claim a repository was inspected when only search metadata was available.
+- Prefer official upstream repositories and model cards.
+- Record the exact date and search scope.
+- Mark gated, archived, unavailable or license-uncertain sources explicitly.
+- Do not execute unknown external code during research.
+- Do not copy secrets, tokens or credentials into evidence.
+- Do not treat model popularity as proof of suitability.
+- Do not treat a permissive code license as automatically covering model weights.
+- Do not treat Hugging Face model availability as permission for unrestricted commercial use.
+
+### 21.6 Candidate skill and tool additions
+
+Add one focused skill:
+`kai-visual-5x5-fusion`
+
+Responsibilities:
+
+- trigger repository 5/5 research for a demonstrated visual capability gap;
+- require 5 GitHub + 5 Hugging Face candidates or explicit `UNDERCOVERED`;
+- score relevance, maturity, portability, licensing and composability;
+- produce an adoption map without blindly copying external code or weights;
+- hand the approved fusion blueprint to the normal Kai capability-authoring lifecycle.
+
+Add one focused tool:
+
+`tools/kai_repo_5x5_fusion.py`
+
+v0.1 responsibilities:
+
+- ingest normalized repository/model records from connector snapshots;
+- enforce maximum five selected GitHub and five selected Hugging Face candidates;
+- preserve exact source IDs and provenance;
+- calculate deterministic scorecards from explicit evidence fields;
+- emit `REPO_5X5_INVENTORY`, `REPO_5X5_SCORECARD` and `FUSION_BLUEPRINT` JSON;
+- never clone, execute or import external code in v0.1.
+
+### 21.7 First visual-pipeline 5/5 pilot
+
+The first repository-fusion pilot for this visual pipeline uses the following candidates.
+
+GitHub:
+
+1. `Comfy-Org/ComfyUI` — modular graph workflows, JSON workflow persistence, queueing, partial re-execution and API integration.
+2. `danielgatis/rembg` — background removal via CLI/library/server/Docker, masks, alpha matting and batch/watch modes.
+3. `PaddlePaddle/PaddleOCR` — multilingual OCR, structured output and coordinates for exact-text audit candidates.
+4. `facebookresearch/sam2` — promptable segmentation with points, boxes, automatic masks and refinement.
+5. `ImageMagick/ImageMagick` — deterministic command-line image identification, composition, conversion, transparency and perceptual hashing.
+
+Hugging Face:
+
+1. `briaai/RMBG-2.0` — background-removal model producing alpha mattes; gated and non-commercial by default, so it is not eligible for unrestricted automatic reuse.
+2. `ZhengPeng7/BiRefNet` — high-resolution dichotomous segmentation and mask generation; MIT-licensed model repository.
+3. `facebook/sam2.1-hiera-large` — mask generation and promptable segmentation model.
+4. `Qwen/Qwen-Image-Edit-2511` — image editing with improved consistency and reduced drift.
+5. `microsoft/trocr-base-printed` — OCR candidate for rendered-text verification experiments; single-line printed text focus and license must be verified before automatic reuse.
+
+### 21.8 First unification blueprint
+
+The ten sources do not become ten dependencies.
+
+The Kai-native unified design adopts only the needed DNA:
+
+```text
+WORKFLOW ORCHESTRATION
+<- ComfyUI patterns
+   graph, queue, JSON workflow, partial re-execution
+
+REFERENCE LOCK + MASKING
+<- SAM2 / SAM2.1 patterns
+   promptable masks, points, boxes, refinement
+
+BACKGROUND / ALPHA SURGERY
+<- rembg + BiRefNet patterns
+   model adapters, mask output, alpha matting, batch mode
+
+EXACT TEXT AUDIT
+<- PaddleOCR + TrOCR candidates
+   OCR as optional evidence, never sole aesthetic authority
+
+CREATIVE SURGERY
+<- Qwen-Image-Edit-2511
+   consistency-aware image editing and drift mitigation
+
+DETERMINISTIC FILE OPERATIONS
+<- ImageMagick patterns
+   identify, compose, convert, transparency, perceptual hash
+
+GOVERNANCE
+<- Kai Control Plane
+   lifecycle, evidence, memory, location policy, capability registry
+```
+
+Initial adoption decisions:
+
+- ComfyUI: `ADAPT`
+- rembg: `ADAPT`
+- PaddleOCR: `REFERENCE_ONLY` for v0.1, candidate adapter later
+- SAM2: `REFERENCE_ONLY` for v0.1, candidate mask adapter later
+- ImageMagick: `ADAPT`
+- RMBG-2.0: `BLOCKED` for unrestricted reuse because of gating/non-commercial license constraints
+- BiRefNet: `ADAPT`
+- SAM2.1 Hiera Large: `REFERENCE_ONLY`
+- Qwen-Image-Edit-2511: `ADAPT` through existing authorized image-edit routes
+- TrOCR base printed: `REFERENCE_ONLY` until license and task fit are explicitly validated
+
+No external repository is promoted as a Kai capability merely because it appears in this pilot.
