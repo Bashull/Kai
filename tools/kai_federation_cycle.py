@@ -59,8 +59,12 @@ class FederationCycleRunner:
                     max_items=config.max_items_per_source,
                     cursor=cursor,
                 )
+                before_count = self.ledger.count_records()
                 stored_records = self.ledger.upsert_many(result.records)
-                stored = len(stored_records)
+                after_count = self.ledger.count_records()
+                processed = len(result.records)
+                unique_batch = len({record.record_id for record in stored_records})
+                stored = after_count - before_count
                 total_stored += stored
                 if result.next_cursor is None:
                     cursors.pop(source_id, None)
@@ -68,6 +72,8 @@ class FederationCycleRunner:
                     cursors[source_id] = result.next_cursor
                 source_report[source_id] = {
                     "status": result.status,
+                    "processed": processed,
+                    "unique_batch": unique_batch,
                     "stored": stored,
                     "observed_count": result.observed_count,
                     "truncated": result.truncated,
@@ -77,6 +83,8 @@ class FederationCycleRunner:
             except Exception as exc:
                 source_report[source_id] = {
                     "status": "BLOCKED_WITH_REASON",
+                    "processed": 0,
+                    "unique_batch": 0,
                     "stored": 0,
                     "observed_count": 0,
                     "truncated": False,

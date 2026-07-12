@@ -218,6 +218,13 @@ class FederationLedger:
             con.close()
         return [self._from_row(row) for row in rows]
 
+    def count_records(self) -> int:
+        con = self._connect()
+        try:
+            return int(con.execute("SELECT COUNT(*) FROM records").fetchone()[0])
+        finally:
+            con.close()
+
     def source_summary(self) -> dict[str, int]:
         con = self._connect()
         try:

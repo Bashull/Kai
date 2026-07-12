@@ -124,3 +124,31 @@ class FederationCursorResumeTests(unittest.TestCase):
             self.assertEqual(second["sources"]["paged"]["next_cursor"], "4")
             self.assertIsNone(third["sources"]["paged"]["next_cursor"])
             self.assertEqual(len(ledger.query()), 5)
+
+
+class FederationHonestCountsTests(unittest.TestCase):
+    def test_cycle_reports_processed_unique_and_new_records_honestly(self):
+        with TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            ledger = FederationLedger(home / "ledger")
+            record = SourceRecord(
+                source_id="dup",
+                source_kind="TEST",
+                source_uri="test://dup",
+                logical_path="same.txt",
+                filename="same.txt",
+            )
+            adapter = StubAdapter(AdapterResult(
+                "HEALTHY", [record, record], [], 2, False, None
+            ))
+            runner = FederationCycleRunner(
+                home, ledger,
+                [{"source_id": "dup", "kind": "TEST", "enabled": True}],
+                lambda _: adapter,
+            )
+            first = runner.run(FederationCycleConfig("count-1", 10))
+            second = runner.run(FederationCycleConfig("count-2", 10))
+            self.assertEqual(first["sources"]["dup"]["processed"], 2)
+            self.assertEqual(first["sources"]["dup"]["unique_batch"], 1)
+            self.assertEqual(first["sources"]["dup"]["stored"], 1)
+            self.assertEqual(second["sources"]["dup"]["stored"], 0)
