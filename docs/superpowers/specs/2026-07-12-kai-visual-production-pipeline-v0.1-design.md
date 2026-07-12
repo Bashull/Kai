@@ -71,6 +71,8 @@ A stage is `5/5` only when all five axes pass:
 
 Critical stages must not advance on 4/5.
 
+Each axis is recorded as `PASS`, `FAIL` or `UNVERIFIED`, together with evidence or the explicit reason evidence is unavailable. `5/5` means five `PASS` results. An `UNVERIFIED` axis never counts as a pass.
+
 Allowed result labels:
 
 - `PASS_5_OF_5`
@@ -180,6 +182,8 @@ Minimum contract:
 ```
 
 Unknown fields stay `null`, `UNKNOWN` or explicit unavailable states. They are never invented.
+
+`max_visual_change_percent` is a declared scope budget, not a guaranteed pixel-difference measurement. v0.1 must not claim numeric compliance unless an explicit measurement implementation exists.
 
 ## 7. Job Lifecycle
 
@@ -415,6 +419,8 @@ Checks:
 
 Produces JSON and process exit codes suitable for PC and Termux.
 
+The checkerboard signal is advisory only and cannot fail a job by itself because deliberate checker patterns may exist in legitimate artwork. Real transparency is determined from the decoded alpha channel. Pillow is required for image-decoding checks; if unavailable, hashing may still run but image audit status must be explicit `BLOCKED` or `UNVERIFIED`, never success.
+
 ### 10.4 `tools/kai_visual_manifest.py`
 
 Single responsibility: create a portable artifact manifest from job and audit results.
@@ -632,6 +638,8 @@ Use generated test fixtures:
 - invalid/corrupt file.
 
 Verify exact JSON keys and exit behavior.
+
+Exact text constraints are stored and preserved deterministically in job metadata and adapters. Core v0.1 does not claim OCR-level verification of text rendered inside pixels. Final in-image text correctness requires human review or a later explicit OCR/provider adapter with its own evidence.
 
 ### 18.4 Overlay adapter tests
 
