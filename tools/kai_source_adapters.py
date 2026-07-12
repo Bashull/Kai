@@ -182,3 +182,102 @@ class ConnectorSnapshotAdapter:
             truncated=truncated,
             next_cursor=next_cursor,
         )
+
+
+class BackupManifestAdapter:
+    def __init__(self, source_id: str, manifest_path: Path):
+        self.source_id = source_id
+        self.manifest_path = Path(manifest_path)
+
+    def collect(self, max_items: int, cursor: str | None = None) -> AdapterResult:
+        if max_items < 1:
+            raise ValueError("max_items must be at least 1")
+        payload = json.loads(self.manifest_path.read_text(encoding="utf-8-sig"))
+        if payload.get("capability") != "backup-manifest":
+            raise ValueError("expected backup-manifest document")
+        entries = payload.get("entries")
+        if not isinstance(entries, list):
+            raise ValueError("backup-manifest requires entries list")
+        offset = int(cursor or "0")
+        page = entries[offset: offset + max_items + 1]
+        truncated = len(page) > max_items
+        selected = page[:max_items]
+        records: list[SourceRecord] = []
+        for entry in selected:
+            root = str(entry["root"])
+            relative = str(entry["relative_path"])
+            digest = str(entry["sha256"]).lower()
+            records.append(SourceRecord(
+                source_id=self.source_id,
+                source_kind="FILE_MANIFEST",
+                source_uri=self.manifest_path.as_uri(),
+                physical_path=str(Path(root) / Path(relative)),
+                logical_path=relative,
+                filename=Path(relative).name,
+                extension=Path(relative).suffix.lower() or None,
+                size_bytes=int(entry["size"]),
+                modified_at=str(entry.get("mtime_ns")) if entry.get("mtime_ns") is not None else None,
+                sha256=digest,
+                extraction_state="HASHED_METADATA",
+                provenance={
+                    "adapter": "BackupManifestAdapter",
+                    "manifest_capability": "backup-manifest",
+                    "manifest_path": str(self.manifest_path),
+                    "root": root,
+                },
+            ))
+        next_cursor = str(offset + len(selected)) if truncated else None
+        return AdapterResult("HEALTHY", records, [], offset + len(selected), truncated, next_cursor)
+
+
+class FileIndexDatabaseAdapter:
+    def __init__(self, source_id: str, db_path: Path):
+        self.source_id = source_id
+        self.db_path = Path(db_path)
+
+    def collect(self, max_items: int, cursor: str | None = None) -> AdapterResult:
+        if max_items < 1:
+            raise ValueError("max_items must be at least 1")
+        import sqlite3
+        offset = int(cursor or "0")
+        con = sqlite3.connect(self.db_path)
+        con.row_factory = sqlite3.Row
+        try:
+            rows = con.execute(
+                "SELECT manifest_id, root, relative_path, name, ext, size, mtime_ns, sha256 "
+                "FROM files ORDER BY root, relative_path, manifest_id LIMIT ? OFFSET ?",
+                (max_items + 1, offset),
+            ).fetchall()
+        finally:
+            con.close()
+        truncated = len(rows) > max_items
+        selected = rows[:max_items]
+        records: list[SourceRecord] = []
+        for row in selected:
+            records.append(SourceRecord(
+                source_id=self.source_id,
+                source_kind="FILE_INDEX",
+                source_uri=self.db_path.as_uri(),
+                physical_path=str(Path(row["root"]) / Path(row["relative_path"])),
+                logical_path=row["relative_path"],
+                filename=row["name"],
+                extension=row["ext"] or None,
+                size_bytes=int(row["size"]),
+                modified_at=str(row["mtime_ns"]),
+                sha256=row["sha256"],
+                extraction_state="HASHED_METADATA",
+                provenance={
+                    "adapter": "FileIndexDatabaseAdapter",
+                    "manifest_id": row["manifest_id"],
+                    "root": row["root"],
+                },
+            ))
+        next_cursor = str(offset + len(selected)) if truncated else None
+        return AdapterResult(
+            "HEALTHY",
+            records,
+            [],
+            offset + len(selected),
+            truncated,
+            next_cursor,
+        )

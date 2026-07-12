@@ -2,11 +2,14 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import json
 import os
+import sqlite3
 import subprocess
 import unittest
 
 from tools.kai_source_adapters import (
+    BackupManifestAdapter,
     ConnectorSnapshotAdapter,
+    FileIndexDatabaseAdapter,
     LocalGitAdapter,
     SourceRegistry,
 )
@@ -75,3 +78,54 @@ class SourceAdapterTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class InventoryEvidenceAdapterTests(unittest.TestCase):
+    def test_backup_manifest_adapter_preserves_sha256_and_root(self):
+        with TemporaryDirectory() as tmp:
+            manifest = Path(tmp) / "manifest.json"
+            manifest.write_text(json.dumps({
+                "schema_version": 1,
+                "capability": "backup-manifest",
+                "version": "0.1.0",
+                "roots": ["C:/KAI"],
+                "entries": [{
+                    "root": "C:/KAI",
+                    "relative_path": "core/brain.py",
+                    "size": 123,
+                    "mtime_ns": 42,
+                    "sha256": "b" * 64,
+                }],
+                "summary": {"files": 1, "bytes": 123, "skipped_symlinks": 0},
+            }), encoding="utf-8")
+            result = BackupManifestAdapter("pc:kai-root", manifest).collect(max_items=10)
+            record = result.records[0]
+            self.assertEqual(record.sha256, "b" * 64)
+            self.assertEqual(record.logical_path, "core/brain.py")
+            self.assertEqual(record.provenance["manifest_capability"], "backup-manifest")
+
+    def test_file_index_database_adapter_reads_existing_index_schema(self):
+        with TemporaryDirectory() as tmp:
+            db = Path(tmp) / "files.sqlite3"
+            con = sqlite3.connect(db)
+            con.executescript("""
+            CREATE TABLE files (
+              manifest_id TEXT NOT NULL,
+              root TEXT NOT NULL,
+              relative_path TEXT NOT NULL,
+              name TEXT NOT NULL,
+              ext TEXT NOT NULL,
+              size INTEGER NOT NULL,
+              mtime_ns INTEGER NOT NULL,
+              sha256 TEXT NOT NULL
+            );
+            """)
+            con.execute(
+                "INSERT INTO files VALUES(?,?,?,?,?,?,?,?)",
+                ("m1", "C:/KAI", "tools/x.py", "x.py", ".py", 12, 99, "c" * 64),
+            )
+            con.commit()
+            con.close()
+            result = FileIndexDatabaseAdapter("pc:file-index", db).collect(max_items=10)
+            self.assertEqual(len(result.records), 1)
+            self.assertEqual(result.records[0].sha256, "c" * 64)
