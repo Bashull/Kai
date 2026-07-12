@@ -12,7 +12,10 @@ from tools.kai_source_adapters import (
     BackupManifestAdapter,
     ConnectorSnapshotAdapter,
     FileIndexDatabaseAdapter,
+    KaiMasterInventoryAdapter,
     LocalGitAdapter,
+    PathListAdapter,
+    PowerShellCsvInventoryAdapter,
     SourceRegistry,
 )
 
@@ -158,3 +161,57 @@ class LiveAdapterTests(unittest.TestCase):
         kwargs = popen.call_args.kwargs
         self.assertFalse(kwargs["shell"])
         self.assertIsInstance(popen.call_args.args[0], list)
+
+
+class ExistingFullInventoryAdapterTests(unittest.TestCase):
+    def test_kai_master_inventory_adapter_pages_without_duplicates(self):
+        with TemporaryDirectory() as tmp:
+            db = Path(tmp) / "master.sqlite3"
+            con = sqlite3.connect(db)
+            con.execute("""
+                CREATE TABLE files (
+                  path TEXT PRIMARY KEY, root TEXT NOT NULL, name TEXT NOT NULL,
+                  ext TEXT, size INTEGER, mtime REAL, category TEXT,
+                  ownership TEXT, sha256 TEXT, text_lines INTEGER,
+                  syntax_ok INTEGER, secret_risk INTEGER DEFAULT 0,
+                  error TEXT, indexed_at REAL NOT NULL
+                )
+            """)
+            for index in range(5):
+                con.execute(
+                    "INSERT INTO files(path, root, name, size, indexed_at) VALUES(?,?,?,?,?)",
+                    (f"C:/KAI/f{index}.py", "C:/KAI", f"f{index}.py", index, 1.0),
+                )
+            con.commit()
+            con.close()
+
+            adapter = KaiMasterInventoryAdapter("pc:kai-master-inventory", db)
+            first = adapter.collect(max_items=2)
+            second = adapter.collect(max_items=2, cursor=first.next_cursor)
+            self.assertEqual([r.filename for r in first.records], ["f0.py", "f1.py"])
+            self.assertEqual([r.filename for r in second.records], ["f2.py", "f3.py"])
+            self.assertEqual(second.next_cursor, "4")
+
+    def test_powershell_csv_adapter_preserves_file_and_directory_state(self):
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "pc.csv"
+            path.write_text(
+                '"FullName","PSIsContainer","Length","CreationTimeUtc","LastWriteTimeUtc","Attributes","Extension"\n'
+                '"C:\\\\KAI","True",,"2026-01-01","2026-01-02","Directory",""\n'
+                '"C:\\\\KAI\\\\a.py","False","12","2026-01-01","2026-01-02","Archive",".py"\n',
+                encoding="utf-8-sig",
+            )
+            result = PowerShellCsvInventoryAdapter("pc:c-drive", path).collect(max_items=10)
+            self.assertEqual(result.records[0].extraction_state, "DIRECTORY_METADATA")
+            self.assertEqual(result.records[1].filename, "a.py")
+
+    def test_path_list_adapter_pages_android_inventory(self):
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "android.txt"
+            path.write_text("/sdcard/A\n/sdcard/B\n/sdcard/C\n", encoding="utf-8")
+            adapter = PathListAdapter("s24:shared-storage", "S24_ADB", path, "/sdcard")
+            first = adapter.collect(max_items=2)
+            second = adapter.collect(max_items=2, cursor=first.next_cursor)
+            self.assertEqual(len(first.records), 2)
+            self.assertEqual(second.records[0].logical_path, "C")
+            self.assertIsNone(second.next_cursor)

@@ -41,10 +41,12 @@ class FederationCycleRunner:
         self.adapter_factory = adapter_factory
         self.events_path = self.home / "federation_events.jsonl"
         self.coverage_path = self.home / "coverage_current.json"
+        self.cursors_path = self.home / "cursors_current.json"
 
     def run(self, config: FederationCycleConfig) -> dict[str, Any]:
         source_report: dict[str, Any] = {}
         total_stored = 0
+        cursors = self._load_cursors()
 
         for source in self.sources:
             source_id = str(source.get("source_id") or "")
@@ -52,12 +54,20 @@ class FederationCycleRunner:
                 raise ValueError("source requires source_id")
             try:
                 adapter = self.adapter_factory(source)
-                result = adapter.collect(max_items=config.max_items_per_source)
+                cursor = cursors.get(source_id)
+                result = adapter.collect(
+                    max_items=config.max_items_per_source,
+                    cursor=cursor,
+                )
                 stored = 0
                 for record in result.records:
                     self.ledger.upsert_record(record)
                     stored += 1
                 total_stored += stored
+                if result.next_cursor is None:
+                    cursors.pop(source_id, None)
+                else:
+                    cursors[source_id] = result.next_cursor
                 source_report[source_id] = {
                     "status": result.status,
                     "stored": stored,
@@ -86,9 +96,24 @@ class FederationCycleRunner:
             "stored": total_stored,
             "sources": source_report,
         }
+        self._write_cursors(cursors)
         self._write_current(report)
         self._append_event(report)
         return report
+
+    def _load_cursors(self) -> dict[str, str]:
+        if not self.cursors_path.is_file():
+            return {}
+        data = json.loads(self.cursors_path.read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            raise ValueError("cursors_current.json must contain an object")
+        return {str(key): str(value) for key, value in data.items()}
+
+    def _write_cursors(self, cursors: dict[str, str]) -> None:
+        payload = json.dumps(cursors, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+        tmp = self.cursors_path.with_suffix(self.cursors_path.suffix + ".tmp")
+        tmp.write_text(payload, encoding="utf-8")
+        tmp.replace(self.cursors_path)
 
     def _write_current(self, report: dict[str, Any]) -> None:
         payload = json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n"

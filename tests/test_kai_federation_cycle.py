@@ -81,3 +81,46 @@ class FederationCycleTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PagedStubAdapter:
+    def __init__(self, total: int):
+        self.total = total
+
+    def collect(self, max_items: int, cursor: str | None = None) -> AdapterResult:
+        offset = int(cursor or "0")
+        end = min(offset + max_items, self.total)
+        records = [SourceRecord(
+            source_id="paged",
+            source_kind="TEST",
+            source_uri="test://paged",
+            logical_path=f"f{index}.txt",
+            filename=f"f{index}.txt",
+            sha256=f"{index + 1:064x}"[-64:],
+        ) for index in range(offset, end)]
+        next_cursor = str(end) if end < self.total else None
+        return AdapterResult(
+            "HEALTHY",
+            records,
+            [],
+            end,
+            next_cursor is not None,
+            next_cursor,
+        )
+
+
+class FederationCursorResumeTests(unittest.TestCase):
+    def test_cycle_resumes_from_saved_cursor(self):
+        with TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            ledger = FederationLedger(home / "ledger")
+            source = {"source_id": "paged", "kind": "TEST", "enabled": True, "uri": "test://paged"}
+            adapter = PagedStubAdapter(total=5)
+            runner = FederationCycleRunner(home, ledger, [source], lambda _: adapter)
+            first = runner.run(FederationCycleConfig("c1", max_items_per_source=2))
+            second = runner.run(FederationCycleConfig("c2", max_items_per_source=2))
+            third = runner.run(FederationCycleConfig("c3", max_items_per_source=2))
+            self.assertEqual(first["sources"]["paged"]["next_cursor"], "2")
+            self.assertEqual(second["sources"]["paged"]["next_cursor"], "4")
+            self.assertIsNone(third["sources"]["paged"]["next_cursor"])
+            self.assertEqual(len(ledger.query()), 5)

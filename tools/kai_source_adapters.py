@@ -374,3 +374,154 @@ class AdbTreeAdapter:
             truncated=truncated,
             next_cursor=None,
         )
+
+
+class KaiMasterInventoryAdapter:
+    def __init__(self, source_id: str, db_path: Path):
+        self.source_id = source_id
+        self.db_path = Path(db_path)
+
+    def collect(self, max_items: int, cursor: str | None = None) -> AdapterResult:
+        if max_items < 1:
+            raise ValueError("max_items must be at least 1")
+        import sqlite3
+        offset = int(cursor or "0")
+        con = sqlite3.connect(self.db_path)
+        con.row_factory = sqlite3.Row
+        try:
+            rows = con.execute(
+                "SELECT path, root, name, ext, size, mtime, category, ownership, "
+                "sha256, text_lines, syntax_ok, secret_risk, error, indexed_at "
+                "FROM files ORDER BY path LIMIT ? OFFSET ?",
+                (max_items + 1, offset),
+            ).fetchall()
+        finally:
+            con.close()
+        truncated = len(rows) > max_items
+        selected = rows[:max_items]
+        records: list[SourceRecord] = []
+        for row in selected:
+            records.append(SourceRecord(
+                source_id=self.source_id,
+                source_kind="KAI_MASTER_INVENTORY",
+                source_uri=self.db_path.as_uri(),
+                physical_path=row["path"],
+                logical_path=row["path"],
+                filename=row["name"],
+                extension=row["ext"] or None,
+                size_bytes=row["size"],
+                modified_at=str(row["mtime"]) if row["mtime"] is not None else None,
+                sha256=row["sha256"],
+                sensitivity="SENSITIVE_SIGNAL" if row["secret_risk"] else "UNKNOWN",
+                extraction_state="INDEXED_METADATA",
+                provenance={
+                    "adapter": "KaiMasterInventoryAdapter",
+                    "category": row["category"],
+                    "ownership": row["ownership"],
+                    "error": row["error"],
+                    "indexed_at": row["indexed_at"],
+                },
+            ))
+        next_cursor = str(offset + len(selected)) if truncated else None
+        return AdapterResult(
+            "HEALTHY", records, [], offset + len(selected), truncated, next_cursor
+        )
+
+
+class PowerShellCsvInventoryAdapter:
+    def __init__(self, source_id: str, csv_path: Path):
+        self.source_id = source_id
+        self.csv_path = Path(csv_path)
+
+    def collect(self, max_items: int, cursor: str | None = None) -> AdapterResult:
+        if max_items < 1:
+            raise ValueError("max_items must be at least 1")
+        import csv
+        offset = int(cursor or "0")
+        records: list[SourceRecord] = []
+        with self.csv_path.open("r", encoding="utf-8-sig", errors="replace", newline="") as handle:
+            reader = csv.DictReader(handle)
+            for index, row in enumerate(reader):
+                if index < offset:
+                    continue
+                if len(records) >= max_items + 1:
+                    break
+                raw_path = str(row.get("FullName") or "")
+                is_dir = str(row.get("PSIsContainer") or "").lower() == "true"
+                records.append(SourceRecord(
+                    source_id=self.source_id,
+                    source_kind="PC_FILE_CSV",
+                    source_uri=self.csv_path.as_uri(),
+                    physical_path=raw_path,
+                    logical_path=raw_path,
+                    filename=Path(raw_path).name,
+                    extension=(row.get("Extension") or None),
+                    size_bytes=None if is_dir or not row.get("Length") else int(row["Length"]),
+                    created_at=row.get("CreationTimeUtc") or None,
+                    modified_at=row.get("LastWriteTimeUtc") or None,
+                    extraction_state="DIRECTORY_METADATA" if is_dir else "FILE_METADATA",
+                    provenance={
+                        "adapter": "PowerShellCsvInventoryAdapter",
+                        "attributes": row.get("Attributes"),
+                    },
+                ))
+        truncated = len(records) > max_items
+        selected = records[:max_items]
+        next_cursor = str(offset + len(selected)) if truncated else None
+        return AdapterResult(
+            "HEALTHY",
+            selected,
+            [],
+            offset + len(selected),
+            truncated,
+            next_cursor,
+        )
+
+
+class PathListAdapter:
+    def __init__(self, source_id: str, source_kind: str, path: Path, logical_root: str):
+        self.source_id = source_id
+        self.source_kind = source_kind
+        self.path = Path(path)
+        self.logical_root = logical_root.rstrip("/")
+
+    def collect(self, max_items: int, cursor: str | None = None) -> AdapterResult:
+        if max_items < 1:
+            raise ValueError("max_items must be at least 1")
+        offset = int(cursor or "0")
+        selected: list[str] = []
+        with self.path.open("r", encoding="utf-8-sig", errors="replace") as handle:
+            for index, raw in enumerate(handle):
+                if index < offset:
+                    continue
+                value = raw.strip()
+                if not value:
+                    continue
+                selected.append(value)
+                if len(selected) > max_items:
+                    break
+        truncated = len(selected) > max_items
+        selected = selected[:max_items]
+        records = [SourceRecord(
+            source_id=self.source_id,
+            source_kind=self.source_kind,
+            source_uri=self.path.as_uri(),
+            physical_path=value,
+            logical_path=value.removeprefix(self.logical_root).lstrip("/\\"),
+            filename=Path(value).name,
+            extension=Path(value).suffix.lower() or None,
+            extraction_state="PATH_ONLY",
+            provenance={
+                "adapter": "PathListAdapter",
+                "evidence_file": str(self.path),
+            },
+        ) for value in selected]
+        next_cursor = str(offset + len(records)) if truncated else None
+        return AdapterResult(
+            "HEALTHY",
+            records,
+            [],
+            offset + len(records),
+            truncated,
+            next_cursor,
+        )
