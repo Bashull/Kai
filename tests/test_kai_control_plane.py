@@ -212,6 +212,12 @@ class KaiControlPlaneTests(unittest.TestCase):
         rows = self.plane.federation_query(name_contains="kai")
         self.assertEqual(rows[0]["filename"], "kai.py")
 
+    def test_federation_cycle_and_query_share_same_ledger(self):
+        self.assertEqual(
+            self.plane.federation_ledger.database_path,
+            self.plane.federation_home / "ledger" / "federation.sqlite3",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

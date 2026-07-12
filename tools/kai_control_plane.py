@@ -100,7 +100,7 @@ class KaiControlPlane:
         self.source_registry_path = Path(
             source_registry_path or (self.repo_root / "config" / "kai_source_registry.json")
         ).resolve()
-        self.federation_ledger = FederationLedger(self.federation_home)
+        self.federation_ledger = FederationLedger(self.federation_home / 'ledger')
         self.source_registry = (
             SourceRegistry.from_json(self.source_registry_path)
             if self.source_registry_path.is_file()
