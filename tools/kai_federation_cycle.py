@@ -42,16 +42,28 @@ class FederationCycleRunner:
         self.events_path = self.home / "federation_events.jsonl"
         self.coverage_path = self.home / "coverage_current.json"
         self.cursors_path = self.home / "cursors_current.json"
+        self.finished_path = self.home / "finished_current.json"
 
     def run(self, config: FederationCycleConfig) -> dict[str, Any]:
         source_report: dict[str, Any] = {}
         total_stored = 0
         cursors = self._load_cursors()
+        finished = self._load_finished()
 
         for source in self.sources:
             source_id = str(source.get("source_id") or "")
             if not source_id:
                 raise ValueError("source requires source_id")
+            if source_id in finished:
+                saved = dict(finished[source_id])
+                saved.update({
+                    "processed": 0,
+                    "unique_batch": 0,
+                    "stored": 0,
+                    "skipped": True,
+                })
+                source_report[source_id] = saved
+                continue
             try:
                 adapter = self.adapter_factory(source)
                 cursor = cursors.get(source_id)
@@ -70,6 +82,16 @@ class FederationCycleRunner:
                     cursors.pop(source_id, None)
                 else:
                     cursors[source_id] = result.next_cursor
+                if result.next_cursor is None and not result.truncated:
+                    finished[source_id] = {
+                        "status": result.status,
+                        "observed_count": result.observed_count,
+                        "truncated": False,
+                        "next_cursor": None,
+                        "warnings": list(result.warnings),
+                    }
+                else:
+                    finished.pop(source_id, None)
                 source_report[source_id] = {
                     "status": result.status,
                     "processed": processed,
@@ -103,6 +125,7 @@ class FederationCycleRunner:
             "sources": source_report,
         }
         self._write_cursors(cursors)
+        self._write_finished(finished)
         self._write_current(report)
         self._append_event(report)
         return report
@@ -114,6 +137,24 @@ class FederationCycleRunner:
         if not isinstance(data, dict):
             raise ValueError("cursors_current.json must contain an object")
         return {str(key): str(value) for key, value in data.items()}
+
+    def _load_finished(self) -> dict[str, dict[str, Any]]:
+        if not self.finished_path.is_file():
+            return {}
+        data = json.loads(self.finished_path.read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            raise ValueError("finished_current.json must contain an object")
+        return {
+            str(key): dict(value)
+            for key, value in data.items()
+            if isinstance(value, dict)
+        }
+
+    def _write_finished(self, finished: dict[str, dict[str, Any]]) -> None:
+        payload = json.dumps(finished, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+        tmp = self.finished_path.with_suffix(self.finished_path.suffix + ".tmp")
+        tmp.write_text(payload, encoding="utf-8")
+        tmp.replace(self.finished_path)
 
     def _write_cursors(self, cursors: dict[str, str]) -> None:
         payload = json.dumps(cursors, ensure_ascii=False, indent=2, sort_keys=True) + "\n"

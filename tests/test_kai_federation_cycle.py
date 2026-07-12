@@ -152,3 +152,35 @@ class FederationHonestCountsTests(unittest.TestCase):
             self.assertEqual(first["sources"]["dup"]["unique_batch"], 1)
             self.assertEqual(first["sources"]["dup"]["stored"], 1)
             self.assertEqual(second["sources"]["dup"]["stored"], 0)
+
+
+class CountingAdapter:
+    def __init__(self, result: AdapterResult):
+        self.result = result
+        self.calls = 0
+
+    def collect(self, max_items: int, cursor: str | None = None) -> AdapterResult:
+        self.calls += 1
+        return self.result
+
+
+class FederationFinishedSourcesTests(unittest.TestCase):
+    def test_finished_source_is_not_reprocessed_on_later_cycle(self):
+        with TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            ledger = FederationLedger(home / "ledger")
+            record = SourceRecord(
+                source_id="done", source_kind="TEST", source_uri="test://done",
+                logical_path="done.txt", filename="done.txt",
+            )
+            adapter = CountingAdapter(AdapterResult(
+                "HEALTHY", [record], [], 1, False, None
+            ))
+            source = {"source_id": "done", "kind": "TEST", "enabled": True}
+            runner = FederationCycleRunner(home, ledger, [source], lambda _: adapter)
+            first = runner.run(FederationCycleConfig("done-1", 10))
+            second = runner.run(FederationCycleConfig("done-2", 10))
+            self.assertEqual(adapter.calls, 1)
+            self.assertEqual(first["sources"]["done"]["stored"], 1)
+            self.assertTrue(second["sources"]["done"]["skipped"])
+            self.assertEqual(second["sources"]["done"]["stored"], 0)
