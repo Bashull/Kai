@@ -145,6 +145,20 @@ class KaiControlPlaneCliTests(unittest.TestCase):
         result = self.run_cli("sources")
         self.assertTrue(any(item["source_id"] == "pc:kai-root" for item in result))
 
+    def test_federation_cycle_alias_is_registered(self):
+        result = self.run_cli("commands")
+        self.assertEqual(result["/ciclo-unificacion"], "federation-cycle")
+
+    def test_federation_cycle_cli_returns_cycle_report(self):
+        process = self.run_cli_process(
+            "federation-cycle", "--cycle-id", "test-cycle",
+            "--max-items-per-source", "2",
+        )
+        self.assertIn(process.returncode, {0, 2})
+        payload = json.loads(process.stdout)
+        self.assertEqual(payload["cycle_id"], "test-cycle")
+        self.assertIn("sources", payload)
+
 
 if __name__ == "__main__":
     unittest.main()

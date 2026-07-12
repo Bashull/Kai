@@ -1,35 +1,78 @@
-{
-  "schema_version": 1,
-  "sources": [
-    {
-      "enabled": true,
-      "kind": "GOOGLE_DRIVE",
-      "source_id": "drive:kai",
-      "uri": "gdrive://my-drive"
-    },
-    {
-      "enabled": true,
-      "kind": "GITHUB",
-      "source_id": "github:bashull",
-      "uri": "https://github.com/Bashull"
-    },
-    {
-      "enabled": true,
-      "kind": "GIT_LOCAL",
-      "source_id": "pc:git-repos",
-      "uri": "file:///C:/Users/ASIER/OneDrive/Desktop/KAI"
-    },
-    {
-      "enabled": true,
-      "kind": "PC",
-      "source_id": "pc:kai-root",
-      "uri": "file:///C:/Users/ASIER/OneDrive/Desktop/KAI"
-    },
-    {
-      "enabled": true,
-      "kind": "S24",
-      "source_id": "s24:kai-nido",
-      "uri": "adb://SM-S928B/sdcard/Kai_Nido"
-    }
-  ]
+﻿{
+    "schema_version":  1,
+    "sources":  [
+                    {
+                        "source_id":  "pc:kai-master-inventory",
+                        "kind":  "KAI_MASTER_INVENTORY",
+                        "enabled":  true,
+                        "adapter":  "kai_master_inventory",
+                        "path":  "C:/Users/ASIER/OneDrive/Desktop/KAI/mobile-audit/kai_master_inventory.sqlite3"
+                    },
+                    {
+                        "source_id":  "pc:c-drive-20260711",
+                        "kind":  "PC",
+                        "enabled":  true,
+                        "adapter":  "powershell_csv",
+                        "path":  "C:/Users/ASIER/OneDrive/Desktop/KAI/mobile-audit/full-inventory-2026-07-11/pc_C_files_full.csv"
+                    },
+                    {
+                        "source_id":  "pc:d-drive-20260711",
+                        "kind":  "PC",
+                        "enabled":  true,
+                        "adapter":  "powershell_csv",
+                        "path":  "C:/Users/ASIER/OneDrive/Desktop/KAI/mobile-audit/full-inventory-2026-07-11/pc_D_files_full.csv"
+                    },
+                    {
+                        "source_id":  "pc:e-drive-20260711",
+                        "kind":  "PC",
+                        "enabled":  false,
+                        "adapter":  "powershell_csv",
+                        "path":  "C:/Users/ASIER/OneDrive/Desktop/KAI/mobile-audit/full-inventory-2026-07-11/pc_E_files_full.csv",
+                        "status_hint":  "EMPTY_EVIDENCE"
+                    },
+                    {
+                        "source_id":  "pc:g-drive-20260711",
+                        "kind":  "PC",
+                        "enabled":  true,
+                        "adapter":  "powershell_csv",
+                        "path":  "C:/Users/ASIER/OneDrive/Desktop/KAI/mobile-audit/full-inventory-2026-07-11/pc_G_files_full.csv"
+                    },
+                    {
+                        "source_id":  "s24:shared-storage-20260711",
+                        "kind":  "S24_ADB",
+                        "enabled":  true,
+                        "adapter":  "path_list",
+                        "path":  "C:/Users/ASIER/OneDrive/Desktop/KAI/mobile-audit/full-inventory-2026-07-11/android_shared_storage_paths_full.txt",
+                        "logical_root":  "/sdcard"
+                    },
+                    {
+                        "source_id":  "s24:root-accessible-20260711",
+                        "kind":  "S24_ADB",
+                        "enabled":  true,
+                        "adapter":  "path_list",
+                        "path":  "C:/Users/ASIER/OneDrive/Desktop/KAI/mobile-audit/full-inventory-2026-07-11/android_root_accessible_paths_full.txt",
+                        "logical_root":  "/"
+                    },
+                    {
+                        "source_id":  "pc:git-repos-20260711",
+                        "kind":  "GIT_LOCAL",
+                        "enabled":  true,
+                        "adapter":  "local_git",
+                        "roots_path":  "C:/Users/ASIER/.kai_federation/snapshots/local_git_roots_20260712.json"
+                    },
+                    {
+                        "source_id":  "github:bashull",
+                        "kind":  "GITHUB",
+                        "enabled":  true,
+                        "adapter":  "connector_snapshot",
+                        "path":  "C:/Users/ASIER/.kai_federation/snapshots/github_bashull_20260712.json"
+                    },
+                    {
+                        "source_id":  "drive:kai-official-root",
+                        "kind":  "GOOGLE_DRIVE",
+                        "enabled":  true,
+                        "adapter":  "connector_snapshot",
+                        "path":  "C:/Users/ASIER/.kai_federation/snapshots/drive_kai_20260712.json"
+                    }
+                ]
 }

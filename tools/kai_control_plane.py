@@ -58,6 +58,7 @@ COMMAND_ALIASES = {
     "/doctor-unificacion": "source-doctor",
     "/ingesta-fuente": "source-ingest",
     "/buscar-global": "global-query",
+    "/ciclo-unificacion": "federation-cycle",
 }
 
 
@@ -359,6 +360,21 @@ class KaiControlPlane:
     def federation_query(self, **filters: Any) -> list[dict[str, Any]]:
         return [record.to_dict() for record in self.federation_ledger.query(**filters)]
 
+    def federation_cycle(self, cycle_id: str, max_items_per_source: int = 10000) -> dict[str, Any]:
+        try:
+            from tools.kai_federation_bootstrap import run_federation_cycle
+        except ModuleNotFoundError:
+            import sys
+            local_dir = Path(__file__).resolve().parent
+            sys.path.insert(0, str(local_dir))
+            from kai_federation_bootstrap import run_federation_cycle
+        return run_federation_cycle(
+            federation_home=self.federation_home,
+            source_registry_path=self.source_registry_path,
+            cycle_id=cycle_id,
+            max_items_per_source=max_items_per_source,
+        )
+
     def federation_ingest_snapshot(
         self,
         *,
@@ -544,6 +560,10 @@ def build_cli_parser() -> argparse.ArgumentParser:
     global_query.add_argument("--sha256")
     global_query.add_argument("--limit", type=int, default=100)
 
+    federation_cycle = sub.add_parser("federation-cycle")
+    federation_cycle.add_argument("--cycle-id", required=True)
+    federation_cycle.add_argument("--max-items-per-source", type=int, default=10000)
+
     sub.add_parser("integrations")
     sub.add_parser("integration-doctor")
     integration_call = sub.add_parser("integration-call")
@@ -658,6 +678,13 @@ def main(argv: list[str] | None = None) -> int:
             limit=args.limit,
         ))
         return 0
+    if args.command == "federation-cycle":
+        result = plane.federation_cycle(
+            cycle_id=args.cycle_id,
+            max_items_per_source=args.max_items_per_source,
+        )
+        print_json(result)
+        return 0 if result.get("complete") else 2
     if args.command == "integrations":
         print_json(plane.integrations())
         return 0

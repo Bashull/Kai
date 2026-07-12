@@ -75,3 +75,5 @@ Use `/fuentes`, `/doctor-unificacion`, `/ingesta-fuente` and `/buscar-global` fo
 - `/buscar-global` queries normalized records across sources.
 
 The federation layer never treats an inaccessible source as inspected. It records blocked, incomplete or truncated sources explicitly and preserves provenance across PC, S24, GitHub, Drive, repositories, manifests, indexes and archives.
+
+- `/ciclo-unificacion` -> `federation-cycle` runs one bounded, cursor-resumable federation pass over the enabled source registry. It never loops forever and never marks blocked or truncated sources as complete.
