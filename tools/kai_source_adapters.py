@@ -6,7 +6,13 @@ from typing import Any
 import json
 import subprocess
 
-from tools.kai_source_federation import SourceRecord
+try:
+    from tools.kai_source_federation import SourceRecord
+except ModuleNotFoundError:
+    import sys
+    local_dir = Path(__file__).resolve().parent
+    sys.path.insert(0, str(local_dir))
+    from kai_source_federation import SourceRecord
 
 
 SECRET_FIELD_NAMES = {

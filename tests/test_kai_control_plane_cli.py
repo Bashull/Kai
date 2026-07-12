@@ -17,6 +17,13 @@ class KaiControlPlaneCliTests(unittest.TestCase):
         self.state = self.root / "state"
         self.memory = self.root / "memory"
         self.capabilities = self.root / "capabilities"
+        self.repo.mkdir(parents=True, exist_ok=True)
+        (self.repo / 'config').mkdir(parents=True, exist_ok=True)
+        (self.repo / 'config' / 'kai_source_registry.json').write_text(
+            json.dumps({'schema_version': 1, 'sources': [
+                {'source_id': 'pc:kai-root', 'kind': 'PC', 'enabled': True, 'uri': 'file:///KAI'}
+            ]}), encoding='utf-8'
+        )
         self.policy = self.root / "policy.json"
         self.script = Path(__file__).resolve().parents[1] / "tools" / "kai_control_plane.py"
         self.policy.write_text(json.dumps({
@@ -127,6 +134,18 @@ class KaiControlPlaneCliTests(unittest.TestCase):
         self.assertIn("operation is not allowlisted", process.stderr)
 
 
+    def test_new_federation_aliases_are_registered(self):
+        result = self.run_cli("commands")
+        self.assertEqual(result["/fuentes"], "sources")
+        self.assertEqual(result["/doctor-unificacion"], "source-doctor")
+        self.assertEqual(result["/ingesta-fuente"], "source-ingest")
+        self.assertEqual(result["/buscar-global"], "global-query")
+
+    def test_sources_cli_returns_json(self):
+        result = self.run_cli("sources")
+        self.assertTrue(any(item["source_id"] == "pc:kai-root" for item in result))
+
+
 if __name__ == "__main__":
     unittest.main()
 
@@ -141,9 +160,13 @@ class KaiControlPlaneDeployedRuntimeTests(unittest.TestCase):
             script = runtime / "kai_control_plane.py"
             policy_module = runtime / "kai_location_policy.py"
             integrations_module = runtime / "kai_capability_integrations.py"
+            federation_module = runtime / "kai_source_federation.py"
+            adapters_module = runtime / "kai_source_adapters.py"
             script.write_bytes((source_root / "tools" / "kai_control_plane.py").read_bytes())
             policy_module.write_bytes((source_root / "tools" / "kai_location_policy.py").read_bytes())
             integrations_module.write_bytes((source_root / "tools" / "kai_capability_integrations.py").read_bytes())
+            federation_module.write_bytes((source_root / "tools" / "kai_source_federation.py").read_bytes())
+            adapters_module.write_bytes((source_root / "tools" / "kai_source_adapters.py").read_bytes())
             result = subprocess.run(
                 [sys.executable, str(script), "--help"],
                 text=True,
@@ -158,7 +181,13 @@ class KaiControlPlaneDeployedRuntimeTests(unittest.TestCase):
             runtime = root / "bridge" / "agent_tools" / "kai_control_plane"
             runtime.mkdir(parents=True)
             source_root = Path(__file__).resolve().parents[1]
-            for name in ("kai_control_plane.py", "kai_location_policy.py", "kai_capability_integrations.py"):
+            for name in (
+                "kai_control_plane.py",
+                "kai_location_policy.py",
+                "kai_capability_integrations.py",
+                "kai_source_federation.py",
+                "kai_source_adapters.py",
+            ):
                 (runtime / name).write_bytes((source_root / "tools" / name).read_bytes())
             policy = root / "policy.json"
             policy.write_text(json.dumps({
@@ -186,3 +215,63 @@ class KaiControlPlaneDeployedRuntimeTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             payload = json.loads(result.stdout)
             self.assertEqual(len(payload), 5)
+
+
+    def test_deployed_script_lists_sources_with_sibling_federation_modules(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            runtime = root / "bridge" / "agent_tools" / "kai_control_plane"
+            runtime.mkdir(parents=True)
+            source_root = Path(__file__).resolve().parents[1]
+            for name in (
+                "kai_control_plane.py",
+                "kai_location_policy.py",
+                "kai_capability_integrations.py",
+                "kai_source_federation.py",
+                "kai_source_adapters.py",
+            ):
+                (runtime / name).write_bytes((source_root / "tools" / name).read_bytes())
+
+            repo = root / "repo"
+            (repo / "config").mkdir(parents=True)
+            (repo / "config" / "kai_source_registry.json").write_text(json.dumps({
+                "schema_version": 1,
+                "sources": [{
+                    "source_id": "pc:test",
+                    "kind": "PC",
+                    "enabled": True,
+                    "uri": "file:///tmp",
+                }],
+            }), encoding="utf-8")
+            policy = root / "policy.json"
+            policy.write_text(json.dumps({
+                "schema_version": 1,
+                "local": {
+                    "repo_root": str(repo),
+                    "bridge_root": str(root / "bridge"),
+                    "state_root": str(root / "state"),
+                },
+                "drive": {zone: {"id": zone.lower()} for zone in (
+                    "00_KAI_CORE", "10_KAI_LAB_INGESTION_FORENSICS",
+                    "20_PROJECTS", "30_AI_WORKSPACES", "40_LIBRARY_REFERENCE",
+                    "80_INBOX_UNCLASSIFIED", "90_ARCHIVE_HISTORICAL",
+                    "99_PRIVATE_SENSITIVE",
+                )},
+            }), encoding="utf-8")
+            result = subprocess.run(
+                [
+                    sys.executable, str(runtime / "kai_control_plane.py"),
+                    "--policy", str(policy),
+                    "--repo-root", str(repo),
+                    "--bridge-root", str(root / "bridge"),
+                    "--state-root", str(root / "state"),
+                    "--memory-home", str(root / "memory"),
+                    "--capability-home", str(root / "capabilities"),
+                    "sources",
+                ],
+                text=True,
+                capture_output=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            payload = json.loads(result.stdout)
+            self.assertEqual(payload[0]["source_id"], "pc:test")

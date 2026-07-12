@@ -25,6 +25,16 @@ except ModuleNotFoundError:
     sys.path.insert(0, str(local_dir))
     from kai_capability_integrations import CapabilityIntegrationManager
 
+try:
+    from tools.kai_source_adapters import ConnectorSnapshotAdapter, SourceRegistry
+    from tools.kai_source_federation import FederationLedger
+except ModuleNotFoundError:
+    import sys
+    local_dir = Path(__file__).resolve().parent
+    sys.path.insert(0, str(local_dir))
+    from kai_source_adapters import ConnectorSnapshotAdapter, SourceRegistry
+    from kai_source_federation import FederationLedger
+
 
 COMMAND_ALIASES = {
     "/despierta": "wake",
@@ -44,6 +54,10 @@ COMMAND_ALIASES = {
     "/integraciones": "integrations",
     "/doctor-integraciones": "integration-doctor",
     "/usa-capacidad": "integration-call",
+    "/fuentes": "sources",
+    "/doctor-unificacion": "source-doctor",
+    "/ingesta-fuente": "source-ingest",
+    "/buscar-global": "global-query",
 }
 
 
@@ -72,6 +86,8 @@ class KaiControlPlane:
         memory_home: Path,
         capability_home: Path,
         policy: PlacementPolicy,
+        federation_home: Path | None = None,
+        source_registry_path: Path | None = None,
     ):
         self.repo_root = Path(repo_root).resolve()
         self.bridge_root = Path(bridge_root).resolve()
@@ -79,6 +95,16 @@ class KaiControlPlane:
         self.memory_home = Path(memory_home).resolve()
         self.capability_home = Path(capability_home).resolve()
         self.policy = policy
+        self.federation_home = Path(federation_home or (self.state_root / "federation")).resolve()
+        self.source_registry_path = Path(
+            source_registry_path or (self.repo_root / "config" / "kai_source_registry.json")
+        ).resolve()
+        self.federation_ledger = FederationLedger(self.federation_home)
+        self.source_registry = (
+            SourceRegistry.from_json(self.source_registry_path)
+            if self.source_registry_path.is_file()
+            else SourceRegistry({"schema_version": 1, "sources": []})
+        )
 
         self.skills_source = self.repo_root / "skills"
         self.tools_source = self.repo_root / "tools"
@@ -317,6 +343,45 @@ class KaiControlPlane:
     def integration_call(self, slug: str, operation: str, args: list[str] | None = None) -> dict[str, Any]:
         return self.integration_manager.invoke(slug, operation, list(args or []))
 
+    def federation_sources(self) -> list[dict[str, Any]]:
+        return self.source_registry.enabled()
+
+    def federation_doctor(self) -> dict[str, Any]:
+        ledger = self.federation_ledger.doctor()
+        sources = self.federation_sources()
+        return {
+            "status": "HEALTHY" if ledger["status"] == "HEALTHY" and sources else "DEGRADED",
+            "ledger": ledger,
+            "enabled_sources": len(sources),
+            "summary": self.federation_ledger.source_summary(),
+        }
+
+    def federation_query(self, **filters: Any) -> list[dict[str, Any]]:
+        return [record.to_dict() for record in self.federation_ledger.query(**filters)]
+
+    def federation_ingest_snapshot(
+        self,
+        *,
+        source_id: str,
+        source_kind: str,
+        snapshot_path: Path,
+        max_items: int = 10000,
+    ) -> dict[str, Any]:
+        adapter = ConnectorSnapshotAdapter(
+            source_id=source_id,
+            source_kind=source_kind,
+            snapshot_path=Path(snapshot_path),
+        )
+        result = adapter.collect(max_items=max_items)
+        stored = [self.federation_ledger.upsert_record(record) for record in result.records]
+        return {
+            "status": result.status,
+            "stored": len(stored),
+            "observed_count": result.observed_count,
+            "truncated": result.truncated,
+            "warnings": result.warnings,
+        }
+
     def organize(self, artifact_kind: str) -> dict[str, Any]:
         result = dict(self.where(artifact_kind))
         result["action"] = "RECOMMEND_PLACEMENT"
@@ -413,6 +478,8 @@ def build_cli_parser() -> argparse.ArgumentParser:
     parser.add_argument("--state-root", type=Path)
     parser.add_argument("--memory-home", type=Path)
     parser.add_argument("--capability-home", type=Path)
+    parser.add_argument("--federation-home", type=Path)
+    parser.add_argument("--source-registry", type=Path)
 
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("commands")
@@ -462,6 +529,21 @@ def build_cli_parser() -> argparse.ArgumentParser:
     evidence.add_argument("--payload-file", type=Path, required=True)
 
     sub.add_parser("capabilities")
+    sub.add_parser("sources")
+    sub.add_parser("source-doctor")
+
+    source_ingest = sub.add_parser("source-ingest")
+    source_ingest.add_argument("--source-id", required=True)
+    source_ingest.add_argument("--source-kind", required=True)
+    source_ingest.add_argument("--snapshot", type=Path, required=True)
+    source_ingest.add_argument("--max-items", type=int, default=10000)
+
+    global_query = sub.add_parser("global-query")
+    global_query.add_argument("--name-contains")
+    global_query.add_argument("--source-kind")
+    global_query.add_argument("--sha256")
+    global_query.add_argument("--limit", type=int, default=100)
+
     sub.add_parser("integrations")
     sub.add_parser("integration-doctor")
     integration_call = sub.add_parser("integration-call")
@@ -500,6 +582,8 @@ def build_plane_from_args(args: argparse.Namespace) -> KaiControlPlane:
         memory_home=memory_home,
         capability_home=capability_home,
         policy=policy,
+        federation_home=args.federation_home,
+        source_registry_path=args.source_registry,
     )
 
 
@@ -549,6 +633,30 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "capabilities":
         print_json(plane.capabilities())
+        return 0
+    if args.command == "sources":
+        print_json(plane.federation_sources())
+        return 0
+    if args.command == "source-doctor":
+        diagnosis = plane.federation_doctor()
+        print_json(diagnosis)
+        return 0 if diagnosis["status"] == "HEALTHY" else 2
+    if args.command == "source-ingest":
+        result = plane.federation_ingest_snapshot(
+            source_id=args.source_id,
+            source_kind=args.source_kind,
+            snapshot_path=args.snapshot,
+            max_items=args.max_items,
+        )
+        print_json(result)
+        return 0 if result["status"] == "HEALTHY" else 2
+    if args.command == "global-query":
+        print_json(plane.federation_query(
+            name_contains=args.name_contains,
+            source_kind=args.source_kind,
+            sha256=args.sha256,
+            limit=args.limit,
+        ))
         return 0
     if args.command == "integrations":
         print_json(plane.integrations())

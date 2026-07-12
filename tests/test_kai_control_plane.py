@@ -6,6 +6,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from tools.kai_control_plane import COMMAND_ALIASES, KaiControlPlane
+from tools.kai_source_federation import SourceRecord
 from tools.kai_location_policy import PlacementPolicy
 
 
@@ -18,6 +19,13 @@ class KaiControlPlaneTests(unittest.TestCase):
         self.state = self.root / "state"
         self.memory = self.root / "memory"
         self.capabilities = self.root / "capabilities"
+        self.repo.mkdir(parents=True, exist_ok=True)
+        (self.repo / 'config').mkdir(parents=True, exist_ok=True)
+        (self.repo / 'config' / 'kai_source_registry.json').write_text(
+            json.dumps({'schema_version': 1, 'sources': [
+                {'source_id': 'pc:kai-root', 'kind': 'PC', 'enabled': True, 'uri': 'file:///KAI'}
+            ]}), encoding='utf-8'
+        )
         self.policy = PlacementPolicy.from_dict({
             "schema_version": 1,
             "local": {
@@ -183,6 +191,26 @@ class KaiControlPlaneTests(unittest.TestCase):
     def test_integration_call_respects_adapter_allowlist(self):
         with self.assertRaisesRegex(ValueError, "operation is not allowlisted"):
             self.plane.integration_call("storage-commander", "execute", ["{}"])
+
+
+    def test_federation_methods_expose_sources_and_query(self):
+        sources = self.plane.federation_sources()
+        self.assertIsInstance(sources, list)
+        self.assertTrue(any(item["source_id"] == "pc:kai-root" for item in sources))
+        doctor = self.plane.federation_doctor()
+        self.assertIn(doctor["status"], {"HEALTHY", "DEGRADED"})
+
+    def test_federation_query_returns_normalized_records(self):
+        self.plane.federation_ledger.upsert_record(SourceRecord(
+            source_id="pc:test",
+            source_kind="PC",
+            source_uri="file:///tmp",
+            logical_path="core/kai.py",
+            filename="kai.py",
+            sha256="d" * 64,
+        ))
+        rows = self.plane.federation_query(name_contains="kai")
+        self.assertEqual(rows[0]["filename"], "kai.py")
 
 
 if __name__ == "__main__":

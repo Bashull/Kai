@@ -63,3 +63,15 @@ New work that changes state, creates artifacts, fixes bugs, updates capabilities
 ## Decision labels
 
 Use `DISCOVERED`, `CLASSIFIED`, `CANDIDATE`, `TESTING`, `VALIDATED`, `PROMOTED`, `CANONICAL`, `SUPERSEDED`, `QUARANTINED` and `REJECTED` according to the capability registry.
+
+
+## Global source federation
+
+Use `/fuentes`, `/doctor-unificacion`, `/ingesta-fuente` and `/buscar-global` for global inventory work.
+
+- `/fuentes` lists enabled source definitions.
+- `/doctor-unificacion` reports federation ledger health and current source coverage.
+- `/ingesta-fuente` ingests a connector snapshot with explicit provenance.
+- `/buscar-global` queries normalized records across sources.
+
+The federation layer never treats an inaccessible source as inspected. It records blocked, incomplete or truncated sources explicitly and preserves provenance across PC, S24, GitHub, Drive, repositories, manifests, indexes and archives.
