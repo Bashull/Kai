@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# KAI runtime-private data: never commit
+companion/data/
+companion/.env
+companion/frontend/build/
