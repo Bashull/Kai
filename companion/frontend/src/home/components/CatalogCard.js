@@ -2,19 +2,19 @@ import { primaryAction } from '../catalogModel';
 import { resolveLaunch } from '../launch';
 import StatusBadge from './StatusBadge';
 
-function safeContinueHref(target) {
+function safeBrowserHref(target) {
   if (typeof target !== 'string') return null;
-  if (target.startsWith('/')) return target;
-  if (/^https?:\/\//i.test(target)) return target;
+  const value = target.trim();
+  if (value.startsWith('/') && !value.startsWith('//')) return value;
+  if (/^https?:\/\/[^\s]+$/i.test(value)) return value;
   return null;
 }
 
 export default function CatalogCard({ item, onOpenQuickLook }) {
   const action = primaryAction(item);
   const launch = resolveLaunch(item);
-  const href = action.kind === 'continue'
-    ? safeContinueHref(action.target)
-    : launch.enabled ? launch.href : null;
+  const candidate = action.kind === 'continue' ? action.target : launch.enabled ? launch.href : null;
+  const href = safeBrowserHref(candidate);
 
   return (
     <article className="catalog-card">

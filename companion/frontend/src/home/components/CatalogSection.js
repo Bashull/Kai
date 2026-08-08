@@ -2,10 +2,11 @@ import CatalogCard from './CatalogCard';
 import EmptyState from './EmptyState';
 
 export default function CatalogSection({ title, items, onOpenQuickLook }) {
+  const sectionId = `section-${encodeURIComponent(title)}`;
   return (
-    <section className="catalog-section" aria-labelledby={`section-${title}`}>
+    <section className="catalog-section" aria-labelledby={sectionId}>
       <div className="catalog-section__heading">
-        <h2 id={`section-${title}`}>{title}</h2>
+        <h2 id={sectionId}>{title}</h2>
         <span>{items.length}</span>
       </div>
       {items.length ? (

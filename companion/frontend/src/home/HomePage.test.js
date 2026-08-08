@@ -29,3 +29,21 @@ test('Kai presence falls back to the neutral core when the private canon is unav
   expect(screen.getByLabelText('Kai')).toBeInTheDocument();
   expect(screen.queryByRole('img', { name: 'Kai' })).not.toBeInTheDocument();
 });
+
+test('HOME keeps primary section headings visible while loading', () => {
+  render(<HomePage items={[]} loading error={null} onOpenSearch={() => {}} onOpenQuickLook={() => {}} />);
+  expect(screen.getByRole('heading', { name: /continuar/i })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: /aplicaciones/i })).toBeInTheDocument();
+});
+
+test('HOME never exposes unsafe browser launch schemes', () => {
+  const unsafe = [{ ...items[0], id: 'unsafe-web', sections: ['APLICACIONES'], status: 'FUNCTIONAL', launch_kind: 'web_app', launch_target: 'javascript:alert(1)', continue_target: null }];
+  render(<HomePage items={unsafe} loading={false} error={null} onOpenSearch={() => {}} onOpenQuickLook={() => {}} />);
+  expect(screen.queryByRole('link', { name: 'USAR' })).not.toBeInTheDocument();
+});
+
+test('section with spaces keeps an accessible region name', () => {
+  const world = [{ ...items[0], id: 'world', title: 'World', sections: ['MUNDOS Y PROYECTOS'] }];
+  render(<HomePage items={world} loading={false} error={null} onOpenSearch={() => {}} onOpenQuickLook={() => {}} />);
+  expect(screen.getByRole('region', { name: 'MUNDOS Y PROYECTOS' })).toBeInTheDocument();
+});

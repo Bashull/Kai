@@ -27,7 +27,7 @@ export default function HomePage({ items = [], loading, error, onOpenSearch, onO
       <KaiPresence />
       {loading && <p className="home-notice">Cargando catálogo…</p>}
       {error && <p className="home-notice home-notice--error">{error.message || String(error)}</p>}
-      {!loading && visibleSections.map(section => (
+      {visibleSections.map(section => (
         <CatalogSection
           key={section}
           title={section}
