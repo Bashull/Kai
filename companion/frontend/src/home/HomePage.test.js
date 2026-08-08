@@ -47,3 +47,9 @@ test('section with spaces keeps an accessible region name', () => {
   render(<HomePage items={world} loading={false} error={null} onOpenSearch={() => {}} onOpenQuickLook={() => {}} />);
   expect(screen.getByRole('region', { name: 'MUNDOS Y PROYECTOS' })).toBeInTheDocument();
 });
+
+test('HOME rejects backslash paths that browsers normalize to another origin', () => {
+  const bypass = [{ ...items[0], id: 'origin-bypass', sections: ['APLICACIONES'], status: 'FUNCTIONAL', launch_kind: 'web_app', launch_target: String.raw`/\evil.example/path`, continue_target: null }];
+  render(<HomePage items={bypass} loading={false} error={null} onOpenSearch={() => {}} onOpenQuickLook={() => {}} />);
+  expect(screen.queryByRole('link', { name: 'USAR' })).not.toBeInTheDocument();
+});

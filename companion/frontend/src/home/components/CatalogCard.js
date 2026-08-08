@@ -5,9 +5,20 @@ import StatusBadge from './StatusBadge';
 function safeBrowserHref(target) {
   if (typeof target !== 'string') return null;
   const value = target.trim();
-  if (value.startsWith('/') && !value.startsWith('//')) return value;
-  if (/^https?:\/\/[^\s]+$/i.test(value)) return value;
-  return null;
+  if (!value) return null;
+
+  try {
+    if (value.startsWith('/')) {
+      const base = new URL('https://kai.home.invalid/');
+      const resolved = new URL(value, base);
+      return resolved.origin === base.origin ? value : null;
+    }
+
+    const resolved = new URL(value);
+    return resolved.protocol === 'http:' || resolved.protocol === 'https:' ? value : null;
+  } catch {
+    return null;
+  }
 }
 
 export default function CatalogCard({ item, onOpenQuickLook }) {
