@@ -1,5 +1,5 @@
 const { v4: uuid } = require('uuid');
-const db = require('../database');
+const db = require('./database');
 const fs = require('fs-extra');
 const path = require('path');
 
