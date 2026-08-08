@@ -9,7 +9,7 @@
     "frontend": "cd frontend && npm start",
     "build": "cd frontend && npm run build",
     "start": "node backend/server.js",
-    "test:backend": "node --test test/*.test.js",
+    "test:backend": "node --test",
     "test:privacy": "node test/privacy-boundary.test.js"
   },
   "keywords": [
