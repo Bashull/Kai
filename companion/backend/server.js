@@ -41,6 +41,7 @@ app.use('/api/files', require('./routes/fileRoutes'));
 app.use('/api/permissions', require('./routes/permissionRoutes'));
 app.use('/api/chat', require('./routes/chatRoutes'));
 app.use('/api/system', require('./routes/systemRoutes'));
+app.use('/api/catalog', require('./routes/catalogRoutes'));
 
 io.on('connection', (socket) => {
   console.log('👤 Client connected:', socket.id);
@@ -70,9 +71,11 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
-  console.log(`🚀 Companion running on http://localhost:${PORT}`);
-  console.log('📡 WebSocket ready for real-time communication');
-});
+if (require.main === module) {
+  server.listen(PORT, () => {
+    console.log(`🚀 Companion running on http://localhost:${PORT}`);
+    console.log('📡 WebSocket ready for real-time communication');
+  });
+}
 
-module.exports = { app, io };
+module.exports = { app, io, server };
