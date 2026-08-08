@@ -1,0 +1,22 @@
+:root {
+  --kai-bg: #080b0a;
+  --kai-surface-1: #101412;
+  --kai-surface-2: #171c19;
+  --kai-surface-3: #202722;
+  --kai-ivory: #e8e2d5;
+  --kai-ivory-muted: #aaa397;
+  --kai-gold: #c7a548;
+  --kai-gold-soft: rgba(199, 165, 72, 0.28);
+  --kai-green: #69ff4f;
+  --kai-green-soft: rgba(105, 255, 79, 0.16);
+  --kai-danger: #ff6969;
+  --kai-radius-sm: 10px;
+  --kai-radius-md: 16px;
+  --kai-radius-lg: 24px;
+  --kai-space-1: 8px;
+  --kai-space-2: 16px;
+  --kai-space-3: 24px;
+  --kai-space-4: 32px;
+  --kai-space-6: 48px;
+  --kai-motion-fast: 160ms;
+}
