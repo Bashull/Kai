@@ -86,6 +86,22 @@ const createTables = () => {
       duration REAL DEFAULT 1.0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS catalog_items (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      kind TEXT NOT NULL,
+      sections TEXT NOT NULL,
+      status TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      cover TEXT,
+      tags TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      canonical_source TEXT,
+      launch_kind TEXT NOT NULL,
+      launch_target TEXT,
+      continue_target TEXT
+    );
   `;
 
   schema.split(';').forEach((statement) => {
