@@ -53,3 +53,15 @@ test('HOME rejects backslash paths that browsers normalize to another origin', (
   render(<HomePage items={bypass} loading={false} error={null} onOpenSearch={() => {}} onOpenQuickLook={() => {}} />);
   expect(screen.queryByRole('link', { name: 'USAR' })).not.toBeInTheDocument();
 });
+
+test('Ctrl+K opens global search from HOME', () => {
+  render(<HomePage items={items} loading={false} error={null} onOpenSearch={() => {}} onOpenQuickLook={() => {}} />);
+  fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
+  expect(screen.getByRole('dialog', { name: /buscar en kai home/i })).toBeInTheDocument();
+});
+
+test('card quick look opens the item dialog', () => {
+  render(<HomePage items={items} loading={false} error={null} onOpenSearch={() => {}} onOpenQuickLook={() => {}} />);
+  fireEvent.click(screen.getAllByRole('button', { name: /vista rápida/i })[0]);
+  expect(screen.getByRole('dialog', { name: 'Kai' })).toBeInTheDocument();
+});
