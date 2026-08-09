@@ -65,3 +65,12 @@ test('card quick look opens the item dialog', () => {
   fireEvent.click(screen.getAllByRole('button', { name: /vista rápida/i })[0]);
   expect(screen.getByRole('dialog', { name: 'Kai' })).toBeInTheDocument();
 });
+
+test('Ctrl+K replaces Quick Look instead of stacking modal dialogs', () => {
+  render(<HomePage items={items} loading={false} error={null} onOpenSearch={() => {}} onOpenQuickLook={() => {}} />);
+  fireEvent.click(screen.getAllByRole('button', { name: /vista rápida/i })[0]);
+  expect(screen.getByRole('dialog', { name: 'Kai' })).toBeInTheDocument();
+  fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
+  expect(screen.getByRole('dialog', { name: /buscar en kai home/i })).toBeInTheDocument();
+  expect(screen.queryByRole('dialog', { name: 'Kai' })).not.toBeInTheDocument();
+});

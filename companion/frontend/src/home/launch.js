@@ -7,6 +7,7 @@ export function safeBrowserHref(target) {
 
   try {
     if (value.startsWith('/')) {
+      if (value.startsWith('//') || value.includes('\\')) return null;
       const base = new URL('https://kai.home.invalid/');
       const resolved = new URL(value, base);
       return resolved.origin === base.origin ? value : null;

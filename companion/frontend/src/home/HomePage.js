@@ -30,6 +30,7 @@ export default function HomePage({ items = [], loading, error, onOpenSearch, onO
     const handler = event => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault();
+        setQuickLookItem(null);
         setSearchOpen(true);
       }
     };
@@ -38,6 +39,7 @@ export default function HomePage({ items = [], loading, error, onOpenSearch, onO
   }, []);
 
   const openSearch = () => {
+    setQuickLookItem(null);
     setSearchOpen(true);
     onOpenSearch?.();
   };
