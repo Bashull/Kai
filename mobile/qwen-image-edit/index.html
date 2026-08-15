@@ -10,8 +10,7 @@
 </style>
 </head>
 <body><main>
-<div class="top"><div><div class="brand">Qwen Image Edit</div><div class="small">Mobile · Termux + GPU remota</div></div><div class="badge" id="conn">iniciando</div></div>
-
+<div class="top"><div><div class="brand">Qwen Image Edit</div><div class="small">Mobile · Termux + Hugging Face GPU</div></div><div class="badge" id="conn">conectando</div></div>
 <div class="card">
 <label class="drop">📷 <b>Toca para elegir imágenes</b><br><span class="small">Puedes seleccionar varias</span><input id="files" type="file" accept="image/*" multiple></label>
 <div class="previews" id="previews"></div>
@@ -24,26 +23,37 @@
 </details>
 <br><button class="run" id="run">⚡ Editar imagen</button><div class="status" id="status"></div>
 </div>
-
 <div class="card result" id="resultCard"><img id="resultImg" alt="Resultado"><div class="actions"><a id="download" download="qwen-edit.png">Guardar</a><button id="reuse">Usar de entrada</button></div><div class="small" id="meta"></div></div>
 <div class="card"><div class="label">Historial de esta sesión</div><div class="history" id="history"></div></div>
 </main>
-<script>
-const $=id=>document.getElementById(id); let selectedFiles=[]; let currentResult=null;
+<script type="module">
+import { Client, handle_file } from "https://cdn.jsdelivr.net/npm/@gradio/client/dist/index.min.js";
+
+const SPACE = "prithivMLmods/Qwen-Image-Edit-2511-LoRAs-Fast";
+const LORAS = ["Multiple-Angles","Photo-to-Anime","Anime-V2","Light-Migration","Upscaler","Style-Transfer","Manga-Tone","Anything2Real","Fal-Multiple-Angles","Polaroid-Photo","Unblur-Anything","Midnight-Noir-Eyes-Spotlight","Hyper-Realistic-Portrait","Ultra-Realistic-Portrait","Pixar-Inspired-3D","Noir-Comic-Book","Any-light","Studio-DeLight","Cinematic-FlatLog"];
+const $=id=>document.getElementById(id); let selectedFiles=[]; let currentResult=null; let client=null; let apiInfo=null;
+$('lora').innerHTML=LORAS.map(x=>`<option>${x}</option>`).join(''); $('lora').value='Photo-to-Anime';
 function setStatus(t,cls=''){ $('status').className='status '+cls; $('status').textContent=t; }
-async function boot(){
- try{const c=await fetch('/api/config').then(r=>r.json()); $('lora').innerHTML=c.loras.map(x=>`<option>${x}</option>`).join(''); $('lora').value=c.default_lora; $('conn').textContent='GPU enlazada';}
- catch(e){$('conn').textContent='sin conexión';setStatus(String(e),'err')}
-}
+function dataUrl(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file)})}
+function findImage(v){if(!v)return null;if(typeof v==='string'){if(v.startsWith('data:image/')||v.startsWith('http://')||v.startsWith('https://'))return v;return null}if(Array.isArray(v)){for(const x of v){const f=findImage(x);if(f)return f}return null}if(typeof v==='object'){for(const k of ['image','url','path','data','value','result']){const f=findImage(v[k]);if(f)return f}}return null}
+function findSeed(v,fallback){if(v&&typeof v==='object'&&!Array.isArray(v)&&Number.isFinite(Number(v.seed)))return Number(v.seed);if(Array.isArray(v)&&v.length>1&&Number.isFinite(Number(v[1])))return Number(v[1]);return fallback}
+async function boot(){try{client=await Client.connect(SPACE,{events:['data','status']});try{apiInfo=await client.view_api()}catch{};$('conn').textContent='GPU enlazada';setStatus('Listo.','ok')}catch(e){$('conn').textContent='sin conexión';setStatus('No pude enlazar con Hugging Face: '+e.message,'err')}}
 $('files').addEventListener('change',e=>{selectedFiles=[...e.target.files];renderPreviews()});
 function renderPreviews(){const p=$('previews');p.innerHTML='';selectedFiles.forEach(f=>{const im=new Image();im.src=URL.createObjectURL(f);p.appendChild(im)})}
-$('run').onclick=async()=>{
- if(!selectedFiles.length)return setStatus('Sube al menos una imagen.','err'); if(!$('prompt').value.trim())return setStatus('Escribe la edición que quieres.','err');
- $('run').disabled=true;setStatus('Enviando a la GPU… puede entrar en cola.');
- const fd=new FormData(); selectedFiles.forEach(f=>fd.append('images',f,f.name)); fd.append('prompt',$('prompt').value);fd.append('lora',$('lora').value);fd.append('seed',$('seed').value||0);fd.append('steps',$('steps').value||4);fd.append('guidance',$('guidance').value||1);fd.append('randomize',$('randomize').value);
- try{const r=await fetch('/api/edit',{method:'POST',body:fd});const d=await r.json();if(!r.ok)throw new Error(d.error||'Error de edición');currentResult=d.image;$('resultImg').src=d.image;$('download').href=d.image;$('resultCard').classList.add('show');$('seed').value=d.seed??0;$('meta').textContent=`Seed ${d.seed} · ${d.api} · ${d.space}`;addHistory(d.image);setStatus('Hecho.','ok');}
- catch(e){setStatus(e.message,'err')} finally{$('run').disabled=false}
-};
+async function callRemote(){
+ const prompt=$('prompt').value.trim(),lora=$('lora').value,seed=parseInt($('seed').value)||0,steps=parseInt($('steps').value)||4,guidance=parseFloat($('guidance').value)||1,randomize=$('randomize').value==='true';
+ const errs=[];
+ try{const b64=await Promise.all(selectedFiles.map(dataUrl));const r=await client.predict('/edit_image',{images_b64_json:JSON.stringify(b64),prompt,lora_adapter:lora,seed,randomize_seed:randomize,guidance_scale:guidance,steps});return {value:r.data?.[0]??r.data,api:'edit_image',seed}}
+ catch(e){errs.push('/edit_image: '+e.message)}
+ try{const images=selectedFiles.map(f=>({image:handle_file(f)}));const r=await client.predict('/infer',{images,prompt,lora_adapter:lora,seed,randomize_seed:randomize,guidance_scale:guidance,steps});return {value:r.data,api:'infer-multi',seed}}
+ catch(e){errs.push('/infer multi: '+e.message)}
+ try{const r=await client.predict('/infer',{input_image:handle_file(selectedFiles[0]),prompt,lora_adapter:lora,seed,randomize_seed:randomize,guidance_scale:guidance,steps});return {value:r.data,api:'infer-single',seed}}
+ catch(e){errs.push('/infer single: '+e.message)}
+ try{const r=await client.predict('/infer',[handle_file(selectedFiles[0]),prompt,lora,seed,randomize,guidance,steps]);return {value:r.data,api:'infer-positional',seed}}
+ catch(e){errs.push('/infer positional: '+e.message)}
+ throw new Error(errs.join('\n'));
+}
+$('run').onclick=async()=>{if(!client)return setStatus('La GPU todavía no está enlazada.','err');if(!selectedFiles.length)return setStatus('Sube al menos una imagen.','err');if(!$('prompt').value.trim())return setStatus('Escribe la edición que quieres.','err');$('run').disabled=true;setStatus('Enviando a la GPU… si está ocupada puede entrar en cola.');try{const out=await callRemote();const src=findImage(out.value);if(!src)throw new Error('La GPU respondió, pero no encontré una imagen utilizable en la salida.');const usedSeed=findSeed(out.value,out.seed);currentResult=src;$('resultImg').src=src;$('download').href=src;$('resultCard').classList.add('show');$('seed').value=usedSeed;$('meta').textContent=`Seed ${usedSeed} · ${out.api} · ${SPACE}`;addHistory(src);setStatus('Hecho.','ok')}catch(e){setStatus(e.message,'err')}finally{$('run').disabled=false}};
 function addHistory(src){const im=new Image();im.src=src;im.onclick=()=>{$('resultImg').src=src;$('download').href=src;$('resultCard').classList.add('show');currentResult=src};$('history').prepend(im);while($('history').children.length>8)$('history').lastChild.remove()}
 $('reuse').onclick=async()=>{if(!currentResult)return;try{const b=await fetch(currentResult).then(r=>r.blob());const f=new File([b],'qwen-result.png',{type:b.type||'image/png'});const dt=new DataTransfer();dt.items.add(f);$('files').files=dt.files;selectedFiles=[f];renderPreviews();scrollTo({top:0,behavior:'smooth'});setStatus('Resultado puesto como nueva entrada.','ok')}catch(e){setStatus('No pude reutilizar automáticamente: '+e.message,'err')}};
 boot();
