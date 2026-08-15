@@ -1,0 +1,127 @@
++    result = launcher(payload, token, namespace)
++    record = {
++        "requested_at": _now(),
++        "namespace": namespace,
++        "flavor": flavor,
++        "job": result,
++    }
++    manifest_path = Path(str(manifest.get("manifest_path", "")))
++    if manifest_path.is_file():
++        _write_json(manifest_path.parent / "job.json", record)
++    return result
+diff --git a/training/qwen_identity_job.py b/training/qwen_identity_job.py
+new file mode 100644
+index 0000000..c6d2227
+--- /dev/null
++++ b/training/qwen_identity_job.py
+@@ -0,0 +1,110 @@
++#!/usr/bin/env python3
++from __future__ import annotations
++
++import argparse
++import json
++import os
++import subprocess
++import sys
++import tarfile
++import urllib.request
++from pathlib import Path
++
++DIFFSYNTH_COMMIT = "6343deda06b3e09efc9b1ce23c135c35a341d143"
++DIFFSYNTH_URL = (
++    "https://codeload.github.com/modelscope/DiffSynth-Studio/tar.gz/"
++    + DIFFSYNTH_COMMIT
++)
++
++
++def run(command, *, cwd=None, env=None):
++    print("+", " ".join(map(str, command)), flush=True)
++    subprocess.run(command, cwd=cwd, env=env, check=True)
++
++
++def install_diffsynth(workdir: Path) -> Path:
++    source = workdir / "DiffSynth-Studio"
++    if source.exists():
++        return source
++    archive = workdir / "diffsynth.tar.gz"
++    urllib.request.urlretrieve(DIFFSYNTH_URL, archive)
++    with tarfile.open(archive, "r:gz") as tf:
++        tf.extractall(workdir)
++    extracted = workdir / f"DiffSynth-Studio-{DIFFSYNTH_COMMIT}"
++    extracted.rename(source)
++    run([sys.executable, "-m", "pip", "install", "-e", str(source), "accelerate"])
++    return source
++
++
++def build_train_command(source: Path, manifest: dict) -> list[str]:
++    recipe = manifest.get("recipe") or {}
++    dataset_dir = str(manifest["dataset_dir"])
++    metadata_path = str(manifest["metadata_path"])
++    output_path = str(Path(manifest["manifest_path"]).parent / "output")
++    train_py = source / "examples/qwen_image/model_training/train.py"
++    model_paths = (
++        "Qwen/Qwen-Image-Edit-2511:transformer/diffusion_pytorch_model*.safetensors,"
++        "Qwen/Qwen-Image:text_encoder/model*.safetensors,"
++        "Qwen/Qwen-Image:vae/diffusion_pytorch_model.safetensors"
++    )
++    target_modules = (
++        "to_q,to_k,to_v,add_q_proj,add_k_proj,add_v_proj,to_out.0,to_add_out,"
++        "img_mlp.net.2,img_mod.1,txt_mlp.net.2,txt_mod.1"
++    )
++    return [
++        "accelerate", "launch", str(train_py),
++        "--dataset_base_path", dataset_dir,
++        "--dataset_metadata_path", metadata_path,
++        "--data_file_keys", "image,edit_image",
++        "--extra_inputs", "edit_image",
++        "--max_pixels", str(int(recipe.get("max_pixels", 1048576))),
++        "--dataset_repeat", str(int(recipe.get("dataset_repeat", 3))),
++        "--model_id_with_origin_paths", model_paths,
++        "--learning_rate", str(float(recipe.get("learning_rate", 1e-4))),
++        "--num_epochs", str(int(recipe.get("epochs", 5))),
++        "--remove_prefix_in_ckpt", "pipe.dit.",
++        "--output_path", output_path,
++        "--lora_base_model", "dit",
++        "--lora_target_modules", target_modules,
++        "--lora_rank", str(int(recipe.get("lora_rank", 32))),
++        "--use_gradient_checkpointing",
++        "--dataset_num_workers", "8",
++        "--find_unused_parameters",
++        "--zero_cond_t",
++    ]
++
++
++def main() -> int:
++    parser = argparse.ArgumentParser(description="Train a Qwen-Image-Edit-2511 identity LoRA")
++    parser.add_argument("--manifest", required=True)
++    parser.add_argument("--dry-run", action="store_true")
++    args = parser.parse_args()
++
++    manifest_path = Path(args.manifest)
++    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
++    if int(manifest.get("pair_count", 0)) < 1:
++        raise SystemExit("Training manifest has no approved pairs")
++
++    env = os.environ.copy()
++    env["DIFFSYNTH_DOWNLOAD_SOURCE"] = "huggingface"
++    env["DIFFSYNTH_MODEL_BASE_PATH"] = "/data/kai_studio/model_cache/diffsynth"
++    env["HF_HOME"] = "/data/kai_studio/model_cache/huggingface"
++    workdir = Path("/tmp/kai-qwen-train")
++    workdir.mkdir(parents=True, exist_ok=True)
++    source = install_diffsynth(workdir)
++    command = build_train_command(source, manifest)
++    if args.dry_run:
++        print(json.dumps({"command": command, "env": {
++            "DIFFSYNTH_DOWNLOAD_SOURCE": env["DIFFSYNTH_DOWNLOAD_SOURCE"],
++            "DIFFSYNTH_MODEL_BASE_PATH": env["DIFFSYNTH_MODEL_BASE_PATH"],
++            "HF_HOME": env["HF_HOME"],
++        }}, indent=2))
++        return 0
++
++    run(command, cwd=source, env=env)
++    print("Training completed. Output:", Path(manifest["manifest_path"]).parent / "output")
++    return 0
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())
