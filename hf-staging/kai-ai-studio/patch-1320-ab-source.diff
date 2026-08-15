@@ -1,0 +1,14 @@
+diff --git a/kai_studio/ab.py b/kai_studio/ab.py
+--- a/kai_studio/ab.py
++++ b/kai_studio/ab.py
+@@ -32,8 +32,8 @@ def generate_pair(
+     **kwargs,
+ ) -> dict[str, Any]:
+     seed_a, seed_b = variant_seeds(seed, randomize, rng=rng)
+-    result_a = generate_one(source=source, prompt=prompt, seed=seed_a, **kwargs)
+-    result_b = generate_one(source=source, prompt=prompt, seed=seed_b, **kwargs)
++    result_a = generate_one(source, prompt=prompt, seed=seed_a, **kwargs)
++    result_b = generate_one(source, prompt=prompt, seed=seed_b, **kwargs)
+     return {
+         "a": result_a,
+         "b": result_b,
