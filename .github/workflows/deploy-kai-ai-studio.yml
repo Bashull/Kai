@@ -1,0 +1,51 @@
+name: Deploy Kai AI Studio
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Hugging Face CLI
+        run: |
+          python -m pip install --upgrade "huggingface_hub>=1.19.0"
+
+      - name: Build verified Space tree
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://huggingface.co/spaces/Bashull/Qwen-Image-Edit-2511-LoRAs-Fast /tmp/kai-space
+          BASE="https://raw.githubusercontent.com/Bashull/Kai/kai-ai-studio-staging/hf-staging/kai-ai-studio"
+          : > /tmp/kai.patch
+          for part in 0000 0200 0400 0600 0800 1000 1200; do
+            curl -fsSL "$BASE/patch-$part.diff" >> /tmp/kai.patch
+          done
+          curl -fsSL "$BASE/patch-1310-metadata-v2.diff" -o /tmp/kai-meta.diff
+          cd /tmp/kai-space
+          git apply --check /tmp/kai.patch
+          git apply /tmp/kai.patch
+          git apply --check /tmp/kai-meta.diff
+          git apply /tmp/kai-meta.diff
+          python -m compileall -q app.py kai_studio training
+          test "$(python - <<'PY'
+          from pathlib import Path
+          line=next(x for x in Path('README.md').read_text().splitlines() if x.startswith('short_description:'))
+          print(len(line.split(':',1)[1].strip()))
+          PY
+          )" -le 60
+          rm -rf .git __pycache__ kai_studio/__pycache__ training/__pycache__
+
+      - name: Publish with Hugging Face OIDC
+        env:
+          HF_OIDC_RESOURCE: spaces/Bashull/Qwen-Image-Edit-2511-LoRAs-Fast
+        run: |
+          set -euo pipefail
+          hf upload Bashull/Qwen-Image-Edit-2511-LoRAs-Fast /tmp/kai-space . \
+            --repo-type space \
+            --commit-message "feat: deploy Kai AI Studio from GitHub OIDC"
