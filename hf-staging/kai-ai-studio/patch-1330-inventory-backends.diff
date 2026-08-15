@@ -1,0 +1,172 @@
+diff --git a/app.py b/app.py
+index 06c2302..2dfa14c 100644
+--- a/app.py
++++ b/app.py
+@@ -17,6 +17,7 @@ from gradio.themes import Soft
+ from gradio.themes.utils import colors, fonts
+ 
+ from kai_studio.ab import generate_pair
++from kai_studio.backends import backend_registry, omni_capability_plan
+ from kai_studio.copilot import DEFAULT_MODEL, copilot_reply
+ from kai_studio.inventory import migration_inventory
+ from kai_studio.storage import StudioStore
+@@ -497,6 +498,8 @@ def studio_system_inventory():
+     data["studio_root"] = str(STUDIO_ROOT)
+     data["storage_available"] = STUDIO_ROOT.exists()
+     data["copilot_model"] = DEFAULT_MODEL
++    data["backends"] = backend_registry()
++    data["omni_capabilities"] = omni_capability_plan()
+     return data
+ 
+ 
+diff --git a/kai_studio/backends.py b/kai_studio/backends.py
+new file mode 100644
+index 0000000..584ff52
+--- /dev/null
++++ b/kai_studio/backends.py
+@@ -0,0 +1,60 @@
++from __future__ import annotations
++
++
++def backend_registry() -> dict:
++    return {
++        "qwen_edit": {
++            "repo": "Bashull/Qwen-Image-Edit-2511-LoRAs-Fast",
++            "mode": "native_zero_gpu",
++            "capabilities": ["image_edit", "ab_review", "batch", "lora_adapters"],
++            "copy_weights_into_space": True,
++        },
++        "qwen3_copilot": {
++            "repo": "Qwen/Qwen3-Next-80B-A3B-Instruct",
++            "mode": "inference_provider",
++            "capabilities": ["prompting", "planning", "copilot"],
++            "copy_weights_into_space": False,
++        },
++        "gemma4_private": {
++            "repo": "Bashull/Gemma4-12B-QAT-Uncensored-HauhauCS-Balanced",
++            "mode": "external_llama_cpp",
++            "capabilities": ["text", "vision"],
++            "copy_weights_into_space": False,
++            "status": "registered_not_loaded",
++        },
++    }
++
++
++def omni_capability_plan() -> dict:
++    return {
++        "image_edit": {
++            "engine": "qwen_image_edit",
++            "strategy": "native",
++            "reuse_omni_external_api": False,
++        },
++        "multi_image_edit": {
++            "engine": "qwen_image_edit",
++            "strategy": "multi_reference_pipeline",
++            "reuse_omni_external_api": False,
++        },
++        "text_to_image": {
++            "engine": "generator_backend",
++            "strategy": "qwen_or_flux_backend",
++            "reuse_omni_external_api": False,
++        },
++        "upscale": {
++            "engine": "upscale_backend",
++            "strategy": "native_or_dedicated_upscaler",
++            "reuse_omni_external_api": False,
++        },
++        "face_swap": {
++            "engine": "identity_engine",
++            "strategy": "identity_engine",
++            "reuse_omni_external_api": False,
++        },
++        "watermark_removal": {
++            "engine": "qwen_image_edit",
++            "strategy": "mask_or_reference_guided_edit",
++            "reuse_omni_external_api": False,
++        },
++    }
+diff --git a/kai_studio/inventory.py b/kai_studio/inventory.py
+index 3e1e465..f908eff 100644
+--- a/kai_studio/inventory.py
++++ b/kai_studio/inventory.py
+@@ -1,7 +1,27 @@
+ from __future__ import annotations
+ 
+ PRIMARY_SPACE = "Bashull/Qwen-Image-Edit-2511-LoRAs-Fast"
+-LEGACY_SPACES = ["Bashull/autotrain-advanced"]
++STORAGE_BUCKET = "Bashull/Qwen-Image-Edit-2511-LoRAs-Fast-storage"
++
++OWNED_SPACES = [
++    {"repo": PRIMARY_SPACE, "private": False, "role": "primary_studio"},
++    {"repo": "Bashull/fusionai", "private": True, "role": "legacy_library"},
++    {"repo": "Bashull/autotren-forja", "private": True, "role": "empty_legacy_shell"},
++    {"repo": "Bashull/autotrain-advanced", "private": False, "role": "legacy_training_shell"},
++    {"repo": "Bashull/Omni-Image-Editor", "private": True, "role": "capability_reference"},
++]
++
++OWNED_MODELS = [
++    {
++        "repo": "Bashull/Gemma4-12B-QAT-Uncensored-HauhauCS-Balanced",
++        "private": True,
++        "format": "GGUF multimodal",
++        "strategy": "external_backend_reference",
++    }
++]
++
++LEGACY_SPACES = [row["repo"] for row in OWNED_SPACES if row["repo"] != PRIMARY_SPACE]
++
+ COLLECTION_SOURCES = [
+     "Qwen/Qwen3-Next-80B-A3B-Instruct",
+     "prithivMLmods/FLUX-LoRA-DLC",
+@@ -9,19 +29,42 @@ COLLECTION_SOURCES = [
+     "kpsss34/FHDR_Uncensored",
+ ]
+ 
++LEGACY_BACKUP = {
++    "status": "verified_local_snapshot",
++    "size_bytes": 30917223,
++    "sha256": "82a150108fa1971717b226aedb56578ad012fc98166db7b38a1c72f9624160d9",
++    "sources": [
++        "Bashull/fusionai",
++        "Bashull/autotren-forja",
++        "Bashull/autotrain-advanced",
++        "Bashull/Omni-Image-Editor",
++    ],
++}
++
++MIGRATION = {
++    "qwen_image_edit": {"action": "keep_primary", "target": "Kai AI Studio / ZeroGPU"},
++    "identity_memory": {"action": "persist", "target": "/data/kai_studio"},
++    "qwen3_copilot": {"action": "external_backend", "target": "Inference Providers"},
++    "training": {"action": "jobs", "target": "Hugging Face Jobs"},
++    "fusionai": {"action": "absorb_library", "target": "protocols, prompts, audio and visual assets"},
++    "omni_image_editor": {"action": "reimplement_capabilities", "target": "Kai-native tools"},
++    "gemma4_private": {"action": "external_backend", "target": "llama.cpp / GGUF runtime"},
++    "autotren_forja": {"action": "archive_candidate", "target": "backup only"},
++    "autotrain_advanced": {"action": "archive_after_train_verification", "target": "Kai Train tab"},
++    "flux_catalog": {"action": "reference", "target": "generator/training capability source"},
++    "fhdr": {"action": "optional_backend", "target": "gated generator source"},
++}
+ 
+ def migration_inventory() -> dict:
+     return {
+         "primary_space": PRIMARY_SPACE,
++        "storage_bucket": STORAGE_BUCKET,
++        "owned_spaces": [dict(row) for row in OWNED_SPACES],
++        "owned_models": [dict(row) for row in OWNED_MODELS],
+         "legacy_spaces": list(LEGACY_SPACES),
+         "collection_sources": list(COLLECTION_SOURCES),
+-        "migration": {
+-            "qwen_image_edit": "native / ZeroGPU",
+-            "identity_memory": "bucket /data/kai_studio",
+-            "qwen3_copilot": "Inference Providers",
+-            "training": "Hugging Face Jobs",
+-            "flux_catalog": "capability source; not copied as a second UI",
+-            "fhdr": "optional generator backend; gated source",
+-            "autotrain_advanced": "legacy until Train tab live verification",
+-        },
++        "datasets": [],
++        "collection": {"title": "Mio", "slug": "Bashull/mio-68e47a4672b669068b592fb3"},
++        "backups": {"legacy_spaces": dict(LEGACY_BACKUP)},
++        "migration": {key: dict(value) for key, value in MIGRATION.items()},
+     }
