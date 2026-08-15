@@ -33,6 +33,7 @@ jobs:
           curl -fsSL "$BASE/patch-1310-metadata-v2.diff" -o /tmp/kai-meta.diff
           curl -fsSL "$BASE/patch-1320-ab-source.diff" -o /tmp/kai-ab.diff
           curl -fsSL "$BASE/patch-1330-inventory-backends.diff" -o /tmp/kai-inventory.diff
+          curl -fsSL "$BASE/patch-1340-identity-memory.diff" -o /tmp/kai-identity.diff
           cd /tmp/kai-space
           git apply --check /tmp/kai.patch
           git apply /tmp/kai.patch
@@ -42,6 +43,8 @@ jobs:
           git apply /tmp/kai-ab.diff
           git apply --check /tmp/kai-inventory.diff
           git apply /tmp/kai-inventory.diff
+          git apply --check /tmp/kai-identity.diff
+          git apply /tmp/kai-identity.diff
           python -m compileall -q app.py kai_studio training
           test "$(python - <<'PY'
           from pathlib import Path
