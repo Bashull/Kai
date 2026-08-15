@@ -1,0 +1,95 @@
+diff --git a/app.py b/app.py
+index e2fbea5..7183ff7 100644
+--- a/app.py
++++ b/app.py
+@@ -900,6 +900,7 @@ with gr.Blocks(theme=theme, title="Kai AI Studio") as demo:
+     review_source = gr.State(None)
+     review_seed_a = gr.State(0)
+     review_seed_b = gr.State(1)
++    review_identity_count = gr.State(0)
+     review_run_json = gr.State(None)
+     review_winner_path = gr.State("")
+     review_anchor_path = gr.State("")
+@@ -1043,8 +1044,10 @@ with gr.Blocks(theme=theme, title="Kai AI Studio") as demo:
+         concurrency_limit=4,
+     )
+ 
+-    def _seed_label(a, b):
+-        return f"Seeds: **A={int(a)}** · **B={int(b)}**"
++    def _seed_label(a, b, identity_count=0):
++        refs = int(identity_count or 0)
++        suffix = f" · identidad: **{refs} refs**" if refs else ""
++        return f"Seeds: **A={int(a)}** · **B={int(b)}**{suffix}"
+ 
+     def _decision_label(run, winner, anchor, cursor):
+         if not run:
+@@ -1054,20 +1057,16 @@ with gr.Blocks(theme=theme, title="Kai AI Studio") as demo:
+ 
+     def _wire_generate(button):
+         event = button.click(
+-            fn=kai_edit_pair,
+-            inputs=[review_original, review_prompt, review_seed, review_steps, review_randomize],
+-            outputs=[review_a, review_b, review_seed_a, review_seed_b],
+-            api_name="kai_edit_pair" if button is review_generate else None,
++            fn=studio_generate_pair,
++            inputs=[review_run_id, review_index, review_seed, review_steps, review_randomize],
++            outputs=[review_a, review_b, review_seed_a, review_seed_b, review_identity_count],
+             concurrency_limit=1,
+         )
+-        event = event.then(
+-            fn=studio_record_review,
+-            inputs=[review_run_id, review_index, review_a, review_b, review_seed_a, review_seed_b],
+-            outputs=[review_run_json],
+-            api_name="studio_record" if button is review_generate else None,
+-            concurrency_limit=4,
++        event.then(
++            fn=_seed_label,
++            inputs=[review_seed_a, review_seed_b, review_identity_count],
++            outputs=[review_seed_info],
+         )
+-        event.then(fn=_seed_label, inputs=[review_seed_a, review_seed_b], outputs=[review_seed_info])
+ 
+     _wire_generate(review_generate)
+     _wire_generate(review_retry)
+@@ -1154,6 +1153,41 @@ with gr.Blocks(theme=theme, title="Kai AI Studio") as demo:
+         concurrency_limit=1,
+     )
+ 
++    # --- Hidden compatibility APIs kept for older/mobile clients ---
++    legacy_pair_image = gr.Image(type="filepath", visible=False)
++    legacy_pair_prompt = gr.Textbox(visible=False)
++    legacy_pair_seed = gr.Number(value=0, precision=0, visible=False)
++    legacy_pair_steps = gr.Number(value=10, precision=0, visible=False)
++    legacy_pair_randomize = gr.Checkbox(value=True, visible=False)
++    legacy_pair_a = gr.Image(visible=False)
++    legacy_pair_b = gr.Image(visible=False)
++    legacy_pair_seed_a = gr.Number(visible=False)
++    legacy_pair_seed_b = gr.Number(visible=False)
++    legacy_pair_button = gr.Button(visible=False)
++    legacy_pair_button.click(
++        fn=kai_edit_pair,
++        inputs=[legacy_pair_image, legacy_pair_prompt, legacy_pair_seed, legacy_pair_steps, legacy_pair_randomize],
++        outputs=[legacy_pair_a, legacy_pair_b, legacy_pair_seed_a, legacy_pair_seed_b],
++        api_name="kai_edit_pair",
++        concurrency_limit=1,
++    )
++
++    studio_record_run = gr.Textbox(visible=False)
++    studio_record_index = gr.Number(value=0, precision=0, visible=False)
++    studio_record_a = gr.Image(type="filepath", visible=False)
++    studio_record_b = gr.Image(type="filepath", visible=False)
++    studio_record_seed_a = gr.Number(value=0, precision=0, visible=False)
++    studio_record_seed_b = gr.Number(value=1, precision=0, visible=False)
++    studio_record_json = gr.JSON(visible=False)
++    studio_record_button = gr.Button(visible=False)
++    studio_record_button.click(
++        fn=studio_record_review,
++        inputs=[studio_record_run, studio_record_index, studio_record_a, studio_record_b, studio_record_seed_a, studio_record_seed_b],
++        outputs=[studio_record_json],
++        api_name="studio_record",
++        concurrency_limit=4,
++    )
++
+     # --- Hidden backward-compatible API ---
+     kai_image = gr.Image(type="filepath", visible=False)
+     kai_prompt = gr.Textbox(visible=False)
