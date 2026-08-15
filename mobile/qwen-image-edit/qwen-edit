@@ -1,0 +1,43 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -u
+APP="$HOME/.qwen-image-edit"
+PIDFILE="$APP/qwen.pid"
+LOG="$APP/qwen.log"
+URL="http://127.0.0.1:7860"
+
+alive() {
+  [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null
+}
+
+start_server() {
+  mkdir -p "$APP"
+  if alive; then
+    echo "Qwen Image Edit ya está arrancado."
+    return 0
+  fi
+  cd "$APP" || exit 1
+  nohup python app.py >"$LOG" 2>&1 &
+  echo $! > "$PIDFILE"
+  for _ in $(seq 1 30); do
+    curl -fsS "$URL/api/health" >/dev/null 2>&1 && { echo "Qwen Image Edit listo en $URL"; return 0; }
+    sleep 1
+  done
+  echo "No arrancó correctamente. Últimas líneas del log:"
+  tail -n 25 "$LOG" 2>/dev/null || true
+  return 1
+}
+
+case "${1:-open}" in
+  start) start_server ;;
+  stop)
+    if alive; then kill "$(cat "$PIDFILE")"; rm -f "$PIDFILE"; echo "Qwen Image Edit detenido."; else echo "Ya estaba parado."; fi ;;
+  restart)
+    "$0" stop >/dev/null 2>&1 || true
+    start_server ;;
+  status)
+    if alive; then echo "activo · PID $(cat "$PIDFILE") · $URL"; else echo "parado"; fi ;;
+  logs) tail -n 80 -f "$LOG" ;;
+  open|*)
+    start_server || exit 1
+    if command -v termux-open-url >/dev/null 2>&1; then termux-open-url "$URL"; else echo "Abre en el navegador: $URL"; fi ;;
+esac
