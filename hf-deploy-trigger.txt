@@ -1,2 +1,2 @@
 Kai AI Studio deploy trigger
-preflight: 2026-08-16-inventory-backends
+preflight: 2026-08-16-identity-memory-final
