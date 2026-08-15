@@ -1,0 +1,200 @@
++import unicodedata
++import uuid
++from datetime import datetime, timezone
++from pathlib import Path
++from typing import Any
++
++
++def _now() -> str:
++    return datetime.now(timezone.utc).isoformat()
++
++
++def safe_slug(value: str) -> str:
++    text = unicodedata.normalize("NFKD", value or "")
++    text = text.encode("ascii", "ignore").decode("ascii").lower()
++    text = re.sub(r"[^a-z0-9]+", "-", text).strip("-.")
++    return text or "profile"
++
++
++def _atomic_json(path: Path, data: dict[str, Any]) -> None:
++    path.parent.mkdir(parents=True, exist_ok=True)
++    tmp = path.with_name(f".{path.name}.{uuid.uuid4().hex}.tmp")
++    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
++    os.replace(tmp, path)
++
++
++def _read_json(path: Path) -> dict[str, Any]:
++    return json.loads(path.read_text(encoding="utf-8"))
++
++
++def _copy_file(source: str | Path, destination: Path) -> Path:
++    src = Path(source)
++    if not src.is_file():
++        raise FileNotFoundError(src)
++    destination.parent.mkdir(parents=True, exist_ok=True)
++    shutil.copy2(src, destination)
++    return destination
++
++
++class StudioStore:
++    def __init__(self, root: str | Path):
++        self.root = Path(root).expanduser().resolve()
++        self.people = self.root / "people"
++        self.runs = self.root / "runs"
++        self.people.mkdir(parents=True, exist_ok=True)
++        self.runs.mkdir(parents=True, exist_ok=True)
++
++    def _profile_path(self, profile_id: str) -> Path:
++        return self.people / safe_slug(profile_id) / "profile.json"
++
++    def _run_path(self, run_id: str) -> Path:
++        return self.runs / safe_slug(run_id) / "manifest.json"
++
++    def create_profile(self, display_name: str) -> dict[str, Any]:
++        profile_id = safe_slug(display_name)
++        path = self._profile_path(profile_id)
++        if path.exists():
++            return _read_json(path)
++        now = _now()
++        profile = {
++            "id": profile_id,
++            "display_name": display_name.strip() or profile_id,
++            "created_at": now,
++            "updated_at": now,
++            "stats": {"likes": 0, "anchors": 0, "runs": 0},
++        }
++        _atomic_json(path, profile)
++        return profile
++
++    def get_profile(self, profile_id: str) -> dict[str, Any]:
++        path = self._profile_path(profile_id)
++        if not path.exists():
++            raise KeyError(f"Unknown profile: {profile_id}")
++        return _read_json(path)
++
++    def list_profiles(self) -> list[dict[str, Any]]:
++        profiles = []
++        for path in sorted(self.people.glob("*/profile.json")):
++            profiles.append(_read_json(path))
++        return profiles
++
++    def start_run(
++        self,
++        profile_id: str,
++        prompt: str,
++        settings: dict[str, Any],
++        sources: list[str],
++    ) -> dict[str, Any]:
++        profile = self.get_profile(profile_id)
++        run_id = f"{datetime.now(timezone.utc):%Y%m%d-%H%M%S}-{uuid.uuid4().hex[:8]}"
++        now = _now()
++        run_dir = self._run_path(run_id).parent
++        persisted_sources: list[str] = []
++        for i, source in enumerate(sources):
++            source_path = Path(source)
++            if source_path.is_file():
++                suffix = source_path.suffix.lower() or ".bin"
++                stem = safe_slug(source_path.stem)
++                destination = run_dir / "sources" / f"{i:04d}_{stem}{suffix}"
++                persisted_sources.append(str(_copy_file(source_path, destination)))
++            else:
++                persisted_sources.append(str(source))
++        run = {
++            "id": run_id,
++            "profile_id": profile["id"],
++            "prompt": prompt,
++            "settings": dict(settings),
++            "created_at": now,
++            "updated_at": now,
++            "cursor": 0,
++            "items": [
++                {"index": i, "source": source, "status": "pending", "attempts": []}
++                for i, source in enumerate(persisted_sources)
++            ],
++        }
++        _atomic_json(self._run_path(run_id), run)
++        profile["stats"]["runs"] += 1
++        profile["updated_at"] = now
++        _atomic_json(self._profile_path(profile["id"]), profile)
++        return run
++
++    def get_run(self, run_id: str) -> dict[str, Any]:
++        path = self._run_path(run_id)
++        if not path.exists():
++            raise KeyError(f"Unknown run: {run_id}")
++        return _read_json(path)
++
++    def record_candidates(
++        self,
++        run_id: str,
++        index: int,
++        candidate_a: str | Path,
++        candidate_b: str | Path,
++        seed_a: int,
++        seed_b: int,
++    ) -> dict[str, Any]:
++        run = self.get_run(run_id)
++        item = run["items"][index]
++        attempt_no = len(item["attempts"]) + 1
++        attempt_dir = self._run_path(run_id).parent / "items" / f"{index:04d}" / f"attempt-{attempt_no:03d}"
++        suffix_a = Path(candidate_a).suffix or ".png"
++        suffix_b = Path(candidate_b).suffix or ".png"
++        path_a = _copy_file(candidate_a, attempt_dir / f"A{suffix_a}")
++        path_b = _copy_file(candidate_b, attempt_dir / f"B{suffix_b}")
++        item["attempts"].append({
++            "number": attempt_no,
++            "a": str(path_a),
++            "b": str(path_b),
++            "seed_a": int(seed_a),
++            "seed_b": int(seed_b),
++            "created_at": _now(),
++        })
++        item["status"] = "review"
++        item.pop("choice", None)
++        item.pop("winner", None)
++        item.pop("anchor", None)
++        run["cursor"] = index
++        run["updated_at"] = _now()
++        _atomic_json(self._run_path(run_id), run)
++        return run
++
++    def _advance_cursor(self, run: dict[str, Any], after: int) -> None:
++        cursor = len(run["items"])
++        for item in run["items"][after + 1 :]:
++            if item["status"] not in {"done", "skipped"}:
++                cursor = item["index"]
++                break
++        run["cursor"] = cursor
++
++    def choose(self, run_id: str, index: int, choice: str, promote: bool = False) -> dict[str, Any]:
++        choice = choice.upper()
++        if choice not in {"A", "B"}:
++            raise ValueError("choice must be A or B")
++        run = self.get_run(run_id)
++        item = run["items"][index]
++        if not item["attempts"]:
++            raise ValueError("No candidates recorded for this item")
++        attempt = item["attempts"][-1]
++        selected = Path(attempt[choice.lower()])
++        profile = self.get_profile(run["profile_id"])
++        ext = selected.suffix or ".png"
++        winner_dir = self.people / profile["id"] / "winners"
++        winner = _copy_file(selected, winner_dir / f"{run_id}_{index:04d}_{choice}{ext}")
++        item["choice"] = choice
++        item["winner"] = str(winner)
++        item["status"] = "done"
++        item["decided_at"] = _now()
++        profile["stats"]["likes"] += 1
++
++        if promote:
++            anchor_dir = self.people / profile["id"] / "anchors"
++            anchor = _copy_file(winner, anchor_dir / winner.name)
++            item["anchor"] = str(anchor)
++            profile["stats"]["anchors"] += 1
++
++        self._advance_cursor(run, index)
++        now = _now()
++        run["updated_at"] = now
++        profile["updated_at"] = now
++        _atomic_json(self._run_path(run_id), run)
++        _atomic_json(self._profile_path(profile["id"]), profile)
