@@ -31,11 +31,14 @@ jobs:
             curl -fsSL "$BASE/patch-$part.diff" >> /tmp/kai.patch
           done
           curl -fsSL "$BASE/patch-1310-metadata-v2.diff" -o /tmp/kai-meta.diff
+          curl -fsSL "$BASE/patch-1320-ab-source.diff" -o /tmp/kai-ab.diff
           cd /tmp/kai-space
           git apply --check /tmp/kai.patch
           git apply /tmp/kai.patch
           git apply --check /tmp/kai-meta.diff
           git apply /tmp/kai-meta.diff
+          git apply --check /tmp/kai-ab.diff
+          git apply /tmp/kai-ab.diff
           python -m compileall -q app.py kai_studio training
           test "$(python - <<'PY'
           from pathlib import Path
