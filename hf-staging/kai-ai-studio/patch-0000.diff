@@ -1,0 +1,200 @@
+diff --git a/.gitignore b/.gitignore
+new file mode 100644
+index 0000000..427a14c
+--- /dev/null
++++ b/.gitignore
+@@ -0,0 +1,4 @@
++.worktrees/
++
++__pycache__/
++*.py[cod]
+diff --git a/README.md b/README.md
+index 078aef2..e322b48 100644
+--- a/README.md
++++ b/README.md
+@@ -1,6 +1,6 @@
+ ---
+-title: Qwen-Image-Edit-2511-LoRAs-Fast
+-emoji: 🎃
++title: Kai AI Studio
++emoji: 🧠
+ colorFrom: indigo
+ colorTo: gray
+ sdk: gradio
+@@ -8,7 +8,22 @@ sdk_version: 6.3.0
+ app_file: app.py
+ pinned: true
+ license: apache-2.0
+-short_description: Demo of the Collection of Qwen Image Edit LoRAs
++short_description: Qwen editing, identity memory, Copilot and training control plane
++hf_oauth: true
++hf_oauth_expiration_minutes: 1440
++hf_oauth_scopes:
++  - read-repos
++  - write-repos
++  - manage-repos
++  - read-collections
++  - write-collections
++  - inference-api
++  - jobs
++  - read-billing
+ ---
+ 
+-Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
+\ No newline at end of file
++# Kai AI Studio
++
++Single user-facing workspace for Bashull's image editing, persistent identity memory, reviewed A/B workflows, Qwen3 Copilot and training Jobs.
++
++The working Qwen Image Edit ZeroGPU pipeline remains the editing engine. Canonical studio state is stored in the attached Hugging Face Storage Bucket under `/data/kai_studio`.
+diff --git a/app.py b/app.py
+index 79e6ae2..06c2302 100644
+--- a/app.py
++++ b/app.py
+@@ -16,6 +16,12 @@ from PIL import Image
+ from gradio.themes import Soft
+ from gradio.themes.utils import colors, fonts
+ 
++from kai_studio.ab import generate_pair
++from kai_studio.copilot import DEFAULT_MODEL, copilot_reply
++from kai_studio.inventory import migration_inventory
++from kai_studio.storage import StudioStore
++from kai_studio.training import build_training_manifest, launch_training_job, training_readiness
++
+ # -------------------------
+ # Tema (no afecta a la lógica)
+ # -------------------------
+@@ -50,6 +56,8 @@ theme = Soft(
+ device = "cuda" if torch.cuda.is_available() else "cpu"
+ BASE_OUT = "/data/qwen_outputs" if os.path.isdir("/data") else "/tmp/qwen_outputs"
+ os.makedirs(BASE_OUT, exist_ok=True)
++STUDIO_ROOT = Path("/data/kai_studio" if os.path.isdir("/data") else "/tmp/kai_studio")
++studio_store = StudioStore(STUDIO_ROOT)
+ 
+ # -------------------------
+ # Modelo
+@@ -286,21 +294,20 @@ def _seed_for(base: int, i: int, randomize: bool) -> int:
+ 
+ 
+ # -------------------------
+-# API estable para KAI Image Forge (una imagen, una salida temporal)
++# APIs estables para KAI Image Forge / Kai AI Studio
+ # -------------------------
+-@spaces.GPU(duration=60)
+-def kai_edit(image_path: str, prompt: str, seed: int = 0, steps: int = 10):
+-    """Edita una imagen sin conservar el resultado en el volumen persistente."""
+-    _cleanup()
++def _validate_kai_input(image_path: str, prompt: str) -> str:
+     if not image_path:
+         raise gr.Error("No has subido una imagen.")
+-    if not prompt or not prompt.strip():
++    clean_prompt = (prompt or "").strip()
++    if not clean_prompt:
+         raise gr.Error("El prompt no puede estar vacío.")
++    return clean_prompt
+ 
+-    source = None
++
++def _kai_edit_one(image_path: str, prompt: str, seed: int, steps: int):
++    source = _resize_max_side(_open_image(image_path), 512)
+     try:
+-        _load_adapter("Sin LoRA (base)")
+-        source = _resize_max_side(_open_image(image_path), 512)
+         width, height = _dims_target_aspect(source, 512)
+         safe_seed = int(seed) % MAX_SEED
+         safe_steps = max(10, min(int(steps), 20))
+@@ -308,7 +315,7 @@ def kai_edit(image_path: str, prompt: str, seed: int = 0, steps: int = 10):
+         with torch.inference_mode():
+             result = pipe(
+                 image=[source],
+-                prompt=prompt.strip(),
++                prompt=prompt,
+                 negative_prompt=NEGATIVE_PROMPT,
+                 height=height,
+                 width=width,
+@@ -318,15 +325,181 @@ def kai_edit(image_path: str, prompt: str, seed: int = 0, steps: int = 10):
+             )
+         return result.images[0]
+     finally:
+-        if source is not None:
+-            try:
+-                source.close()
+-            except Exception:
+-                pass
++        try:
++            source.close()
++        except Exception:
++            pass
++
++
++@spaces.GPU(duration=60)
++def kai_edit(image_path: str, prompt: str, seed: int = 0, steps: int = 10):
++    """Compatibilidad móvil: una imagen, una salida temporal."""
++    _cleanup()
++    clean_prompt = _validate_kai_input(image_path, prompt)
++    try:
++        _load_adapter("Sin LoRA (base)")
++        return _kai_edit_one(image_path, clean_prompt, seed, steps)
++    finally:
+         pipe.release()
+         _cleanup()
+ 
+ 
++@spaces.GPU(duration=120)
++def kai_edit_pair(
++    image_path: str,
++    prompt: str,
++    seed: int = 0,
++    steps: int = 10,
++    randomize_seed: bool = True,
++):
++    """Genera dos candidatos en una sola sesión de ZeroGPU."""
++    _cleanup()
++    clean_prompt = _validate_kai_input(image_path, prompt)
++    try:
++        _load_adapter("Sin LoRA (base)")
++        pair = generate_pair(
++            _kai_edit_one,
++            source=image_path,
++            prompt=clean_prompt,
++            seed=int(seed),
++            randomize=bool(randomize_seed),
++            steps=int(steps),
++        )
++        return pair["a"], pair["b"], pair["seed_a"], pair["seed_b"]
++    finally:
++        pipe.release()
++        _cleanup()
++
++
++def studio_create_profile(display_name: str):
++    profile = studio_store.create_profile(display_name or "Default")
++    return profile["id"], profile
++
++
++def studio_start_run(profile_id: str, prompt: str, sources, steps: int = 10):
++    paths = [p for p in _as_path_list(sources) if _is_image_path(p)]
++    if not paths:
++        raise gr.Error("No hay imágenes para iniciar el lote.")
++    run = studio_store.start_run(
++        profile_id,
++        (prompt or "").strip(),
++        {"steps": int(steps)},
++        sorted(paths, key=lambda p: Path(p).name.lower()),
++    )
++    return run["id"], run
++
++
++def _component_path(value) -> str:
++    if isinstance(value, str):
++        return value
++    if isinstance(value, dict):
++        return value.get("path") or value.get("name") or ""
++    return getattr(value, "path", None) or getattr(value, "name", None) or ""
++
++
++def studio_record_review(run_id: str, index: int, candidate_a, candidate_b, seed_a: int, seed_b: int):
++    path_a = _component_path(candidate_a)
++    path_b = _component_path(candidate_b)
++    if not path_a or not path_b:
++        raise gr.Error("No encuentro los dos candidatos A/B para guardarlos.")
