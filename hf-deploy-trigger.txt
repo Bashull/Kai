@@ -1,2 +1,2 @@
 Kai AI Studio deploy trigger
-preflight: 2026-08-16-ab-fix
+preflight: 2026-08-16-inventory-backends
