@@ -1,0 +1,200 @@
++    run = studio_store.record_candidates(run_id, int(index), path_a, path_b, int(seed_a), int(seed_b))
++    return run
++
++
++def studio_current_review(run_id: str):
++    run = studio_store.get_run(run_id)
++    cursor = int(run["cursor"])
++    if cursor >= len(run["items"]):
++        return None, cursor, "Lote terminado ✅"
++    item = run["items"][cursor]
++    return item["source"], cursor, f"Imagen {cursor + 1}/{len(run['items'])} · {Path(item['source']).name}"
++
++
++def studio_list_profiles():
++    return studio_store.list_profiles()
++
++
++def studio_list_runs():
++    runs = []
++    for manifest in sorted(STUDIO_ROOT.glob("runs/*/manifest.json"), reverse=True):
++        try:
++            run = studio_store.get_run(manifest.parent.name)
++            runs.append({
++                "id": run["id"],
++                "profile_id": run["profile_id"],
++                "prompt": run["prompt"],
++                "cursor": run["cursor"],
++                "total": len(run["items"]),
++                "created_at": run["created_at"],
++            })
++        except Exception:
++            continue
++    return runs
++
++
++def studio_choose_review(run_id: str, index: int, choice: str, promote: bool = False):
++    run = studio_store.choose(run_id, int(index), choice, bool(promote))
++    item = run["items"][int(index)]
++    return run, item.get("winner"), item.get("anchor"), run["cursor"]
++
++
++def studio_skip_review(run_id: str, index: int):
++    run = studio_store.skip(run_id, int(index))
++    return run, run["cursor"]
++
++
++def studio_copilot(message: str, history, oauth_token: gr.OAuthToken | None):
++    clean = (message or "").strip()
++    if not clean:
++        return "", history or []
++    try:
++        reply = copilot_reply(clean, history or [], oauth_token=oauth_token)
++    except ValueError as exc:
++        raise gr.Error(str(exc))
++    updated = list(history or [])
++    updated.append({"role": "user", "content": clean})
++    updated.append({"role": "assistant", "content": reply})
++    return "", updated
++
++
++def studio_training_readiness(profile_id: str):
++    try:
++        profile = studio_store.get_profile(profile_id)
++    except KeyError as exc:
++        raise gr.Error(str(exc))
++    return training_readiness(profile)
++
++
++def studio_prepare_training(profile_id: str):
++    try:
++        manifest = build_training_manifest(studio_store, profile_id)
++    except KeyError as exc:
++        raise gr.Error(str(exc))
++    return manifest, manifest.get("readiness", {})
++
++
++def studio_launch_training(manifest: dict, flavor: str, confirm_paid: bool, oauth_token: gr.OAuthToken | None):
++    if not confirm_paid:
++        raise gr.Error("Marca la confirmación de cómputo de pago antes de lanzar el Job.")
++    if not manifest:
++        raise gr.Error("Prepara primero el dataset de entrenamiento.")
++    readiness = manifest.get("readiness") or {}
++    if not readiness.get("ready"):
++        raise gr.Error("El perfil aún no tiene suficientes ganadoras/anclas aprobadas para autoentrenar con seguridad.")
++    try:
++        return launch_training_job(manifest, oauth_token=oauth_token, flavor=flavor)
++    except ValueError as exc:
++        raise gr.Error(str(exc))
++
++
++def studio_system_inventory():
++    data = migration_inventory()
++    data["studio_root"] = str(STUDIO_ROOT)
++    data["storage_available"] = STUDIO_ROOT.exists()
++    data["copilot_model"] = DEFAULT_MODEL
++    return data
++
++
+ # -------------------------
+ # Modo 1: Procesar TODO (una llamada) + ZIP
+ # -------------------------
+@@ -651,71 +824,259 @@ def tick_auto(job: Optional[Dict[str, Any]], chunk_size: int, progress=gr.Progre
+     return job, job["out_paths"][-24:], job.get("zip_path"), status, gr.update(active=True)
+ 
+ # -------------------------
+-# UI
++# UI — Kai AI Studio
+ # -------------------------
+-with gr.Blocks(theme=theme, title="Qwen Image Edit 2511 · LoRAs Fast") as demo:
++with gr.Blocks(theme=theme, title="Kai AI Studio") as demo:
+     gr.Markdown(
+-        "# Qwen Image Edit 2511 · LoRAs Fast\n"
+-        "Modo carpeta y batch sin crashear: **Procesar TODO** o **Sin parar** (por bloques)."
++        "# 🧠 Kai AI Studio\n"
++        "**Editar · comparar A/B · enseñar preferencias · conservar identidad · preparar entrenamiento.**"
+     )
+ 
++    review_profile_id = gr.State("")
++    review_run_id = gr.State("")
++    review_index = gr.State(0)
++    review_source = gr.State(None)
++    review_seed_a = gr.State(0)
++    review_seed_b = gr.State(1)
++    review_run_json = gr.State(None)
++    review_winner_path = gr.State("")
++    review_anchor_path = gr.State("")
++    review_choice_a = gr.State("A")
++    review_choice_b = gr.State("B")
++    review_no_promote = gr.State(False)
++    review_promote = gr.State(True)
+     job_state = gr.State(None)
++    train_manifest_state = gr.State(None)
+     timer = gr.Timer(value=1.0, active=False)
+ 
+-    with gr.Row():
+-        with gr.Column(scale=4):
+-            files = gr.File(
+-                label="📁 Sube una carpeta (o muchas imágenes)",
++    with gr.Tabs():
++        with gr.Tab("Editar"):
++            gr.Markdown("## Revisión A/B · una imagen cada vez")
++            with gr.Row():
++                review_profile_name = gr.Textbox(label="Persona / perfil", placeholder="Ej: Emilio")
++                review_steps = gr.Slider(10, 20, value=10, step=1, label="Steps")
++            review_files = gr.File(
++                label="📁 Carpeta o imágenes",
+                 file_count="directory",
+                 file_types=["image"],
+                 type="filepath",
+             )
+-            prompt = gr.Textbox(label="Prompt", lines=3)
++            review_prompt = gr.Textbox(label="Prompt maestro para todo el lote", lines=4)
++            with gr.Row():
++                review_seed = gr.Number(value=0, precision=0, label="Seed base")
++                review_randomize = gr.Checkbox(value=True, label="Seeds nuevas A/B")
++            review_begin = gr.Button("▶ Crear / reanudar lote", variant="primary")
++            review_status = gr.Markdown("Sin lote activo.")
++            review_profile_json = gr.JSON(label="Perfil", visible=False)
+ 
+             with gr.Row():
+-                lora_adapter = gr.Dropdown(
+-                    label="Adapter (LoRA)",
+-                    choices=list(ADAPTER_SPECS.keys()),
+-                    value="Photo-to-Anime",
+-                )
+-                out_folder_name = gr.Textbox(
+-                    label="Carpeta salida (opcional)",
+-                    placeholder="Ej: salida_anime_enero (si vacío se autogenera)",
+-                )
++                review_original = gr.Image(label="Original actual", type="filepath", interactive=False)
++                with gr.Column():
++                    review_generate = gr.Button("⚡ Generar A/B", variant="primary")
++                    review_retry = gr.Button("🔁 Reintentar")
++                    gr.Markdown("Reintentar conserva la misma original y añade otro intento al historial del run.")
+ 
+-            with gr.Accordion("Ajustes", open=False):
+-                batch_mode = gr.Checkbox(label="Modo lote (1 salida por imagen)", value=True)
+-                reference_first = gr.Checkbox(label="En LoRAs de 2 imágenes: referencia = primera", value=True)
+-                steps = gr.Slider(1, 10, value=4, step=1, label="Steps")
+-                guidance_scale = gr.Slider(1.0, 10.0, value=4.0, step=0.1, label="True CFG (guidance)")
+-                seed = gr.Slider(0, MAX_SEED, value=0, step=1, label="Seed")
+-                randomize_seed = gr.Checkbox(label="Seed aleatoria por imagen", value=True)
+-                max_side = gr.Slider(0, 2048, value=1536, step=64, label="Max lado entrada (0 = no reescalar)")
++            with gr.Row():
++                review_a = gr.Image(label="A", type="filepath", interactive=False)
++                review_b = gr.Image(label="B", type="filepath", interactive=False)
++            review_seed_info = gr.Markdown("")
++            with gr.Row():
++                choose_a = gr.Button("❤️ Elegir A", variant="primary")
++                choose_b = gr.Button("❤️ Elegir B", variant="primary")
++                skip_review = gr.Button("⏭ Saltar")
++            with gr.Row():
++                anchor_a = gr.Button("📌 Elegir A + ancla")
++                anchor_b = gr.Button("📌 Elegir B + ancla")
++            review_decision = gr.Markdown("")
+ 
+-            with gr.Accordion("SIN PARAR (por bloques)", open=True):
++            with gr.Accordion("Modo lote clásico / LoRAs", open=False):
++                files = gr.File(label="📁 Carpeta", file_count="directory", file_types=["image"], type="filepath")
++                prompt = gr.Textbox(label="Prompt", lines=3)
