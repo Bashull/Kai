@@ -1,0 +1,204 @@
+diff --git a/app.py b/app.py
+index 2dfa14c..e2fbea5 100644
+--- a/app.py
++++ b/app.py
+@@ -20,6 +20,7 @@ from kai_studio.ab import generate_pair
+ from kai_studio.backends import backend_registry, omni_capability_plan
+ from kai_studio.copilot import DEFAULT_MODEL, copilot_reply
+ from kai_studio.inventory import migration_inventory
++from kai_studio.identity import enrich_identity_prompt
+ from kai_studio.storage import StudioStore
+ from kai_studio.training import build_training_manifest, launch_training_job, training_readiness
+ 
+@@ -306,17 +307,24 @@ def _validate_kai_input(image_path: str, prompt: str) -> str:
+     return clean_prompt
+ 
+ 
+-def _kai_edit_one(image_path: str, prompt: str, seed: int, steps: int):
++def _kai_edit_one(image_path: str, prompt: str, seed: int, steps: int, reference_paths=None):
+     source = _resize_max_side(_open_image(image_path), 512)
++    refs = []
+     try:
++        for ref_path in reference_paths or []:
++            path = Path(ref_path)
++            if not path.is_file() or str(path) == str(image_path):
++                continue
++            refs.append(_resize_max_side(_open_image(str(path)), 512))
+         width, height = _dims_target_aspect(source, 512)
+         safe_seed = int(seed) % MAX_SEED
+         safe_steps = max(10, min(int(steps), 20))
+         generator = torch.manual_seed(safe_seed)
++        effective_prompt = enrich_identity_prompt(prompt, len(refs))
+         with torch.inference_mode():
+             result = pipe(
+-                image=[source],
+-                prompt=prompt,
++                image=[source, *refs],
++                prompt=effective_prompt,
+                 negative_prompt=NEGATIVE_PROMPT,
+                 height=height,
+                 width=width,
+@@ -326,10 +334,11 @@ def _kai_edit_one(image_path: str, prompt: str, seed: int, steps: int):
+             )
+         return result.images[0]
+     finally:
+-        try:
+-            source.close()
+-        except Exception:
+-            pass
++        for image in [source, *refs]:
++            try:
++                image.close()
++            except Exception:
++                pass
+ 
+ 
+ @spaces.GPU(duration=60)
+@@ -372,6 +381,56 @@ def kai_edit_pair(
+         _cleanup()
+ 
+ 
++@spaces.GPU(duration=120)
++def studio_generate_pair(
++    run_id: str,
++    index: int,
++    seed: int = 0,
++    steps: int = 10,
++    randomize_seed: bool = True,
++):
++    run = studio_store.get_run(run_id)
++    idx = int(index)
++    if idx < 0 or idx >= len(run["items"]):
++        raise gr.Error("Índice de imagen fuera del lote.")
++    item = run["items"][idx]
++    source = item["source"]
++    clean_prompt = _validate_kai_input(source, run.get("prompt", ""))
++    refs = studio_store.identity_references(run["profile_id"], limit=3)
++    _cleanup()
++    pair = None
++    try:
++        _load_adapter("Sin LoRA (base)")
++        pair = generate_pair(
++            _kai_edit_one,
++            source=source,
++            prompt=clean_prompt,
++            seed=int(seed),
++            randomize=bool(randomize_seed),
++            steps=int(steps),
++            reference_paths=refs,
++        )
++        with tempfile.TemporaryDirectory(prefix="kai-studio-pair-") as tmp:
++            path_a = Path(tmp) / "A.png"
++            path_b = Path(tmp) / "B.png"
++            pair["a"].save(path_a, format="PNG", optimize=True)
++            pair["b"].save(path_b, format="PNG", optimize=True)
++            saved = studio_store.record_candidates(
++                run_id, idx, path_a, path_b, pair["seed_a"], pair["seed_b"]
++            )
++        attempt = saved["items"][idx]["attempts"][-1]
++        return attempt["a"], attempt["b"], pair["seed_a"], pair["seed_b"], len(refs)
++    finally:
++        if pair:
++            for key in ("a", "b"):
++                try:
++                    pair[key].close()
++                except Exception:
++                    pass
++        pipe.release()
++        _cleanup()
++
++
+ def studio_create_profile(display_name: str):
+     profile = studio_store.create_profile(display_name or "Default")
+     return profile["id"], profile
+@@ -1075,6 +1134,26 @@ with gr.Blocks(theme=theme, title="Kai AI Studio") as demo:
+     btn_stop_auto.click(fn=stop_auto, inputs=[job_state], outputs=[job_state, timer, out_status])
+     timer.tick(fn=tick_auto, inputs=[job_state, chunk_size], outputs=[job_state, out_gallery, out_zip, out_status, timer])
+ 
++    # --- Persistent identity-aware API ---
++    studio_pair_run = gr.Textbox(visible=False)
++    studio_pair_index = gr.Number(value=0, precision=0, visible=False)
++    studio_pair_seed = gr.Number(value=0, precision=0, visible=False)
++    studio_pair_steps = gr.Number(value=10, precision=0, visible=False)
++    studio_pair_randomize = gr.Checkbox(value=True, visible=False)
++    studio_pair_a = gr.Image(type="filepath", visible=False)
++    studio_pair_b = gr.Image(type="filepath", visible=False)
++    studio_pair_seed_a = gr.Number(visible=False)
++    studio_pair_seed_b = gr.Number(visible=False)
++    studio_pair_identity_count = gr.Number(visible=False)
++    studio_pair_button = gr.Button(visible=False)
++    studio_pair_button.click(
++        fn=studio_generate_pair,
++        inputs=[studio_pair_run, studio_pair_index, studio_pair_seed, studio_pair_steps, studio_pair_randomize],
++        outputs=[studio_pair_a, studio_pair_b, studio_pair_seed_a, studio_pair_seed_b, studio_pair_identity_count],
++        api_name="studio_pair",
++        concurrency_limit=1,
++    )
++
+     # --- Hidden backward-compatible API ---
+     kai_image = gr.Image(type="filepath", visible=False)
+     kai_prompt = gr.Textbox(visible=False)
+diff --git a/kai_studio/identity.py b/kai_studio/identity.py
+new file mode 100644
+index 0000000..5023554
+--- /dev/null
++++ b/kai_studio/identity.py
+@@ -0,0 +1,16 @@
++from __future__ import annotations
++
++
++def enrich_identity_prompt(prompt: str, reference_count: int) -> str:
++    clean = (prompt or "").strip()
++    count = max(0, int(reference_count))
++    if count == 0:
++        return clean
++    return (
++        f"{clean}\n\n"
++        f"IDENTITY LOCK: The first image is the edit target. The next {count} approved "
++        "reference images show the same person and are identity evidence only. Preserve "
++        "facial structure, skull and jaw proportions, eyes, nose, mouth, skin traits, "
++        "body proportions and stable physical identity. Do not copy pose, clothing, "
++        "background or lighting from references unless the user request explicitly asks for it."
++    )
+diff --git a/kai_studio/storage.py b/kai_studio/storage.py
+index 2acaab8..ccc2ece 100644
+--- a/kai_studio/storage.py
++++ b/kai_studio/storage.py
+@@ -1,5 +1,6 @@
+ from __future__ import annotations
+ 
++import hashlib
+ import json
+ import os
+ import re
+@@ -84,6 +85,30 @@ class StudioStore:
+             profiles.append(_read_json(path))
+         return profiles
+ 
++    def identity_references(self, profile_id: str, limit: int = 4) -> list[str]:
++        profile = self.get_profile(profile_id)
++        root = self.people / profile["id"]
++        groups = [root / "anchors", root / "winners"]
++        seen: set[str] = set()
++        refs: list[str] = []
++        for folder in groups:
++            if not folder.exists():
++                continue
++            files = sorted(
++                (p for p in folder.iterdir() if p.is_file()),
++                key=lambda p: (p.stat().st_mtime_ns, p.name),
++                reverse=True,
++            )
++            for path in files:
++                digest = hashlib.sha256(path.read_bytes()).hexdigest()
++                if digest in seen:
++                    continue
++                seen.add(digest)
++                refs.append(str(path))
++                if len(refs) >= max(0, int(limit)):
++                    return refs
++        return refs
++
+     def start_run(
+         self,
+         profile_id: str,
