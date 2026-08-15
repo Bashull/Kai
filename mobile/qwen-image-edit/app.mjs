@@ -308,6 +308,27 @@ async function callPair(file, item) {
   const steps = session.steps;
   const randomize = $("randomize").value === "true";
   const baseSeed = Number($("seed").value) || 0;
+  if (session?.serverRunId) {
+    try {
+      const result = await client.predict("/studio_pair", {
+        run_id: session.serverRunId,
+        index: item.index,
+        seed: baseSeed,
+        steps,
+        randomize_seed: randomize,
+      });
+      const data = dataArray(result);
+      if (data.length < 5) throw new Error("Respuesta Studio A/B incompleta");
+      return {
+        rawA: rawImage(data[0]), rawB: rawImage(data[1]),
+        seedA: Number(data[2]), seedB: Number(data[3]),
+        identityRefs: Number(data[4]) || 0,
+        api: "studio_pair", serverRecorded: true,
+      };
+    } catch (studioError) {
+      console.info("Identity-aware Studio endpoint unavailable; using compatibility path.", studioError);
+    }
+  }
   try {
     const result = await client.predict("/kai_edit_pair", {
       image_path: handle_file(file),
@@ -338,7 +359,7 @@ async function callPair(file, item) {
   return { rawA, rawB, seedA, seedB, api: "kai_edit×2" };
 }
 async function syncAttemptToServer(item, pair) {
-  if (!session?.serverRunId) return;
+  if (!session?.serverRunId || pair.serverRecorded) return;
   try {
     await client.predict("/studio_record", {
       run_id: session.serverRunId,
@@ -372,13 +393,14 @@ async function generateCurrent() {
     currentPair = { ...pair, urlA: a.url, urlB: b.url, keyA: a.key, keyB: b.key };
     recordAttempt(session, item.index, {
       seedA: pair.seedA, seedB: pair.seedB,
-      a: a.url, b: b.url, aKey: a.key, bKey: b.key, api: pair.api,
+      a: a.url, b: b.url, aKey: a.key, bKey: b.key, api: pair.api, identityRefs: pair.identityRefs || 0,
     });
     await persistSession();
     await syncAttemptToServer(item, pair);
     renderPair();
     renderQueue();
-    setReviewStatus(`Intento ${attemptNo} listo · ${pair.api}`, "ok");
+    const identityText = pair.identityRefs ? ` · ${pair.identityRefs} refs identidad` : "";
+    setReviewStatus(`Intento ${attemptNo} listo · ${pair.api}${identityText}`, "ok");
   } catch (error) {
     setReviewStatus(error.message || String(error), "err");
   } finally {
