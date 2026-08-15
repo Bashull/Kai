@@ -2,6 +2,10 @@ name: Deploy Kai AI Studio
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - hf-deploy-trigger.txt
 
 permissions:
   contents: read
