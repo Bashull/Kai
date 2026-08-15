@@ -1,0 +1,200 @@
++                with gr.Row():
++                    lora_adapter = gr.Dropdown(label="Adapter (LoRA)", choices=list(ADAPTER_SPECS.keys()), value="Photo-to-Anime")
++                    out_folder_name = gr.Textbox(label="Carpeta salida (opcional)")
++                with gr.Row():
++                    steps = gr.Slider(1, 10, value=4, step=1, label="Steps")
++                    guidance_scale = gr.Slider(1.0, 10.0, value=4.0, step=0.1, label="True CFG")
++                with gr.Row():
++                    seed = gr.Slider(0, MAX_SEED, value=0, step=1, label="Seed")
++                    randomize_seed = gr.Checkbox(label="Seed aleatoria", value=True)
++                batch_mode = gr.Checkbox(label="Modo lote", value=True)
++                reference_first = gr.Checkbox(label="Referencia = primera en LoRAs de 2 imágenes", value=True)
++                max_side = gr.Slider(0, 2048, value=1536, step=64, label="Max lado entrada")
+                 chunk_size = gr.Slider(1, 6, value=1, step=1, label="Imágenes por tick")
+                 with gr.Row():
+-                    btn_start_auto = gr.Button("Sin parar ✅", variant="primary")
+-                    btn_stop_auto = gr.Button("Parar 🛑", variant="secondary")
+-
+-            btn_all = gr.Button("Procesar TODO (una tacada)", variant="secondary")
++                    btn_all = gr.Button("Procesar TODO")
++                    btn_start_auto = gr.Button("Sin parar ✅")
++                    btn_stop_auto = gr.Button("Parar 🛑")
++                out_gallery = gr.Gallery(label="Resultados", columns=3, rows=2, height=420, preview=True)
++                out_zip = gr.File(label="ZIP")
++                out_status = gr.Textbox(label="Estado", lines=5)
++
++        with gr.Tab("Personas"):
++            gr.Markdown("## Memoria de identidad")
++            people_name = gr.Textbox(label="Crear / abrir persona")
++            people_create = gr.Button("Crear perfil")
++            people_refresh = gr.Button("Actualizar perfiles")
++            people_json = gr.JSON(label="Perfiles persistentes")
++            people_created = gr.JSON(label="Perfil seleccionado")
++
++        with gr.Tab("Biblioteca"):
++            gr.Markdown("## Lotes persistentes")
++            library_refresh = gr.Button("Actualizar biblioteca")
++            library_json = gr.JSON(label="Runs")
++
++        with gr.Tab("Copilot"):
++            gr.Markdown(f"## Kai Copilot · `{DEFAULT_MODEL}`")
++            gr.Markdown("Usa Hugging Face Inference Providers; el modelo de 80B no se carga en la GPU del editor.")
++            copilot_login = gr.LoginButton("Conectar Hugging Face")
++            copilot_chat = gr.Chatbot(label="Copilot", type="messages", height=460)
++            with gr.Row():
++                copilot_message = gr.Textbox(label="Mensaje / prompt a mejorar", scale=5)
++                copilot_send = gr.Button("Enviar", variant="primary", scale=1)
++
++        with gr.Tab("Entrenar"):
++            gr.Markdown("## Entrenamiento de identidad · Qwen-Image-Edit-2511")
++            gr.Markdown("Los ❤️ crean pares aprobados; las 📌 anclas refuerzan identidad. Preparar dataset no consume GPU. Lanzar Job sí consume cómputo de pago.")
++            train_login = gr.LoginButton("Conectar Hugging Face")
++            train_profile = gr.Textbox(label="Perfil", placeholder="Ej: emilio")
++            with gr.Row():
++                train_check = gr.Button("Comprobar madurez")
++                train_prepare = gr.Button("Preparar dataset", variant="primary")
++            train_readiness_json = gr.JSON(label="Madurez")
++            train_manifest_json = gr.JSON(label="Manifiesto preparado")
++            train_flavor = gr.Dropdown(
++                choices=["a100-large", "h200"],
++                value="h200",
++                label="GPU Job",
++            )
++            confirm_paid = gr.Checkbox(label="Entiendo que este Job consume cómputo de pago", value=False)
++            train_launch = gr.Button("🚀 Lanzar entrenamiento", variant="stop")
++            train_job_json = gr.JSON(label="Job")
++
++        with gr.Tab("Sistema"):
++            gr.Markdown("## Unificación y migración")
++            system_refresh = gr.Button("Actualizar estado")
++            system_json = gr.JSON(label="Inventario unificado", value=studio_system_inventory())
++
++    # --- Review flow ---
++    begin_event = review_begin.click(
++        fn=studio_create_profile,
++        inputs=[review_profile_name],
++        outputs=[review_profile_id, review_profile_json],
++        api_name="studio_profile",
++        concurrency_limit=4,
++    )
++    begin_event = begin_event.then(
++        fn=studio_start_run,
++        inputs=[review_profile_id, review_prompt, review_files, review_steps],
++        outputs=[review_run_id, review_run_json],
++        api_name="studio_start",
++        concurrency_limit=4,
++    )
++    begin_event.then(
++        fn=studio_current_review,
++        inputs=[review_run_id],
++        outputs=[review_original, review_index, review_status],
++        concurrency_limit=4,
++    )
+ 
+-        with gr.Column(scale=5):
+-            out_gallery = gr.Gallery(label="Resultados (muestra)", columns=3, rows=2, height=520, preview=True)
+-            out_zip = gr.File(label="Descargar ZIP (cuando esté listo)")
+-            out_status = gr.Textbox(label="Estado", lines=6)
++    def _seed_label(a, b):
++        return f"Seeds: **A={int(a)}** · **B={int(b)}**"
++
++    def _decision_label(run, winner, anchor, cursor):
++        if not run:
++            return ""
++        extra = " · 📌 ancla guardada" if anchor else ""
++        return f"Guardado: `{winner or 'sin ganador'}`{extra} · siguiente índice: {int(cursor)}"
++
++    def _wire_generate(button):
++        event = button.click(
++            fn=kai_edit_pair,
++            inputs=[review_original, review_prompt, review_seed, review_steps, review_randomize],
++            outputs=[review_a, review_b, review_seed_a, review_seed_b],
++            api_name="kai_edit_pair" if button is review_generate else None,
++            concurrency_limit=1,
++        )
++        event = event.then(
++            fn=studio_record_review,
++            inputs=[review_run_id, review_index, review_a, review_b, review_seed_a, review_seed_b],
++            outputs=[review_run_json],
++            api_name="studio_record" if button is review_generate else None,
++            concurrency_limit=4,
++        )
++        event.then(fn=_seed_label, inputs=[review_seed_a, review_seed_b], outputs=[review_seed_info])
++
++    _wire_generate(review_generate)
++    _wire_generate(review_retry)
++
++    def _wire_choice(button, choice_state, promote_state):
++        event = button.click(
++            fn=studio_choose_review,
++            inputs=[review_run_id, review_index, choice_state, promote_state],
++            outputs=[review_run_json, review_winner_path, review_anchor_path, review_index],
++            api_name="studio_choose" if button is choose_a else None,
++            concurrency_limit=4,
++        )
++        event = event.then(
++            fn=_decision_label,
++            inputs=[review_run_json, review_winner_path, review_anchor_path, review_index],
++            outputs=[review_decision],
++        )
++        event.then(fn=studio_current_review, inputs=[review_run_id], outputs=[review_original, review_index, review_status])
++
++    _wire_choice(choose_a, review_choice_a, review_no_promote)
++    _wire_choice(choose_b, review_choice_b, review_no_promote)
++    _wire_choice(anchor_a, review_choice_a, review_promote)
++    _wire_choice(anchor_b, review_choice_b, review_promote)
++
++    skip_review.click(
++        fn=studio_skip_review,
++        inputs=[review_run_id, review_index],
++        outputs=[review_run_json, review_index],
++        api_name="studio_skip",
++        concurrency_limit=4,
++    ).then(fn=studio_current_review, inputs=[review_run_id], outputs=[review_original, review_index, review_status])
++
++    # --- People / library ---
++    people_create.click(fn=studio_create_profile, inputs=[people_name], outputs=[review_profile_id, people_created])
++    people_refresh.click(fn=studio_list_profiles, outputs=[people_json])
++    library_refresh.click(fn=studio_list_runs, outputs=[library_json])
++    copilot_send.click(fn=studio_copilot, inputs=[copilot_message, copilot_chat], outputs=[copilot_message, copilot_chat])
++    copilot_message.submit(fn=studio_copilot, inputs=[copilot_message, copilot_chat], outputs=[copilot_message, copilot_chat])
++    train_check.click(fn=studio_training_readiness, inputs=[train_profile], outputs=[train_readiness_json])
++    train_prepare.click(
++        fn=studio_prepare_training,
++        inputs=[train_profile],
++        outputs=[train_manifest_state, train_readiness_json],
++    ).then(lambda x: x, inputs=[train_manifest_state], outputs=[train_manifest_json])
++    train_launch.click(
++        fn=studio_launch_training,
++        inputs=[train_manifest_state, train_flavor, confirm_paid],
++        outputs=[train_job_json],
++        concurrency_limit=1,
++    )
++    system_refresh.click(fn=studio_system_inventory, outputs=[system_json])
+ 
++    # --- Classic batch ---
+     btn_all.click(
+         fn=infer_all,
+         inputs=[files, prompt, lora_adapter, seed, randomize_seed, guidance_scale, steps, batch_mode, reference_first, max_side, out_folder_name],
+         outputs=[out_gallery, out_zip, out_status],
+     )
++    btn_start_auto.click(
++        fn=start_auto,
++        inputs=[files, prompt, lora_adapter, seed, randomize_seed, guidance_scale, steps, reference_first, max_side, out_folder_name],
++        outputs=[job_state, out_gallery, out_zip, out_status, timer],
++    )
++    btn_stop_auto.click(fn=stop_auto, inputs=[job_state], outputs=[job_state, timer, out_status])
++    timer.tick(fn=tick_auto, inputs=[job_state, chunk_size], outputs=[job_state, out_gallery, out_zip, out_status, timer])
+ 
+-    # Endpoint sin interfaz visible para el agente Android/Termux de KAI.
++    # --- Hidden backward-compatible API ---
+     kai_image = gr.Image(type="filepath", visible=False)
+     kai_prompt = gr.Textbox(visible=False)
+     kai_seed = gr.Number(value=0, precision=0, visible=False)
+-    kai_steps = gr.Number(value=4, precision=0, visible=False)
++    kai_steps = gr.Number(value=10, precision=0, visible=False)
+     kai_output = gr.Image(visible=False)
+     kai_button = gr.Button(visible=False)
+     kai_button.click(
+@@ -726,23 +1087,5 @@ with gr.Blocks(theme=theme, title="Qwen Image Edit 2511 · LoRAs Fast") as demo:
+         concurrency_limit=1,
