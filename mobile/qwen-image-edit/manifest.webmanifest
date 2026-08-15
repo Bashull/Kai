@@ -1,0 +1,19 @@
+{
+  "name": "Kai Edit Mobile",
+  "short_name": "Kai Edit",
+  "description": "Editor A/B con memoria de identidad sobre Qwen Image Edit 2511",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#080b11",
+  "theme_color": "#0a0d14",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
