@@ -37,14 +37,14 @@ def get_client():
     if _client is None:
         kwargs = {}
         if HF_TOKEN:
-            kwargs["hf_token"] = HF_TOKEN
+            kwargs["token"] = HF_TOKEN
         _client = Client(HF_SPACE, **kwargs)
     return _client
 
 
 def file_to_data_url(path: str) -> str:
     suffix = Path(path).suffix.lower()
-    mime = "image/png" if suffix == ".png" else "image/jpeg"
+    mime = {".png": "image/png", ".webp": "image/webp", ".gif": "image/gif"}.get(suffix, "image/jpeg")
     data = base64.b64encode(Path(path).read_bytes()).decode("ascii")
     return f"data:{mime};base64,{data}"
 
@@ -106,7 +106,6 @@ def call_remote(paths, prompt, lora, seed, randomize, guidance, steps):
     hf_files = [handle_file(p) for p in paths]
     attempts = []
 
-    # Newer custom Server API used by the GitHub repository.
     try:
         b64_json = json.dumps([file_to_data_url(p) for p in paths])
         out = c.predict(
@@ -123,7 +122,6 @@ def call_remote(paths, prompt, lora, seed, randomize, guidance, steps):
     except Exception as e:
         attempts.append(f"/edit_image: {e}")
 
-    # Multi-image Gradio API seen in recent Qwen edit Spaces.
     try:
         out = c.predict(
             images=[{"image": f} for f in hf_files],
@@ -139,7 +137,6 @@ def call_remote(paths, prompt, lora, seed, randomize, guidance, steps):
     except Exception as e:
         attempts.append(f"/infer multi: {e}")
 
-    # Classic single-image API used by earlier versions of the Space.
     try:
         out = c.predict(
             input_image=hf_files[0],
@@ -155,7 +152,6 @@ def call_remote(paths, prompt, lora, seed, randomize, guidance, steps):
     except Exception as e:
         attempts.append(f"/infer single: {e}")
 
-    # Positional fallback for Gradio versions that do not expose parameter names.
     try:
         out = c.predict(hf_files[0], prompt, lora, seed, randomize, guidance, steps, api_name="/infer")
         return out, "infer-positional"
