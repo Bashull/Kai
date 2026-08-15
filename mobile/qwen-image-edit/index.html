@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0d12">
+<title>Qwen Image Edit Mobile</title>
+<style>
+:root{font-family:Inter,system-ui,sans-serif;background:#0b0d12;color:#eef2ff}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#1a2130 0,#0b0d12 42%);min-height:100vh}main{max-width:820px;margin:auto;padding:18px}.top{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:14px}.brand{font-size:20px;font-weight:800}.badge{font-size:12px;color:#9fe7ff;background:#101a23;border:1px solid #25475c;border-radius:999px;padding:6px 9px}.card{background:#11151d;border:1px solid #262d39;border-radius:20px;padding:14px;margin:12px 0;box-shadow:0 12px 30px #0005}.drop{display:block;border:1px dashed #4b5b73;border-radius:16px;padding:18px;text-align:center;cursor:pointer;background:#0d1118}.drop input{display:none}.previews{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}.previews img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;border:1px solid #30394a}textarea,select,input[type=number]{width:100%;background:#090c11;color:#fff;border:1px solid #303849;border-radius:13px;padding:12px;font:inherit}textarea{min-height:120px;resize:vertical}.label{display:block;font-size:12px;color:#aeb8ca;margin:10px 0 6px}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.run{width:100%;border:0;border-radius:15px;padding:14px;font-size:16px;font-weight:800;color:#071017;background:linear-gradient(90deg,#78e8ff,#a6ffca);cursor:pointer}.run:disabled{opacity:.45}.status{font-size:13px;color:#9ba8bb;margin-top:10px;white-space:pre-wrap}.result{display:none}.result.show{display:block}.result img{width:100%;border-radius:16px;border:1px solid #30394a;background:#080a0e}.actions{display:flex;gap:8px;margin-top:10px}.actions button,.actions a{flex:1;text-align:center;text-decoration:none;background:#1a202b;color:#eef2ff;border:1px solid #30394a;border-radius:12px;padding:10px;font:inherit}.history{display:flex;gap:8px;overflow:auto}.history img{width:86px;height:86px;object-fit:cover;border-radius:10px;border:1px solid #30394a;cursor:pointer}details{margin-top:8px}summary{cursor:pointer;color:#b8c7da}.small{font-size:12px;color:#7f8da2}.err{color:#ff9c9c}.ok{color:#a7ffc4}@media(max-width:520px){main{padding:12px}.row{grid-template-columns:1fr}.card{border-radius:16px}}
+</style>
+</head>
+<body><main>
+<div class="top"><div><div class="brand">Qwen Image Edit</div><div class="small">Mobile · Termux + GPU remota</div></div><div class="badge" id="conn">iniciando</div></div>
+
+<div class="card">
+<label class="drop">📷 <b>Toca para elegir imágenes</b><br><span class="small">Puedes seleccionar varias</span><input id="files" type="file" accept="image/*" multiple></label>
+<div class="previews" id="previews"></div>
+<label class="label">Qué quieres hacer</label>
+<textarea id="prompt" placeholder="Ej.: conserva exactamente el rostro y cambia solo la iluminación a una escena cinematográfica nocturna."></textarea>
+<label class="label">LoRA / modo</label><select id="lora"></select>
+<details><summary>Ajustes</summary>
+<div class="row"><div><label class="label">Seed</label><input id="seed" type="number" value="0" min="0"></div><div><label class="label">Pasos</label><input id="steps" type="number" value="4" min="1" max="50"></div></div>
+<div class="row"><div><label class="label">Guidance</label><input id="guidance" type="number" value="1.0" step="0.1" min="0"></div><div><label class="label">Seed aleatoria</label><select id="randomize"><option value="true" selected>Sí</option><option value="false">No</option></select></div></div>
+</details>
+<br><button class="run" id="run">⚡ Editar imagen</button><div class="status" id="status"></div>
+</div>
+
+<div class="card result" id="resultCard"><img id="resultImg" alt="Resultado"><div class="actions"><a id="download" download="qwen-edit.png">Guardar</a><button id="reuse">Usar de entrada</button></div><div class="small" id="meta"></div></div>
+<div class="card"><div class="label">Historial de esta sesión</div><div class="history" id="history"></div></div>
+</main>
+<script>
+const $=id=>document.getElementById(id); let selectedFiles=[]; let currentResult=null;
+function setStatus(t,cls=''){ $('status').className='status '+cls; $('status').textContent=t; }
+async function boot(){
+ try{const c=await fetch('/api/config').then(r=>r.json()); $('lora').innerHTML=c.loras.map(x=>`<option>${x}</option>`).join(''); $('lora').value=c.default_lora; $('conn').textContent='GPU enlazada';}
+ catch(e){$('conn').textContent='sin conexión';setStatus(String(e),'err')}
+}
+$('files').addEventListener('change',e=>{selectedFiles=[...e.target.files];renderPreviews()});
+function renderPreviews(){const p=$('previews');p.innerHTML='';selectedFiles.forEach(f=>{const im=new Image();im.src=URL.createObjectURL(f);p.appendChild(im)})}
+$('run').onclick=async()=>{
+ if(!selectedFiles.length)return setStatus('Sube al menos una imagen.','err'); if(!$('prompt').value.trim())return setStatus('Escribe la edición que quieres.','err');
+ $('run').disabled=true;setStatus('Enviando a la GPU… puede entrar en cola.');
+ const fd=new FormData(); selectedFiles.forEach(f=>fd.append('images',f,f.name)); fd.append('prompt',$('prompt').value);fd.append('lora',$('lora').value);fd.append('seed',$('seed').value||0);fd.append('steps',$('steps').value||4);fd.append('guidance',$('guidance').value||1);fd.append('randomize',$('randomize').value);
+ try{const r=await fetch('/api/edit',{method:'POST',body:fd});const d=await r.json();if(!r.ok)throw new Error(d.error||'Error de edición');currentResult=d.image;$('resultImg').src=d.image;$('download').href=d.image;$('resultCard').classList.add('show');$('seed').value=d.seed??0;$('meta').textContent=`Seed ${d.seed} · ${d.api} · ${d.space}`;addHistory(d.image);setStatus('Hecho.','ok');}
+ catch(e){setStatus(e.message,'err')} finally{$('run').disabled=false}
+};
+function addHistory(src){const im=new Image();im.src=src;im.onclick=()=>{$('resultImg').src=src;$('download').href=src;$('resultCard').classList.add('show');currentResult=src};$('history').prepend(im);while($('history').children.length>8)$('history').lastChild.remove()}
+$('reuse').onclick=async()=>{if(!currentResult)return;try{const b=await fetch(currentResult).then(r=>r.blob());const f=new File([b],'qwen-result.png',{type:b.type||'image/png'});const dt=new DataTransfer();dt.items.add(f);$('files').files=dt.files;selectedFiles=[f];renderPreviews();scrollTo({top:0,behavior:'smooth'});setStatus('Resultado puesto como nueva entrada.','ok')}catch(e){setStatus('No pude reutilizar automáticamente: '+e.message,'err')}};
+boot();
+</script></body></html>
