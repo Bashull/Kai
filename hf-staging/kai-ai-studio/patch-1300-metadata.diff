@@ -1,0 +1,10 @@
+diff --git a/README.md b/README.md
+--- a/README.md
++++ b/README.md
+@@ -10,7 +10,7 @@ pinned: true
+ license: apache-2.0
+-short_description: Qwen editing, identity memory, Copilot and training control plane
++short_description: Qwen editing, identity memory, Copilot and training
+ hf_oauth: true
+ hf_oauth_expiration_minutes: 1440
+ hf_oauth_scopes:
