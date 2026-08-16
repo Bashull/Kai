@@ -21,7 +21,7 @@ for (const marker of [
 ]) assert.ok(html.includes(marker), `missing HTML marker: ${marker}`);
 
 for (const marker of [
-  'Bashull/Qwen-Image-Edit-2511-LoRAs-Fast',
+  '${location.origin}/hf',
   '/studio_pair',
   '/kai_edit_pair',
   '/kai_edit',
@@ -35,7 +35,7 @@ assert.ok(manifest.includes('"display": "standalone"'));
 console.log('ui contract OK');
 
 const installer = fs.readFileSync(new URL('../install.sh', import.meta.url), 'utf8');
-for (const asset of ['app.mjs', 'state.mjs', 'manifest.webmanifest', 'sw.js', 'icon.svg']) {
+for (const asset of ['app.mjs', 'state.mjs', 'manifest.webmanifest', 'sw.js', 'icon.svg', 'server.py']) {
   assert.ok(installer.includes(asset), `installer missing ${asset}`);
 }
 console.log('installer contract OK');

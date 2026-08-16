@@ -4,7 +4,7 @@ BASE="https://raw.githubusercontent.com/Bashull/Kai/main/mobile/qwen-image-edit"
 APP="$HOME/.qwen-image-edit"
 TERMUX_PREFIX="${PREFIX:-/data/data/com.termux/files/usr}"
 BIN="$TERMUX_PREFIX/bin/qwen-edit"
-ASSETS="index.html app.mjs state.mjs manifest.webmanifest sw.js icon.svg"
+ASSETS="index.html app.mjs state.mjs manifest.webmanifest sw.js icon.svg server.py"
 
 echo "[1/4] Preparando Termux…"
 pkg update -y

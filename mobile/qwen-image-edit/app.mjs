@@ -1,7 +1,7 @@
 import { Client, handle_file } from "https://cdn.jsdelivr.net/npm/@gradio/client/dist/index.min.js";
 import { createSession, currentItem, recordAttempt, chooseCandidate, skipItem } from "./state.mjs";
 
-const SPACE = "Bashull/Qwen-Image-Edit-2511-LoRAs-Fast";
+const SPACE = `${location.origin}/hf`;
 const SESSION_KEY = "kai-edit-v2-session";
 const DB_NAME = "kai-edit-v2";
 const DB_VERSION = 1;
