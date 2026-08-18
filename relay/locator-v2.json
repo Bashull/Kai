@@ -1,0 +1,6 @@
+{
+  "base_url": "https://kai-termux-bridge-v2.floot.app",
+  "protocol": 2,
+  "updated_at": "2026-08-18",
+  "client_path": "relay/v2/kai_termux_bridge.py"
+}
