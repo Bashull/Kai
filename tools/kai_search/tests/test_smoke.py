@@ -21,24 +21,27 @@ class KaiSearchSmokeTests(unittest.TestCase):
 
             db = Path(td) / "catalog.db"
             con = ks.connect(db)
-            result = ks.index_root(con, str(root), set())
-            self.assertEqual(result["files_seen"], 3)
+            try:
+                result = ks.index_root(con, str(root), set())
+                self.assertEqual(result["files_seen"], 3)
 
-            found = ks.find_files(con, "alpha", limit=10)
-            self.assertEqual(len(found), 2)
+                found = ks.find_files(con, "alpha", limit=10)
+                self.assertEqual(len(found), 2)
 
-            groups = ks.duplicate_groups(con, min_size=1)
-            self.assertEqual(len(groups), 1)
-            self.assertEqual(groups[0]["count"], 2)
-            self.assertEqual(groups[0]["wasted_bytes"], len("same payload"))
+                groups = ks.duplicate_groups(con, min_size=1)
+                self.assertEqual(len(groups), 1)
+                self.assertEqual(groups[0]["count"], 2)
+                self.assertEqual(groups[0]["wasted_bytes"], len("same payload"))
 
-            # A second unchanged scan should preserve cached hashes.
-            result2 = ks.index_root(con, str(root), set())
-            self.assertEqual(result2["changed_or_new"], 0)
-            hashed = con.execute(
-                "SELECT count(*) FROM files WHERE fullhash IS NOT NULL"
-            ).fetchone()[0]
-            self.assertEqual(hashed, 2)
+                # A second unchanged scan should preserve cached hashes.
+                result2 = ks.index_root(con, str(root), set())
+                self.assertEqual(result2["changed_or_new"], 0)
+                hashed = con.execute(
+                    "SELECT count(*) FROM files WHERE fullhash IS NOT NULL"
+                ).fetchone()[0]
+                self.assertEqual(hashed, 2)
+            finally:
+                con.close()
 
 
 if __name__ == "__main__":
