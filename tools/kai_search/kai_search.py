@@ -96,7 +96,13 @@ def norm_path(path: str | os.PathLike[str]) -> str:
     return os.path.normcase(os.path.abspath(os.fspath(path)))
 
 
-def walk_files(root: str, excludes: set[str]) -> Iterable[tuple[str, os.stat_result]]:
+def walk_files(
+    root: str,
+    excludes: set[str],
+    skip_paths: set[str] | None = None,
+) -> Iterable[tuple[str, os.stat_result]]:
+    skip_paths = skip_paths or set()
+
     def onerror(exc: OSError) -> None:
         print(f"[skip] {exc}", file=sys.stderr)
 
@@ -104,6 +110,8 @@ def walk_files(root: str, excludes: set[str]) -> Iterable[tuple[str, os.stat_res
         dirs[:] = [d for d in dirs if d not in excludes]
         for name in files:
             path = os.path.join(current, name)
+            if norm_path(path) in skip_paths:
+                continue
             try:
                 st = os.stat(path, follow_symlinks=False)
             except (OSError, PermissionError):
@@ -113,7 +121,12 @@ def walk_files(root: str, excludes: set[str]) -> Iterable[tuple[str, os.stat_res
             yield path, st
 
 
-def index_root(con: sqlite3.Connection, root: str, excludes: set[str]) -> dict:
+def index_root(
+    con: sqlite3.Connection,
+    root: str,
+    excludes: set[str],
+    skip_paths: set[str] | None = None,
+) -> dict:
     root = norm_path(root)
     if not os.path.isdir(root):
         raise FileNotFoundError(root)
@@ -124,7 +137,7 @@ def index_root(con: sqlite3.Connection, root: str, excludes: set[str]) -> dict:
     cur = con.cursor()
     cur.execute("BEGIN")
     try:
-        for path, st in walk_files(root, excludes):
+        for path, st in walk_files(root, excludes, skip_paths):
             path = norm_path(path)
             name = os.path.basename(path)
             ext = os.path.splitext(name)[1].lower()
@@ -212,8 +225,7 @@ def prehash_file(path: str, size: int) -> str:
     h = hashlib.blake2b(digest_size=16)
     h.update(size.to_bytes(8, "little", signed=False))
     with open(path, "rb", buffering=0) as f:
-        head = f.read(PREHASH_BYTES)
-        h.update(head)
+        h.update(f.read(PREHASH_BYTES))
         if size > PREHASH_BYTES:
             f.seek(max(0, size - PREHASH_BYTES))
             h.update(f.read(PREHASH_BYTES))
@@ -336,17 +348,22 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     con = connect(args.db)
-    if args.cmd == "index":
-        excludes = set(DEFAULT_EXCLUDES) | set(args.exclude)
-        out = [index_root(con, r, excludes) for r in args.roots]
-    elif args.cmd == "find":
-        out = find_files(con, args.query, args.ext, args.min_size, args.max_size, args.limit)
-    elif args.cmd == "dupes":
-        out = duplicate_groups(con, args.min_size, args.limit_groups)
-    else:
-        out = stats(con, args.db)
-    print(json.dumps(out, indent=2, ensure_ascii=False))
-    return 0
+    try:
+        if args.cmd == "index":
+            excludes = set(DEFAULT_EXCLUDES) | set(args.exclude)
+            db_abs = norm_path(args.db)
+            skip_paths = {db_abs, db_abs + "-wal", db_abs + "-shm"}
+            out = [index_root(con, r, excludes, skip_paths) for r in args.roots]
+        elif args.cmd == "find":
+            out = find_files(con, args.query, args.ext, args.min_size, args.max_size, args.limit)
+        elif args.cmd == "dupes":
+            out = duplicate_groups(con, args.min_size, args.limit_groups)
+        else:
+            out = stats(con, args.db)
+        print(json.dumps(out, indent=2, ensure_ascii=False))
+        return 0
+    finally:
+        con.close()
 
 
 if __name__ == "__main__":
