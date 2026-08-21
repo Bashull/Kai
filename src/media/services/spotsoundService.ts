@@ -10,11 +10,16 @@ export interface SpotSoundRequest {
   maxNewTokens: number;
 }
 
-export interface SpotSoundTransportResult {
-  modelAnswer: string;
+interface SpotSoundTransportArtifacts {
   predictedWindowsUri?: string;
   spottedAudioUri?: string;
 }
+
+export type SpotSoundTransportResult = SpotSoundTransportArtifacts &
+  (
+    | { modelAnswer: string; report?: string }
+    | { report: string; modelAnswer?: string }
+  );
 
 export interface SpotSoundTransport {
   spot(request: SpotSoundRequest): Promise<SpotSoundTransportResult>;
@@ -29,6 +34,7 @@ export interface SpotSoundResult {
   present: boolean;
   intervals: SpotSoundInterval[];
   rawAnswer: string;
+  rawReport?: string;
   predictedWindowsUri?: string;
   spottedAudioUri?: string;
 }
@@ -49,6 +55,12 @@ export function buildSpotSoundRequest(
 const ABSENT_PATTERN = /\b(no|not present|does not occur|doesn't occur|absent)\b/i;
 const INTERVAL_PATTERN = /[\[(]\s*(-?\d+(?:\.\d+)?)\s*[,;]\s*(-?\d+(?:\.\d+)?)\s*[\])]/g;
 const FROM_TO_PATTERN = /\bfrom\s+(-?\d+(?:\.\d+)?)\s*s?\s+to\s+(-?\d+(?:\.\d+)?)\s*s?\b/gi;
+const REPORT_ANSWER_PATTERN = /^Answer:\s*(.*)$/m;
+
+function extractModelAnswer(report: string): string {
+  const match = REPORT_ANSWER_PATTERN.exec(report);
+  return match ? match[1].trim() : report.trim();
+}
 
 function appendInterval(
   intervals: SpotSoundInterval[],
@@ -70,30 +82,34 @@ function appendInterval(
 export function normalizeSpotSoundAnswer(
   transport: SpotSoundTransportResult,
 ): SpotSoundResult {
-  const rawAnswer = transport.modelAnswer.trim();
+  const rawAnswer = transport.modelAnswer ?? extractModelAnswer(transport.report);
+  const answerForParsing = rawAnswer.trim();
+  const reportFields = transport.report ? { rawReport: transport.report } : {};
 
-  if (ABSENT_PATTERN.test(rawAnswer)) {
+  if (ABSENT_PATTERN.test(answerForParsing)) {
     return {
       present: false,
       intervals: [],
-      rawAnswer: transport.modelAnswer,
+      rawAnswer,
+      ...reportFields,
       predictedWindowsUri: transport.predictedWindowsUri,
       spottedAudioUri: transport.spottedAudioUri,
     };
   }
 
   const intervals: SpotSoundInterval[] = [];
-  for (const match of rawAnswer.matchAll(INTERVAL_PATTERN)) {
+  for (const match of answerForParsing.matchAll(INTERVAL_PATTERN)) {
     appendInterval(intervals, match[1], match[2]);
   }
-  for (const match of rawAnswer.matchAll(FROM_TO_PATTERN)) {
+  for (const match of answerForParsing.matchAll(FROM_TO_PATTERN)) {
     appendInterval(intervals, match[1], match[2]);
   }
 
   return {
     present: intervals.length > 0,
     intervals,
-    rawAnswer: transport.modelAnswer,
+    rawAnswer,
+    ...reportFields,
     predictedWindowsUri: transport.predictedWindowsUri,
     spottedAudioUri: transport.spottedAudioUri,
   };
