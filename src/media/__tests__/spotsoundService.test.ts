@@ -45,6 +45,21 @@ describe('SpotSound service contract', () => {
     });
   });
 
+  it('extracts the model answer from the live Space report without losing the report', () => {
+    const report =
+      'Answer: from 8.010s to 11.010s\n' +
+      'Windows: [8.01s → 11.01s]\n' +
+      'Audio: 57.0s  ·  inference: 1.3s';
+    const transport: SpotSoundTransportResult = { report };
+
+    expect(normalizeSpotSoundAnswer(transport)).toMatchObject({
+      present: true,
+      intervals: [{ startSeconds: 8.01, endSeconds: 11.01 }],
+      rawAnswer: 'from 8.010s to 11.010s',
+      rawReport: report,
+    });
+  });
+
   it('does not invent timestamps when the answer says the event is absent', () => {
     const transport: SpotSoundTransportResult = {
       modelAnswer: 'No, the queried event does not occur in the audio.',
