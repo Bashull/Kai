@@ -16,6 +16,10 @@ export interface SpotSoundTransportResult {
   spottedAudioUri?: string;
 }
 
+export interface SpotSoundTransport {
+  spot(request: SpotSoundRequest): Promise<SpotSoundTransportResult>;
+}
+
 export interface SpotSoundInterval {
   startSeconds: number;
   endSeconds: number;
@@ -81,4 +85,14 @@ export function normalizeSpotSoundAnswer(
     predictedWindowsUri: transport.predictedWindowsUri,
     spottedAudioUri: transport.spottedAudioUri,
   };
+}
+
+export async function analyzeSpotSound(
+  transport: SpotSoundTransport,
+  audioPath: string,
+  query: string,
+): Promise<SpotSoundResult> {
+  const request = buildSpotSoundRequest(audioPath, query);
+  const response = await transport.spot(request);
+  return normalizeSpotSoundAnswer(response);
 }
