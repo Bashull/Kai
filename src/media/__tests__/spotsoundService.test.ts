@@ -31,6 +31,20 @@ describe('SpotSound service contract', () => {
     });
   });
 
+  it('normalizes the interval dialect used by SpotSound training, including multiple windows', () => {
+    const transport: SpotSoundTransportResult = {
+      modelAnswer: 'from 8.10s to 10.90s, from 21.25s to 22.00s',
+    };
+
+    expect(normalizeSpotSoundAnswer(transport)).toMatchObject({
+      present: true,
+      intervals: [
+        { startSeconds: 8.1, endSeconds: 10.9 },
+        { startSeconds: 21.25, endSeconds: 22 },
+      ],
+    });
+  });
+
   it('does not invent timestamps when the answer says the event is absent', () => {
     const transport: SpotSoundTransportResult = {
       modelAnswer: 'No, the queried event does not occur in the audio.',
