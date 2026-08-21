@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  analyzeSpotSound,
   buildSpotSoundRequest,
   normalizeSpotSoundAnswer,
+  type SpotSoundTransport,
   type SpotSoundTransportResult,
 } from '../services/spotsoundService';
 
@@ -40,6 +42,24 @@ describe('SpotSound service contract', () => {
       rawAnswer: transport.modelAnswer,
       predictedWindowsUri: undefined,
       spottedAudioUri: undefined,
+    });
+  });
+
+  it('runs analysis through an injected transport and preserves the verified request', async () => {
+    const seen = [] as unknown[];
+    const transport: SpotSoundTransport = {
+      async spot(request) {
+        seen.push(request);
+        return { modelAnswer: '[(1.5, 2.75)]' };
+      },
+    };
+
+    const result = await analyzeSpotSound(transport, '/tmp/audio.wav', 'door slam');
+
+    expect(seen).toEqual([buildSpotSoundRequest('/tmp/audio.wav', 'door slam')]);
+    expect(result).toMatchObject({
+      present: true,
+      intervals: [{ startSeconds: 1.5, endSeconds: 2.75 }],
     });
   });
 });
