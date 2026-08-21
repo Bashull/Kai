@@ -48,6 +48,24 @@ export function buildSpotSoundRequest(
 
 const ABSENT_PATTERN = /\b(no|not present|does not occur|doesn't occur|absent)\b/i;
 const INTERVAL_PATTERN = /[\[(]\s*(-?\d+(?:\.\d+)?)\s*[,;]\s*(-?\d+(?:\.\d+)?)\s*[\])]/g;
+const FROM_TO_PATTERN = /\bfrom\s+(-?\d+(?:\.\d+)?)\s*s?\s+to\s+(-?\d+(?:\.\d+)?)\s*s?\b/gi;
+
+function appendInterval(
+  intervals: SpotSoundInterval[],
+  startRaw: string,
+  endRaw: string,
+): void {
+  const startSeconds = Number(startRaw);
+  const endSeconds = Number(endRaw);
+  if (
+    Number.isFinite(startSeconds) &&
+    Number.isFinite(endSeconds) &&
+    startSeconds >= 0 &&
+    endSeconds >= startSeconds
+  ) {
+    intervals.push({ startSeconds, endSeconds });
+  }
+}
 
 export function normalizeSpotSoundAnswer(
   transport: SpotSoundTransportResult,
@@ -66,16 +84,10 @@ export function normalizeSpotSoundAnswer(
 
   const intervals: SpotSoundInterval[] = [];
   for (const match of rawAnswer.matchAll(INTERVAL_PATTERN)) {
-    const startSeconds = Number(match[1]);
-    const endSeconds = Number(match[2]);
-    if (
-      Number.isFinite(startSeconds) &&
-      Number.isFinite(endSeconds) &&
-      startSeconds >= 0 &&
-      endSeconds >= startSeconds
-    ) {
-      intervals.push({ startSeconds, endSeconds });
-    }
+    appendInterval(intervals, match[1], match[2]);
+  }
+  for (const match of rawAnswer.matchAll(FROM_TO_PATTERN)) {
+    appendInterval(intervals, match[1], match[2]);
   }
 
   return {
