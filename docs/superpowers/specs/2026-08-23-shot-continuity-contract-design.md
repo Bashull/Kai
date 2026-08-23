@@ -125,11 +125,11 @@ The exact TypeScript surface may be reduced during TDD if tests show a smaller A
 
 ### 6.1 Visibility and speech are independent
 
-A subject may be visible and silent. A subject may be the only speaker while several subjects are visible. Speaker selection must never be inferred from reference order, prompt mention frequency or visual prominence when explicit speaker data exists.
+A subject may be visible and silent. A speaker may also be intentionally off-screen. A subject may be the only speaker while several subjects are visible. Speaker selection must never be inferred from reference order, prompt mention frequency or visual prominence when explicit speaker data exists.
 
 ### 6.2 Dialogue turns own speaker identity
 
-Each dialogue turn names a `speakerSubjectId`. If `speakerSubjectIds` is supplied, it must equal the unique set of speakers represented by dialogue turns when dialogue turns are present.
+Each dialogue turn names a `speakerSubjectId`. In v0.1.0, required `speakerSubjectIds` must equal the unique set of speakers represented by dialogue turns whenever dialogue turns are present.
 
 ### 6.3 References remain canonical outside the shot
 
@@ -164,7 +164,7 @@ Hard REJECT cases:
 
 WARN candidates:
 
-- speaker not visible in the shot;
+- an explicit shot policy requires an on-screen speaker but the speaker is not visible;
 - `speaker_anchor` requested but no voice/audio reference exists for that speaker;
 - `multi_subject_reference` requested with fewer than two visible subjects;
 - previous-shot-dependent strategy without `previousShotId`;
