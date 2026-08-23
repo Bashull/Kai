@@ -66,6 +66,7 @@ export interface SpotSoundResult {
 
 export interface SpotSoundPresenceGateResult extends SpotSoundResult {
   detectionAnswer: string;
+  detectionReport?: string;
   presenceDecision: SpotSoundPresenceDecision;
   groundingAttempted: boolean;
 }
@@ -198,6 +199,7 @@ export async function analyzeSpotSoundWithPresenceGate(
       predictedWindowsUri: detection.predictedWindowsUri,
       spottedAudioUri: detection.spottedAudioUri,
       detectionAnswer,
+      detectionReport: detection.report,
       presenceDecision,
       groundingAttempted: false,
     };
@@ -207,6 +209,7 @@ export async function analyzeSpotSoundWithPresenceGate(
   return {
     ...normalizeSpotSoundAnswer(grounding),
     detectionAnswer,
+    detectionReport: detection.report,
     presenceDecision,
     groundingAttempted: true,
   };
