@@ -62,6 +62,15 @@ export interface SpotSoundResult {
   spottedAudioUri?: string;
 }
 
+function assertFiniteRequestControl(
+  field: 'maxAudioSeconds' | 'maxNewTokens',
+  value: number,
+): void {
+  if (!Number.isFinite(value)) {
+    throw new RangeError(`${field} must be finite`);
+  }
+}
+
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
@@ -69,6 +78,9 @@ function clamp(value: number, min: number, max: number): number {
 export function constrainSpotSoundRequest(
   request: SpotSoundRequest,
 ): ConstrainedSpotSoundRequest {
+  assertFiniteRequestControl('maxAudioSeconds', request.maxAudioSeconds);
+  assertFiniteRequestControl('maxNewTokens', request.maxNewTokens);
+
   const constrainedAudioSeconds = clamp(
     request.maxAudioSeconds,
     SPOTSOUND_BACKEND_LIMITS.minAudioSeconds,
