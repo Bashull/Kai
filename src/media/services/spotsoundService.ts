@@ -2,6 +2,8 @@ export type SpotSoundTask =
   | 'Temporal grounding (when?)'
   | 'Event detection (does it occur?)';
 
+export type SpotSoundPresenceDecision = 'YES' | 'NO' | 'AMBIGUOUS';
+
 export const SPOTSOUND_BACKEND_LIMITS = Object.freeze({
   minAudioSeconds: 30,
   maxAudioSeconds: 600,
@@ -64,6 +66,7 @@ export interface SpotSoundResult {
 
 export interface SpotSoundPresenceGateResult extends SpotSoundResult {
   detectionAnswer: string;
+  presenceDecision: SpotSoundPresenceDecision;
   groundingAttempted: boolean;
 }
 
@@ -120,9 +123,18 @@ export function buildSpotSoundRequest(
 }
 
 const ABSENT_PATTERN = /\b(no|not present|does not occur|doesn't occur|absent)\b/i;
+const YES_PATTERN = /^\s*yes\b/i;
 const INTERVAL_PATTERN = /[\[(]\s*(-?\d+(?:\.\d+)?)\s*[,;]\s*(-?\d+(?:\.\d+)?)\s*[\])]/g;
 const FROM_TO_PATTERN = /\bfrom\s+(-?\d+(?:\.\d+)?)\s*s?\s+to\s+(-?\d+(?:\.\d+)?)\s*s?\b/gi;
 const REPORT_ANSWER_PATTERN = /^Answer:\s*(.*)$/m;
+
+export function classifySpotSoundPresenceAnswer(answer: string): SpotSoundPresenceDecision {
+  const normalized = answer.trim();
+  if (!normalized) return 'AMBIGUOUS';
+  if (ABSENT_PATTERN.test(normalized)) return 'NO';
+  if (YES_PATTERN.test(normalized)) return 'YES';
+  return 'AMBIGUOUS';
+}
 
 function extractModelAnswer(report: string): string {
   const match = REPORT_ANSWER_PATTERN.exec(report);
@@ -175,8 +187,9 @@ export async function analyzeSpotSoundWithPresenceGate(
     buildSpotSoundRequest(audioPath, query, 'Event detection (does it occur?)'),
   );
   const detectionAnswer = answerFromTransport(detection).trim();
+  const presenceDecision = classifySpotSoundPresenceAnswer(detectionAnswer);
 
-  if (ABSENT_PATTERN.test(detectionAnswer)) {
+  if (presenceDecision !== 'YES') {
     return {
       present: false,
       intervals: [],
@@ -185,6 +198,7 @@ export async function analyzeSpotSoundWithPresenceGate(
       predictedWindowsUri: detection.predictedWindowsUri,
       spottedAudioUri: detection.spottedAudioUri,
       detectionAnswer,
+      presenceDecision,
       groundingAttempted: false,
     };
   }
@@ -193,6 +207,7 @@ export async function analyzeSpotSoundWithPresenceGate(
   return {
     ...normalizeSpotSoundAnswer(grounding),
     detectionAnswer,
+    presenceDecision,
     groundingAttempted: true,
   };
 }
