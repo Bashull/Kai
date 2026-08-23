@@ -62,6 +62,11 @@ export interface SpotSoundResult {
   spottedAudioUri?: string;
 }
 
+export interface SpotSoundPresenceGateResult extends SpotSoundResult {
+  detectionAnswer: string;
+  groundingAttempted: boolean;
+}
+
 function assertFiniteRequestControl(
   field: 'maxAudioSeconds' | 'maxNewTokens',
   value: number,
@@ -94,26 +99,14 @@ export function constrainSpotSoundRequest(
 
   const adjustments: SpotSoundRequestAdjustment[] = [];
   if (constrainedAudioSeconds !== request.maxAudioSeconds) {
-    adjustments.push({
-      field: 'maxAudioSeconds',
-      from: request.maxAudioSeconds,
-      to: constrainedAudioSeconds,
-    });
+    adjustments.push({ field: 'maxAudioSeconds', from: request.maxAudioSeconds, to: constrainedAudioSeconds });
   }
   if (constrainedNewTokens !== request.maxNewTokens) {
-    adjustments.push({
-      field: 'maxNewTokens',
-      from: request.maxNewTokens,
-      to: constrainedNewTokens,
-    });
+    adjustments.push({ field: 'maxNewTokens', from: request.maxNewTokens, to: constrainedNewTokens });
   }
 
   return {
-    request: {
-      ...request,
-      maxAudioSeconds: constrainedAudioSeconds,
-      maxNewTokens: constrainedNewTokens,
-    },
+    request: { ...request, maxAudioSeconds: constrainedAudioSeconds, maxNewTokens: constrainedNewTokens },
     adjustments,
   };
 }
@@ -121,13 +114,9 @@ export function constrainSpotSoundRequest(
 export function buildSpotSoundRequest(
   audioPath: string,
   query: string,
+  task: SpotSoundTask = 'Temporal grounding (when?)',
 ): SpotSoundRequest {
-  return {
-    audioPath,
-    query,
-    task: 'Temporal grounding (when?)',
-    ...SPOTSOUND_KAI_DEFAULTS,
-  };
+  return { audioPath, query, task, ...SPOTSOUND_KAI_DEFAULTS };
 }
 
 const ABSENT_PATTERN = /\b(no|not present|does not occur|doesn't occur|absent)\b/i;
@@ -140,57 +129,32 @@ function extractModelAnswer(report: string): string {
   return match ? match[1].trim() : report.trim();
 }
 
-function appendInterval(
-  intervals: SpotSoundInterval[],
-  startRaw: string,
-  endRaw: string,
-): void {
+function answerFromTransport(transport: SpotSoundTransportResult): string {
+  return transport.modelAnswer ?? extractModelAnswer(transport.report);
+}
+
+function appendInterval(intervals: SpotSoundInterval[], startRaw: string, endRaw: string): void {
   const startSeconds = Number(startRaw);
   const endSeconds = Number(endRaw);
-  if (
-    Number.isFinite(startSeconds) &&
-    Number.isFinite(endSeconds) &&
-    startSeconds >= 0 &&
-    endSeconds >= startSeconds
-  ) {
+  if (Number.isFinite(startSeconds) && Number.isFinite(endSeconds) && startSeconds >= 0 && endSeconds >= startSeconds) {
     intervals.push({ startSeconds, endSeconds });
   }
 }
 
-export function normalizeSpotSoundAnswer(
-  transport: SpotSoundTransportResult,
-): SpotSoundResult {
-  const rawAnswer = transport.modelAnswer ?? extractModelAnswer(transport.report);
+export function normalizeSpotSoundAnswer(transport: SpotSoundTransportResult): SpotSoundResult {
+  const rawAnswer = answerFromTransport(transport);
   const answerForParsing = rawAnswer.trim();
   const reportFields = transport.report ? { rawReport: transport.report } : {};
 
   if (ABSENT_PATTERN.test(answerForParsing)) {
-    return {
-      present: false,
-      intervals: [],
-      rawAnswer,
-      ...reportFields,
-      predictedWindowsUri: transport.predictedWindowsUri,
-      spottedAudioUri: transport.spottedAudioUri,
-    };
+    return { present: false, intervals: [], rawAnswer, ...reportFields, predictedWindowsUri: transport.predictedWindowsUri, spottedAudioUri: transport.spottedAudioUri };
   }
 
   const intervals: SpotSoundInterval[] = [];
-  for (const match of answerForParsing.matchAll(INTERVAL_PATTERN)) {
-    appendInterval(intervals, match[1], match[2]);
-  }
-  for (const match of answerForParsing.matchAll(FROM_TO_PATTERN)) {
-    appendInterval(intervals, match[1], match[2]);
-  }
+  for (const match of answerForParsing.matchAll(INTERVAL_PATTERN)) appendInterval(intervals, match[1], match[2]);
+  for (const match of answerForParsing.matchAll(FROM_TO_PATTERN)) appendInterval(intervals, match[1], match[2]);
 
-  return {
-    present: intervals.length > 0,
-    intervals,
-    rawAnswer,
-    ...reportFields,
-    predictedWindowsUri: transport.predictedWindowsUri,
-    spottedAudioUri: transport.spottedAudioUri,
-  };
+  return { present: intervals.length > 0, intervals, rawAnswer, ...reportFields, predictedWindowsUri: transport.predictedWindowsUri, spottedAudioUri: transport.spottedAudioUri };
 }
 
 export async function analyzeSpotSound(
@@ -198,7 +162,37 @@ export async function analyzeSpotSound(
   audioPath: string,
   query: string,
 ): Promise<SpotSoundResult> {
-  const request = buildSpotSoundRequest(audioPath, query);
-  const response = await transport.spot(request);
+  const response = await transport.spot(buildSpotSoundRequest(audioPath, query));
   return normalizeSpotSoundAnswer(response);
+}
+
+export async function analyzeSpotSoundWithPresenceGate(
+  transport: SpotSoundTransport,
+  audioPath: string,
+  query: string,
+): Promise<SpotSoundPresenceGateResult> {
+  const detection = await transport.spot(
+    buildSpotSoundRequest(audioPath, query, 'Event detection (does it occur?)'),
+  );
+  const detectionAnswer = answerFromTransport(detection).trim();
+
+  if (ABSENT_PATTERN.test(detectionAnswer)) {
+    return {
+      present: false,
+      intervals: [],
+      rawAnswer: detectionAnswer,
+      rawReport: detection.report,
+      predictedWindowsUri: detection.predictedWindowsUri,
+      spottedAudioUri: detection.spottedAudioUri,
+      detectionAnswer,
+      groundingAttempted: false,
+    };
+  }
+
+  const grounding = await transport.spot(buildSpotSoundRequest(audioPath, query));
+  return {
+    ...normalizeSpotSoundAnswer(grounding),
+    detectionAnswer,
+    groundingAttempted: true,
+  };
 }
