@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   analyzeSpotSound,
   buildSpotSoundRequest,
+  constrainSpotSoundRequest,
   normalizeSpotSoundAnswer,
   SPOTSOUND_BACKEND_LIMITS,
   SPOTSOUND_KAI_DEFAULTS,
@@ -20,6 +21,30 @@ describe('SpotSound service contract', () => {
     expect(SPOTSOUND_KAI_DEFAULTS).toEqual({
       maxAudioSeconds: 300,
       maxNewTokens: 128,
+    });
+  });
+
+  it('clamps out-of-range request controls and reports every adjustment', () => {
+    const result = constrainSpotSoundRequest({
+      audioPath: '/tmp/audio.wav',
+      query: 'door slam',
+      task: 'Temporal grounding (when?)',
+      maxAudioSeconds: 999,
+      maxNewTokens: 4,
+    });
+
+    expect(result).toEqual({
+      request: {
+        audioPath: '/tmp/audio.wav',
+        query: 'door slam',
+        task: 'Temporal grounding (when?)',
+        maxAudioSeconds: 600,
+        maxNewTokens: 16,
+      },
+      adjustments: [
+        { field: 'maxAudioSeconds', from: 999, to: 600 },
+        { field: 'maxNewTokens', from: 4, to: 16 },
+      ],
     });
   });
 
