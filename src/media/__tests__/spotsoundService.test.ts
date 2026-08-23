@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   analyzeSpotSound,
+  analyzeSpotSoundWithPresenceGate,
   buildSpotSoundRequest,
   constrainSpotSoundRequest,
   normalizeSpotSoundAnswer,
@@ -151,6 +152,30 @@ describe('SpotSound service contract', () => {
     expect(result).toMatchObject({
       present: true,
       intervals: [{ startSeconds: 1.5, endSeconds: 2.75 }],
+    });
+  });
+
+  it('stops after detection when the event is absent instead of asking for timestamps', async () => {
+    const seenTasks = [] as string[];
+    const transport: SpotSoundTransport = {
+      async spot(request) {
+        seenTasks.push(request.task);
+        return { modelAnswer: 'No.' };
+      },
+    };
+
+    const result = await analyzeSpotSoundWithPresenceGate(
+      transport,
+      '/tmp/audio.wav',
+      'door slam',
+    );
+
+    expect(seenTasks).toEqual(['Event detection (does it occur?)']);
+    expect(result).toMatchObject({
+      present: false,
+      intervals: [],
+      detectionAnswer: 'No.',
+      groundingAttempted: false,
     });
   });
 });
