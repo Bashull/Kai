@@ -2,6 +2,18 @@ export type SpotSoundTask =
   | 'Temporal grounding (when?)'
   | 'Event detection (does it occur?)';
 
+export const SPOTSOUND_BACKEND_LIMITS = Object.freeze({
+  minAudioSeconds: 30,
+  maxAudioSeconds: 600,
+  minNewTokens: 16,
+  maxNewTokens: 512,
+});
+
+export const SPOTSOUND_KAI_DEFAULTS = Object.freeze({
+  maxAudioSeconds: 300,
+  maxNewTokens: 128,
+});
+
 export interface SpotSoundRequest {
   audioPath: string;
   query: string;
@@ -47,8 +59,7 @@ export function buildSpotSoundRequest(
     audioPath,
     query,
     task: 'Temporal grounding (when?)',
-    maxAudioSeconds: 300,
-    maxNewTokens: 128,
+    ...SPOTSOUND_KAI_DEFAULTS,
   };
 }
 
