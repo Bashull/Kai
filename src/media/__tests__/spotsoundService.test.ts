@@ -214,4 +214,44 @@ describe('SpotSound service contract', () => {
       groundingAttempted: false,
     });
   });
+
+  it('grounds exactly once after YES and preserves detection evidence separately', async () => {
+    const seenTasks = [] as string[];
+    const detectionReport = 'Answer: Yes.\nAudio: 57.0s  ·  inference: 1.5s';
+    const groundingReport =
+      'Answer: from 8.010s to 11.010s\n' +
+      'Windows: [8.01s → 11.01s]\n' +
+      'Audio: 57.0s  ·  inference: 1.3s';
+
+    const transport: SpotSoundTransport = {
+      async spot(request) {
+        seenTasks.push(request.task);
+        if (request.task === 'Event detection (does it occur?)') {
+          return { report: detectionReport };
+        }
+        return { report: groundingReport };
+      },
+    };
+
+    const result = await analyzeSpotSoundWithPresenceGate(
+      transport,
+      '/tmp/audio.wav',
+      'hair dryer',
+    );
+
+    expect(seenTasks).toEqual([
+      'Event detection (does it occur?)',
+      'Temporal grounding (when?)',
+    ]);
+    expect(result).toMatchObject({
+      present: true,
+      intervals: [{ startSeconds: 8.01, endSeconds: 11.01 }],
+      detectionAnswer: 'Yes.',
+      detectionReport,
+      presenceDecision: 'YES',
+      groundingAttempted: true,
+      rawAnswer: 'from 8.010s to 11.010s',
+      rawReport: groundingReport,
+    });
+  });
 });
