@@ -48,6 +48,28 @@ describe('SpotSound service contract', () => {
     });
   });
 
+  it('rejects non-finite request controls instead of pretending to clamp them', () => {
+    expect(() =>
+      constrainSpotSoundRequest({
+        audioPath: '/tmp/audio.wav',
+        query: 'door slam',
+        task: 'Temporal grounding (when?)',
+        maxAudioSeconds: Number.NaN,
+        maxNewTokens: 128,
+      }),
+    ).toThrow('maxAudioSeconds must be finite');
+
+    expect(() =>
+      constrainSpotSoundRequest({
+        audioPath: '/tmp/audio.wav',
+        query: 'door slam',
+        task: 'Temporal grounding (when?)',
+        maxAudioSeconds: 300,
+        maxNewTokens: Number.POSITIVE_INFINITY,
+      }),
+    ).toThrow('maxNewTokens must be finite');
+  });
+
   it('builds the verified /spot payload without losing task semantics', () => {
     expect(buildSpotSoundRequest('/tmp/audio.wav', 'dog barking')).toEqual({
       audioPath: '/tmp/audio.wav',
