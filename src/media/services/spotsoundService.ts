@@ -22,6 +22,17 @@ export interface SpotSoundRequest {
   maxNewTokens: number;
 }
 
+export interface SpotSoundRequestAdjustment {
+  field: 'maxAudioSeconds' | 'maxNewTokens';
+  from: number;
+  to: number;
+}
+
+export interface ConstrainedSpotSoundRequest {
+  request: SpotSoundRequest;
+  adjustments: SpotSoundRequestAdjustment[];
+}
+
 interface SpotSoundTransportArtifacts {
   predictedWindowsUri?: string;
   spottedAudioUri?: string;
@@ -49,6 +60,50 @@ export interface SpotSoundResult {
   rawReport?: string;
   predictedWindowsUri?: string;
   spottedAudioUri?: string;
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+export function constrainSpotSoundRequest(
+  request: SpotSoundRequest,
+): ConstrainedSpotSoundRequest {
+  const constrainedAudioSeconds = clamp(
+    request.maxAudioSeconds,
+    SPOTSOUND_BACKEND_LIMITS.minAudioSeconds,
+    SPOTSOUND_BACKEND_LIMITS.maxAudioSeconds,
+  );
+  const constrainedNewTokens = clamp(
+    request.maxNewTokens,
+    SPOTSOUND_BACKEND_LIMITS.minNewTokens,
+    SPOTSOUND_BACKEND_LIMITS.maxNewTokens,
+  );
+
+  const adjustments: SpotSoundRequestAdjustment[] = [];
+  if (constrainedAudioSeconds !== request.maxAudioSeconds) {
+    adjustments.push({
+      field: 'maxAudioSeconds',
+      from: request.maxAudioSeconds,
+      to: constrainedAudioSeconds,
+    });
+  }
+  if (constrainedNewTokens !== request.maxNewTokens) {
+    adjustments.push({
+      field: 'maxNewTokens',
+      from: request.maxNewTokens,
+      to: constrainedNewTokens,
+    });
+  }
+
+  return {
+    request: {
+      ...request,
+      maxAudioSeconds: constrainedAudioSeconds,
+      maxNewTokens: constrainedNewTokens,
+    },
+    adjustments,
+  };
 }
 
 export function buildSpotSoundRequest(
