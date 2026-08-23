@@ -3,6 +3,7 @@ import {
   analyzeSpotSound,
   analyzeSpotSoundWithPresenceGate,
   buildSpotSoundRequest,
+  classifySpotSoundPresenceAnswer,
   constrainSpotSoundRequest,
   normalizeSpotSoundAnswer,
   SPOTSOUND_BACKEND_LIMITS,
@@ -155,6 +156,15 @@ describe('SpotSound service contract', () => {
     });
   });
 
+  it('classifies presence answers as YES, NO, or AMBIGUOUS instead of treating non-No as Yes', () => {
+    expect(classifySpotSoundPresenceAnswer('Yes.')).toBe('YES');
+    expect(classifySpotSoundPresenceAnswer('Yes, the event occurs.')).toBe('YES');
+    expect(classifySpotSoundPresenceAnswer('No.')).toBe('NO');
+    expect(classifySpotSoundPresenceAnswer('No, the event does not occur.')).toBe('NO');
+    expect(classifySpotSoundPresenceAnswer('I am not sure.')).toBe('AMBIGUOUS');
+    expect(classifySpotSoundPresenceAnswer('')).toBe('AMBIGUOUS');
+  });
+
   it('stops after detection when the event is absent instead of asking for timestamps', async () => {
     const seenTasks = [] as string[];
     const transport: SpotSoundTransport = {
@@ -175,6 +185,32 @@ describe('SpotSound service contract', () => {
       present: false,
       intervals: [],
       detectionAnswer: 'No.',
+      presenceDecision: 'NO',
+      groundingAttempted: false,
+    });
+  });
+
+  it('does not ground an ambiguous detection answer', async () => {
+    const seenTasks = [] as string[];
+    const transport: SpotSoundTransport = {
+      async spot(request) {
+        seenTasks.push(request.task);
+        return { modelAnswer: 'I am not sure.' };
+      },
+    };
+
+    const result = await analyzeSpotSoundWithPresenceGate(
+      transport,
+      '/tmp/audio.wav',
+      'door slam',
+    );
+
+    expect(seenTasks).toEqual(['Event detection (does it occur?)']);
+    expect(result).toMatchObject({
+      present: false,
+      intervals: [],
+      detectionAnswer: 'I am not sure.',
+      presenceDecision: 'AMBIGUOUS',
       groundingAttempted: false,
     });
   });
