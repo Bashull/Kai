@@ -3,11 +3,26 @@ import {
   analyzeSpotSound,
   buildSpotSoundRequest,
   normalizeSpotSoundAnswer,
+  SPOTSOUND_BACKEND_LIMITS,
+  SPOTSOUND_KAI_DEFAULTS,
   type SpotSoundTransport,
   type SpotSoundTransportResult,
 } from '../services/spotsoundService';
 
 describe('SpotSound service contract', () => {
+  it('keeps verified backend limits separate from KAI request defaults', () => {
+    expect(SPOTSOUND_BACKEND_LIMITS).toEqual({
+      minAudioSeconds: 30,
+      maxAudioSeconds: 600,
+      minNewTokens: 16,
+      maxNewTokens: 512,
+    });
+    expect(SPOTSOUND_KAI_DEFAULTS).toEqual({
+      maxAudioSeconds: 300,
+      maxNewTokens: 128,
+    });
+  });
+
   it('builds the verified /spot payload without losing task semantics', () => {
     expect(buildSpotSoundRequest('/tmp/audio.wav', 'dog barking')).toEqual({
       audioPath: '/tmp/audio.wav',
