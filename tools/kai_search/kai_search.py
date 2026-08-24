@@ -12,13 +12,14 @@ import json
 import os
 import re
 import sqlite3
+import subprocess
 import sys
 import time
 from collections import defaultdict
 from pathlib import Path
 from typing import Iterable
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 DEFAULT_EXCLUDES = {
     "$Recycle.Bin", "System Volume Information", ".git", "node_modules",
     "__pycache__", ".cache", ".venv", "venv",
@@ -41,56 +42,64 @@ def connect(db_path: Path) -> sqlite3.Connection:
     con.execute("PRAGMA journal_mode=WAL")
     con.execute("PRAGMA synchronous=NORMAL")
     con.execute("PRAGMA temp_store=MEMORY")
+    con.execute("PRAGMA foreign_keys=ON")
     con.executescript(
         """
-        CREATE TABLE IF NOT EXISTS meta(
-            key TEXT PRIMARY KEY,
-            value TEXT NOT NULL
-        );
+        CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY, value TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS files(
-            id INTEGER PRIMARY KEY,
-            path TEXT NOT NULL UNIQUE,
-            name TEXT NOT NULL,
-            ext TEXT NOT NULL,
-            size INTEGER NOT NULL,
-            mtime_ns INTEGER NOT NULL,
-            root TEXT NOT NULL,
-            prehash TEXT,
-            fullhash TEXT,
-            scan_id INTEGER NOT NULL
+            id INTEGER PRIMARY KEY, path TEXT NOT NULL UNIQUE, name TEXT NOT NULL,
+            ext TEXT NOT NULL, size INTEGER NOT NULL, mtime_ns INTEGER NOT NULL,
+            root TEXT NOT NULL, prehash TEXT, fullhash TEXT, scan_id INTEGER NOT NULL
         );
         CREATE INDEX IF NOT EXISTS idx_files_root ON files(root);
         CREATE INDEX IF NOT EXISTS idx_files_size ON files(size);
         CREATE INDEX IF NOT EXISTS idx_files_hash ON files(fullhash, size);
-        CREATE VIRTUAL TABLE IF NOT EXISTS file_fts USING fts5(
-            path, name,
-            tokenize='unicode61 remove_diacritics 2'
+        CREATE TABLE IF NOT EXISTS file_content(
+            file_id INTEGER PRIMARY KEY REFERENCES files(id) ON DELETE CASCADE,
+            text TEXT NOT NULL DEFAULT '', values_json TEXT NOT NULL DEFAULT '[]',
+            search_text TEXT NOT NULL DEFAULT '', status TEXT NOT NULL,
+            error TEXT, extractor_id TEXT NOT NULL, extractor_profile TEXT NOT NULL,
+            source_size INTEGER NOT NULL, source_mtime_ns INTEGER NOT NULL,
+            extracted_ns INTEGER NOT NULL
         );
-        CREATE TRIGGER IF NOT EXISTS files_ai AFTER INSERT ON files BEGIN
-            INSERT INTO file_fts(rowid,path,name) VALUES(new.id,new.path,new.name);
+        """
+    )
+    fts_cols = {r[1] for r in con.execute("PRAGMA table_info(file_fts)")}
+    if fts_cols and "content" not in fts_cols:
+        con.executescript("DROP TRIGGER IF EXISTS files_ai; DROP TRIGGER IF EXISTS files_ad; DROP TRIGGER IF EXISTS files_au; DROP TABLE file_fts;")
+    con.executescript(
+        """
+        CREATE VIRTUAL TABLE IF NOT EXISTS file_fts USING fts5(
+            path, name, content, tokenize='unicode61 remove_diacritics 2'
+        );
+        DROP TRIGGER IF EXISTS files_ai;
+        DROP TRIGGER IF EXISTS files_ad;
+        DROP TRIGGER IF EXISTS files_au;
+        CREATE TRIGGER files_ai AFTER INSERT ON files BEGIN
+            INSERT INTO file_fts(rowid,path,name,content) VALUES(new.id,new.path,new.name,'');
         END;
-        CREATE TRIGGER IF NOT EXISTS files_ad AFTER DELETE ON files BEGIN
+        CREATE TRIGGER files_ad AFTER DELETE ON files BEGIN
             DELETE FROM file_fts WHERE rowid=old.id;
         END;
-        CREATE TRIGGER IF NOT EXISTS files_au AFTER UPDATE OF path,name ON files BEGIN
+        CREATE TRIGGER files_au AFTER UPDATE OF path,name ON files BEGIN
             DELETE FROM file_fts WHERE rowid=old.id;
-            INSERT INTO file_fts(rowid,path,name) VALUES(new.id,new.path,new.name);
+            INSERT INTO file_fts(rowid,path,name,content)
+            VALUES(new.id,new.path,new.name,COALESCE((SELECT search_text FROM file_content WHERE file_id=new.id),''));
         END;
         """
     )
-    con.execute(
-        "INSERT OR REPLACE INTO meta(key,value) VALUES('schema_version',?)",
-        (str(SCHEMA_VERSION),),
-    )
-    # Repair FTS if an interrupted migration left counts mismatched.
+    con.execute("INSERT OR REPLACE INTO meta(key,value) VALUES('schema_version',?)", (str(SCHEMA_VERSION),))
     n_files = con.execute("SELECT count(*) FROM files").fetchone()[0]
     n_fts = con.execute("SELECT count(*) FROM file_fts").fetchone()[0]
     if n_files != n_fts:
         con.execute("DELETE FROM file_fts")
-        con.execute("INSERT INTO file_fts(rowid,path,name) SELECT id,path,name FROM files")
+        con.execute(
+            """INSERT INTO file_fts(rowid,path,name,content)
+               SELECT f.id,f.path,f.name,COALESCE(c.search_text,'')
+               FROM files f LEFT JOIN file_content c ON c.file_id=f.id"""
+        )
     con.commit()
     return con
-
 
 def norm_path(path: str | os.PathLike[str]) -> str:
     return os.path.normcase(os.path.abspath(os.fspath(path)))
@@ -165,6 +174,11 @@ def index_root(
                 """,
                 (path, name, ext, st.st_size, st.st_mtime_ns, root, scan_id),
             )
+            if not same:
+                file_id = cur.execute("SELECT id FROM files WHERE path=?", (path,)).fetchone()[0]
+                cur.execute("DELETE FROM file_content WHERE file_id=?", (file_id,))
+                cur.execute("DELETE FROM file_fts WHERE rowid=?", (file_id,))
+                cur.execute("INSERT INTO file_fts(rowid,path,name,content) SELECT id,path,name,'' FROM files WHERE id=?", (file_id,))
             seen += 1
             changed += 0 if same else 1
             if seen % 10000 == 0:
@@ -182,6 +196,140 @@ def index_root(
         "changed_or_new": changed,
         "stale_removed": stale,
         "seconds": round(time.monotonic() - started, 3),
+    }
+
+
+def _refresh_fts_row(con: sqlite3.Connection, file_id: int) -> None:
+    con.execute("DELETE FROM file_fts WHERE rowid=?", (file_id,))
+    con.execute(
+        """INSERT INTO file_fts(rowid,path,name,content)
+           SELECT f.id,f.path,f.name,COALESCE(c.search_text,'')
+           FROM files f LEFT JOIN file_content c ON c.file_id=f.id
+           WHERE f.id=?""",
+        (file_id,),
+    )
+
+
+def store_extraction_result(con: sqlite3.Connection, file_id: int, result: dict) -> dict:
+    file_row = con.execute("SELECT size,mtime_ns FROM files WHERE id=?", (file_id,)).fetchone()
+    if file_row is None:
+        raise KeyError(file_id)
+    status = str(result.get("status") or "HANDLER_ERROR").upper()
+    values = result.get("values") if isinstance(result.get("values"), list) else []
+    values = [str(v) for v in values if v is not None]
+    text = str(result.get("text") or "") if status == "OK" else ""
+    search_text = "\n".join([text, *values]).strip() if status == "OK" else ""
+    extractor_id = str(result.get("extractor_id") or "unknown")
+    extractor_profile = str(result.get("extractor_profile") or "default")
+    error = result.get("error")
+    error = None if error is None else str(error)
+    con.execute(
+        """INSERT INTO file_content(
+               file_id,text,values_json,search_text,status,error,extractor_id,extractor_profile,
+               source_size,source_mtime_ns,extracted_ns
+           ) VALUES(?,?,?,?,?,?,?,?,?,?,?)
+           ON CONFLICT(file_id) DO UPDATE SET
+               text=excluded.text, values_json=excluded.values_json, search_text=excluded.search_text,
+               status=excluded.status, error=excluded.error, extractor_id=excluded.extractor_id,
+               extractor_profile=excluded.extractor_profile, source_size=excluded.source_size,
+               source_mtime_ns=excluded.source_mtime_ns, extracted_ns=excluded.extracted_ns""",
+        (file_id, text, json.dumps(values, ensure_ascii=False), search_text, status, error,
+         extractor_id, extractor_profile, file_row["size"], file_row["mtime_ns"], time.time_ns()),
+    )
+    _refresh_fts_row(con, file_id)
+    con.commit()
+    return {"file_id": file_id, "status": status, "indexed_chars": len(search_text)}
+
+
+def extract_file_isolated(path: str, timeout: float = 8.0, worker_script: Path | None = None) -> dict:
+    worker = Path(worker_script) if worker_script else Path(__file__).with_name("windows_ifilter_worker.py")
+    cmd = [sys.executable, str(worker), str(path)]
+    try:
+        cp = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        return {"status": "TIMEOUT", "text": "", "values": [], "error": f"timeout after {timeout}s",
+                "extractor_id": "subprocess-worker", "extractor_profile": "isolated-v1"}
+    if cp.returncode != 0:
+        return {"status": "CRASH", "text": "", "values": [], "error": (cp.stderr or "").strip()[-2000:],
+                "extractor_id": "subprocess-worker", "extractor_profile": "isolated-v1"}
+    payload = None
+    for line in reversed(cp.stdout.splitlines()):
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            candidate = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(candidate, dict):
+            payload = candidate
+            break
+    if payload is None:
+        return {"status": "INVALID_OUTPUT", "text": "", "values": [], "error": "worker emitted no JSON object",
+                "extractor_id": "subprocess-worker", "extractor_profile": "isolated-v1"}
+    payload.setdefault("status", "HANDLER_ERROR")
+    payload.setdefault("text", "")
+    payload.setdefault("values", [])
+    payload.setdefault("extractor_id", "subprocess-worker")
+    payload.setdefault("extractor_profile", "isolated-v1")
+    return payload
+
+
+
+WINDOWS_IFILTER_EXTRACTOR_ID = "windows-ifilter"
+WINDOWS_IFILTER_PROFILE = "init0-gettext-getvalue-filterregistration-v2"
+
+
+def extract_pending(
+    con: sqlite3.Connection,
+    timeout: float = 8.0,
+    max_files: int | None = None,
+    worker_script: Path | None = None,
+    extractor_id: str = WINDOWS_IFILTER_EXTRACTOR_ID,
+    extractor_profile: str = WINDOWS_IFILTER_PROFILE,
+    extensions: set[str] | None = None,
+) -> dict:
+    normalized_exts = None
+    if extensions:
+        normalized_exts = {e.lower() if e.startswith(".") else "." + e.lower() for e in extensions}
+    rows = con.execute(
+        """SELECT f.id,f.path,f.ext,f.size,f.mtime_ns,
+                  c.extractor_id,c.extractor_profile,c.source_size,c.source_mtime_ns
+           FROM files f LEFT JOIN file_content c ON c.file_id=f.id
+           ORDER BY f.id"""
+    ).fetchall()
+    pending = []
+    cached = 0
+    for row in rows:
+        if normalized_exts is not None and row["ext"] not in normalized_exts:
+            continue
+        fresh = (
+            row["extractor_id"] == extractor_id
+            and row["extractor_profile"] == extractor_profile
+            and row["source_size"] == row["size"]
+            and row["source_mtime_ns"] == row["mtime_ns"]
+        )
+        if fresh:
+            cached += 1
+        else:
+            pending.append(row)
+    selected = pending if max_files is None else pending[:max_files]
+    statuses: dict[str, int] = defaultdict(int)
+    for row in selected:
+        result = extract_file_isolated(row["path"], timeout=timeout, worker_script=worker_script)
+        if str(result.get("status", "")).upper() == "OK":
+            if result.get("extractor_id") != extractor_id or result.get("extractor_profile") != extractor_profile:
+                result = {
+                    "status": "INVALID_OUTPUT", "text": "", "values": [],
+                    "error": "worker identity/profile mismatch",
+                    "extractor_id": extractor_id, "extractor_profile": extractor_profile,
+                }
+        stored = store_extraction_result(con, row["id"], result)
+        statuses[stored["status"]] += 1
+    return {
+        "processed": len(selected), "cached": cached,
+        "pending_remaining": max(0, len(pending) - len(selected)),
+        "statuses": dict(statuses),
     }
 
 
@@ -337,6 +485,11 @@ def parse_args() -> argparse.Namespace:
     s.add_argument("--max-size", type=int)
     s.add_argument("--limit", type=int, default=100)
 
+    s = sub.add_parser("extract", help="Extract searchable content with isolated Windows IFilters")
+    s.add_argument("--limit", type=int)
+    s.add_argument("--timeout", type=float, default=8.0)
+    s.add_argument("--ext", action="append", default=[])
+
     s = sub.add_parser("dupes", help="Find exact duplicates; never deletes")
     s.add_argument("--min-size", type=int, default=1)
     s.add_argument("--limit-groups", type=int)
@@ -356,6 +509,8 @@ def main() -> int:
             out = [index_root(con, r, excludes, skip_paths) for r in args.roots]
         elif args.cmd == "find":
             out = find_files(con, args.query, args.ext, args.min_size, args.max_size, args.limit)
+        elif args.cmd == "extract":
+            out = extract_pending(con, timeout=args.timeout, max_files=args.limit, extensions=set(args.ext) or None)
         elif args.cmd == "dupes":
             out = duplicate_groups(con, args.min_size, args.limit_groups)
         else:
