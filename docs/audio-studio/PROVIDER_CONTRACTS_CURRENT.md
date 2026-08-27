@@ -58,3 +58,12 @@ Status: LIVE_READ_ONLY_VERIFIED · GENERATION_GATED
 - Model observed in two historical outputs: acemusic/acestep-v1.5-turbo.
 - Credential pointer exists in Termux config; secret value is not recorded.
 - Installed client payload contract is represented by AceMusicCompletionAdapter.
+
+
+## Zero-spend execution invariant
+
+Provider availability does not authorize generation. A provider must also pass
+`authorize_execution`. The default policy admits only FREE or LOCAL routes.
+ACE-Step 1.5 cloud currently has cost class UNKNOWN and is therefore
+`UNKNOWN_COST_BLOCKED` until price/quota is verified or Asier supplies an
+explicit bounded approval. Health probes and dry-runs remain non-generating.

@@ -71,3 +71,19 @@ Concrete provider status URLs and credential resolvers remain unconfigured until
 - Termux composition resolves credential presence without exposing its value.
 - Both real Blueprint fixtures now plan successfully through the live cloud route.
 - Live generation remains gated; planning attempted zero generations.
+
+
+## v0.6 — zero-spend execution gate and output ingestion
+
+- `audio_studio.execution` is the only authorization boundary before a future
+  generation call. Default policy is fail-closed: only FREE or LOCAL cost
+  classes pass. UNKNOWN cost, paid routes without explicit approval, missing
+  estimates, and estimates above budget are blocked with typed reasons.
+- Approval identity is represented only as boolean evidence in the receipt;
+  no credential or secret value is recorded.
+- `audio_studio.ingestion.OutputIngestor` attaches returned media to benchmark
+  manifests by governed path, SHA-256, size and MIME type.
+- Media remains in the DJ KAI output authority. Ingestion is reference-only,
+  idempotent for identical path+hash, and updates manifests atomically.
+- Response metadata containing secret-like keys is rejected before writeback.
+- This release adds no generation transport and cannot consume provider quota.
