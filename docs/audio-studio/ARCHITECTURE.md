@@ -29,3 +29,15 @@ BLOCKED_QUOTA, OFFLINE, TOOL_BLOCKED and UNKNOWN remain distinct states.
 ## Next
 
 Implement ACE, MiniMax and Suno compiler/probe adapters without embedding credentials. Connect decisions to benchmark manifests and add acceptance fixtures from the existing cases.
+
+## v0.2 delta
+
+- ManifestStore loads schema v1.0.0 cases and registries within a governed root.
+- Path traversal and incomplete/unsupported manifests fail closed.
+- ACE-Step compiler emits Caption, Lyrics, seed, duration and format-rewriting fields.
+- MiniMax Music 3 compiler separates global metadata, vocal details and arrangement.
+- Suno v5.5 compiler separates Style, Lyrics, Exclude and native controls.
+- Compiler adapters accept externally supplied fresh capability snapshots; they do not invent provider health.
+- Real Termux registry smoke loaded back-on-my-feet-001 and pajaro-001 successfully.
+
+Live provider probes and generation remain intentionally unimplemented.
