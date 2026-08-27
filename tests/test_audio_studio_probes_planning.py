@@ -10,6 +10,7 @@ from audio_studio.providers import (
     ProbeTarget,
     ace_step_cloud_target,
     ace_step_local_target,
+    ace_step_zerogpu_target,
     minimax_music_api_target,
     suno_platform_target,
     ReadOnlyCapabilityProbe,
@@ -79,11 +80,15 @@ class ReadOnlyProbeTests(unittest.TestCase):
     def test_official_catalog_encodes_verified_boundaries(self):
         ace = ace_step_local_target()
         cloud = ace_step_cloud_target()
+        zerogpu = ace_step_zerogpu_target()
         minimax = minimax_music_api_target()
         suno = suno_platform_target()
         self.assertEqual(ace.status_url, "http://127.0.0.1:8001/health")
         self.assertEqual(cloud.status_url, "https://api.acemusic.ai/health")
         self.assertIn("config.json#api_key", cloud.credential_pointer)
+        self.assertEqual(zerogpu.cost_class, "FREE")
+        self.assertEqual(zerogpu.metadata["quota_class"], "DAILY_ZEROGPU_QUOTA")
+        self.assertEqual(zerogpu.expected_json["version"], "6.2.0")
         self.assertEqual(cloud.expected_json, {"text": "health check"})
         self.assertIn("2026-08-20", minimax.policy_blocker)
         self.assertIsNone(suno.status_url)

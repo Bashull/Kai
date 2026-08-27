@@ -96,3 +96,17 @@ ace-step-skills donor
 Add an explicit execution approval/budget gate and an output ingestor that
 writes returned files and response metadata into benchmark manifests. Preserve
 the installed DJ KAI output patch when reconciling future donor updates.
+
+
+## 2026-08-27 free-route verification delta
+
+- Official ACE-Step v1.5 Space is RUNNING_ON_ZERO and its public config/API
+  discovery endpoints returned HTTP 200.
+- Official ACE-Step repository describes acemusic.ai as 100% free; its health
+  endpoint remains live, but /v1/models timed out after 15 seconds with no bytes.
+  Therefore acemusic cloud remains UNKNOWN_COST/DEGRADED for execution.
+- Installed Termux acestep.sh has /bin/bash shebang incompatible with Termux;
+  explicit `bash script` bypasses it. Its models curl lacks max-time and hung,
+  so the caller bounded it externally. Donor patch not modified.
+- Promoted planning candidate: ACE-Step official HF ZeroGPU, FREE but daily
+  quota-limited. No generation was attempted.

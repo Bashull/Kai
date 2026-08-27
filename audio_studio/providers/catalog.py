@@ -11,6 +11,8 @@ MINIMAX_MUSIC_API_DOC = (
     "https://platform.minimax.io/docs/api-reference/music-generation"
 )
 SUNO_PLATFORM = "https://platform.suno.com/"
+ACE_STEP_ZEROGPU_SPACE = "https://huggingface.co/spaces/ACE-Step/Ace-Step-v1.5"
+HF_ZEROGPU_DOC = "https://huggingface.co/docs/hub/spaces-zerogpu"
 
 
 def ace_step_local_target(
@@ -55,6 +57,35 @@ def ace_step_cloud_target() -> ProbeTarget:
             "client_script": "~/.agents/skills/acestep/scripts/acestep.sh",
             "api_mode": "completion",
             "generation_model_observed": "acemusic/acestep-v1.5-turbo",
+        },
+    )
+
+
+def ace_step_zerogpu_target() -> ProbeTarget:
+    return ProbeTarget(
+        provider_id="ace-step-1.5-zerogpu",
+        capabilities=frozenset({
+            "text_to_music", "cover", "repaint", "quality_scoring", "lrc"
+        }),
+        runtime="REMOTE",
+        cost_class="FREE",
+        status_url="https://ace-step-ace-step-v1-5.hf.space/config",
+        expected_json={
+            "version": "6.2.0",
+            "api_prefix": "/gradio_api",
+            "root": "https://ace-step-ace-step-v1-5.hf.space",
+        },
+        metadata={
+            "contract_status": "OFFICIAL_FREE_LIMITED_LIVE_VERIFIED",
+            "contract_verified_at": VERIFIED_AT,
+            "contract_source": ACE_STEP_ZEROGPU_SPACE,
+            "cost_source": HF_ZEROGPU_DOC,
+            "quota_class": "DAILY_ZEROGPU_QUOTA",
+            "generation_endpoint": "/generation_wrapper",
+            "generation_transport": "GRADIO_API",
+            "generation_auth": "HF_SESSION_AT_EXECUTION",
+            "config_contract_size_observed": 386161,
+            "api_info_contract_size_observed": 309330,
         },
     )
 

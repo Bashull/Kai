@@ -87,3 +87,15 @@ Concrete provider status URLs and credential resolvers remain unconfigured until
   idempotent for identical path+hash, and updates manifests atomically.
 - Response metadata containing secret-like keys is rejected before writeback.
 - This release adds no generation transport and cannot consume provider quota.
+
+
+## v0.7 — official free-limited ZeroGPU route
+
+- Added `ace-step-1.5-zerogpu` as a FREE remote planning route backed by
+  the official ACE-Step v1.5 Hugging Face Space.
+- Read-only contract probe verifies Gradio 6.2.0, `/gradio_api`, and the exact
+  Space root from `/config`; it never calls `/generation_wrapper`.
+- Cost authority: Hugging Face documents existing ZeroGPU Spaces as free to use.
+  Quota is finite and daily; availability does not imply remaining quota.
+- The adapter participates in dry-run planning and passes the zero-spend gate.
+  No generation transport is implemented in this release.

@@ -67,3 +67,18 @@ Provider availability does not authorize generation. A provider must also pass
 ACE-Step 1.5 cloud currently has cost class UNKNOWN and is therefore
 `UNKNOWN_COST_BLOCKED` until price/quota is verified or Asier supplies an
 explicit bounded approval. Health probes and dry-runs remain non-generating.
+
+
+## ACE-Step 1.5 official Hugging Face ZeroGPU
+
+Status: OFFICIAL_FREE_LIMITED_LIVE_VERIFIED · GENERATION_NOT_CONNECTED
+
+- Space: https://huggingface.co/spaces/ACE-Step/Ace-Step-v1.5
+- Runtime root: https://ace-step-ace-step-v1-5.hf.space
+- Harmless probe: GET /config → HTTP 200; Gradio 6.2.0; exact root verified.
+- API discovery: GET /gradio_api/info → HTTP 200; named generation endpoint
+  `/generation_wrapper`; 49 parameters and 39 returns observed.
+- Cost: FREE for existing ZeroGPU Spaces under Hugging Face documentation.
+- Limit: DAILY_ZEROGPU_QUOTA; queue and remaining quota are not proven by config.
+- Execution auth: Hugging Face session must be resolved only at execution.
+- This release provides planning only and cannot submit a GPU task.

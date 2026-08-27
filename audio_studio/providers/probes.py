@@ -107,11 +107,19 @@ class ReadOnlyCapabilityProbe:
         )
 
 
-def read_json_status(url: str, timeout_seconds: float = 3.0) -> tuple[int, dict]:
-    """Perform one GET and return only status plus decoded JSON."""
-    request = Request(url, method="GET", headers={"Accept": "application/json"})
+def read_json_status(
+    url: str, timeout_seconds: float = 5.0, max_bytes: int = 524288
+) -> tuple[int, dict]:
+    """Perform one GET and return status plus bounded decoded JSON."""
+    if not 1 <= max_bytes <= 1048576:
+        raise ValueError("max_bytes must be between 1 and 1048576")
+    request = Request(url, method="GET", headers={
+        "Accept": "application/json", "User-Agent": "curl/8.7.1"
+    })
     with urlopen(request, timeout=timeout_seconds) as response:
-        payload = response.read(65536)
+        payload = response.read(max_bytes + 1)
+        if len(payload) > max_bytes:
+            raise ValueError("status response exceeds max_bytes")
         import json
         body = json.loads(payload.decode("utf-8"))
         if not isinstance(body, dict):
