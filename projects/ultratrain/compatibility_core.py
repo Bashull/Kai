@@ -30,14 +30,49 @@ class CompatibilityResult:
         payload["allow_continue"] = self.allow_continue
         return json.dumps(payload, sort_keys=True)
 
+
 def _result(profile: dict[str, Any], status: Decision, rule: str, canary: str | None = None) -> CompatibilityResult:
     canaries = (canary,) if canary else ()
     return CompatibilityResult(profile.get("profile_id"), status, (rule,), canaries)
 
 
+def _version_tuple(value: str) -> tuple[int, int, int]:
+    parts = value.split(".")
+    if len(parts) < 3 or not all(part.isdigit() for part in parts[:3]):
+        raise ValueError(value)
+    return tuple(int(part) for part in parts[:3])
+
+
+def _evaluate_tracking(profile: dict[str, Any]) -> CompatibilityResult | None:
+    tracking = profile.get("tracking", {})
+    if tracking.get("provider") != "mlflow":
+        return None
+
+    version = tracking.get("version")
+    if not version:
+        return _result(profile, Decision.NEEDS_CANARY, "tracking.mlflow.version_identity", "tracking_version_identity")
+    try:
+        vulnerable = _version_tuple(version) < (3, 15, 0)
+    except ValueError:
+        return _result(profile, Decision.NEEDS_CANARY, "tracking.mlflow.version_identity", "tracking_version_identity")
+
+    exposed = tracking.get("network_exposure") in {"lan", "public"}
+    if vulnerable and (tracking.get("webhooks_enabled") or exposed):
+        return _result(profile, Decision.UNSUPPORTED, "tracking.mlflow.security_floor")
+    if exposed and tracking.get("auth_mode", "none") == "none":
+        return _result(profile, Decision.UNSUPPORTED, "tracking.auth.required_when_exposed")
+    if tracking.get("network_exposure") == "public" and tracking.get("egress_policy", "open") == "open":
+        return _result(profile, Decision.NEEDS_CANARY, "tracking.egress.isolation", "tracking_egress_isolation")
+    return None
+
+
 def evaluate_profile(profile: dict[str, Any]) -> CompatibilityResult:
     if not profile.get("profile_id"):
         return _result(profile, Decision.UNSUPPORTED, "profile_id.required")
+
+    tracking_result = _evaluate_tracking(profile)
+    if tracking_result is not None:
+        return tracking_result
 
     peft = profile.get("peft", {})
     hardware = profile.get("hardware", {})
