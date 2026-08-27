@@ -4,14 +4,17 @@ from dataclasses import dataclass
 
 from audio_studio.models import CapabilitySnapshot, SongRequest
 from audio_studio.providers.base import MusicProviderAdapter
+from audio_studio.providers.probes import ReadOnlyCapabilityProbe
 
 
 @dataclass
 class BlueprintCompilerAdapter(MusicProviderAdapter):
     provider_id: str
-    snapshot: CapabilitySnapshot
+    snapshot: CapabilitySnapshot | ReadOnlyCapabilityProbe
 
     def probe(self) -> CapabilitySnapshot:
+        if isinstance(self.snapshot, ReadOnlyCapabilityProbe):
+            return self.snapshot.run()
         return self.snapshot
 
     @staticmethod

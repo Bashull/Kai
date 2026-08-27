@@ -40,4 +40,13 @@ Implement ACE, MiniMax and Suno compiler/probe adapters without embedding creden
 - Compiler adapters accept externally supplied fresh capability snapshots; they do not invent provider health.
 - Real Termux registry smoke loaded back-on-my-feet-001 and pajaro-001 successfully.
 
-Live provider probes and generation remain intentionally unimplemented.
+## v0.3 delta
+
+- ReadOnlyCapabilityProbe checks credential presence through pointers and optional harmless status endpoints.
+- Probe evidence records configuration, response class and error type; never the secret value.
+- Dry-run planning freezes one fresh snapshot per provider and cannot call generate().
+- BLOCKED reports preserve every provider snapshot and rejection reason.
+- Back On My Feet and Pájaro are governed Blueprint acceptance fixtures.
+- All three compilers pass the same fixture acceptance matrix.
+
+Concrete provider status URLs and credential resolvers remain unconfigured until their official interfaces and local secret pointers are verified. Live generation remains intentionally gated.

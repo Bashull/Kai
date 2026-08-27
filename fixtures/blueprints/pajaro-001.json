@@ -1,0 +1,15 @@
+{
+  "case_id": "pajaro-001",
+  "core_identity": "Epic festival EDM blending progressive house, uplifting trance and melodic techno, 134 BPM",
+  "emotional_arc": "tender freedom growing into euphoric release",
+  "vocal_identity": "powerful emotional female lead; huge gospel choir; subtle Celtic colours",
+  "arrangement": "constant dance momentum; rapid builds; hard choruses; Fly vocal-chop drops; short breakdown; shouted final cue",
+  "lyrics": "[Chorus]\\nAnd I\\nI loved the bird\\n\\n[Drop]\\nFly… fly…",
+  "avoid": [
+    "minimal techno",
+    "slow ballad",
+    "generic pop"
+  ],
+  "duration_seconds": 210,
+  "seed": null
+}

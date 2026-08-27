@@ -1,0 +1,15 @@
+{
+  "case_id": "back-on-my-feet-001",
+  "core_identity": "Uplifting mainstage festival EDM and euphoric progressive house, 128 BPM",
+  "emotional_arc": "gritty resilience rising to a triumphant mainstage anthem",
+  "vocal_identity": "powerful raw female lead; short male electro-rap; crowd and choir",
+  "arrangement": "driving verses; fast builds; huge supersaw choruses; vocal-chop drops; brief emotional breakdown; largest final drop",
+  "lyrics": "[Chorus]\\nLIFE HITS HARD\\nBUT I'M BACK ON MY FEET!",
+  "avoid": [
+    "slow ballad",
+    "minimal techno",
+    "generic pop"
+  ],
+  "duration_seconds": 220,
+  "seed": 128001
+}
