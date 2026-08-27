@@ -1,0 +1,9 @@
+[project]
+name = "kai-audio-studio-core"
+version = "0.1.0"
+description = "Evidence-first multi-provider music routing core for KAI Audio Studio"
+requires-python = ">=3.11"
+
+[tool.unittest]
+start-directory = "tests"
+pattern = "test_*.py"
