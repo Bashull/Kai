@@ -83,3 +83,43 @@ class SunoV55Adapter(BlueprintCompilerAdapter):
                 "duration": b.get("duration_seconds"),
             },
         }
+
+
+class AceMusicCompletionAdapter(BlueprintCompilerAdapter):
+    """Compile the verified acemusic.ai OpenAI-compatible text-only contract."""
+
+    def compile(self, request: SongRequest) -> dict:
+        b = request.blueprint
+        caption = b.get("caption") or "; ".join(filter(None, [
+            b.get("core_identity"), b.get("emotional_arc"),
+            b.get("vocal_identity"), b.get("arrangement"),
+        ]))
+        lyrics = self._lyrics(b)
+        content = f"<prompt>{caption}</prompt>"
+        if lyrics:
+            content += f"<lyrics>{lyrics}</lyrics>"
+        audio_config = {
+            "format": b.get("audio_format", "mp3"),
+            "vocal_language": b.get("vocal_language", "en"),
+        }
+        for source, target in (
+            ("duration_seconds", "duration"), ("bpm", "bpm"),
+            ("key_scale", "key_scale"), ("time_signature", "time_signature"),
+        ):
+            if b.get(source) is not None:
+                audio_config[target] = b[source]
+        payload = {
+            "model": b.get("ace_model", "acemusic/acestep-v1.5-turbo"),
+            "messages": [{"role": "user", "content": content}],
+            "stream": False,
+            "thinking": b.get("thinking", True),
+            "use_format": b.get("format_rewriting", False),
+            "sample_mode": False,
+            "use_cot_caption": b.get("use_cot_caption", True),
+            "use_cot_language": b.get("use_cot_language", False),
+            "audio_config": audio_config,
+            "batch_size": b.get("batch_size", 1),
+        }
+        if b.get("seed") is not None:
+            payload["seed"] = b["seed"]
+        return payload

@@ -61,3 +61,13 @@ Concrete provider status URLs and credential resolvers remain unconfigured until
 - MiniMax API is policy-blocked by default after the official 2026-08-20 lifecycle change.
 - Suno remains a non-executable Blueprint draft until authenticated official docs are verified.
 - HTTP 200 without the expected provider identity is rejected.
+
+
+## v0.5 delta
+
+- Federated ACE-Step inventory separates Termux client, PC hardware, HF state and donors.
+- Verified acemusic.ai cloud target uses a governed credential pointer and plain-text health identity.
+- AceMusicCompletionAdapter mirrors the installed OpenAI-compatible client contract.
+- Termux composition resolves credential presence without exposing its value.
+- Both real Blueprint fixtures now plan successfully through the live cloud route.
+- Live generation remains gated; planning attempted zero generations.

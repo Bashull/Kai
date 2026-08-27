@@ -38,6 +38,27 @@ def ace_step_local_target(
     )
 
 
+def ace_step_cloud_target() -> ProbeTarget:
+    return ProbeTarget(
+        provider_id="ace-step-1.5-cloud",
+        capabilities=frozenset({"text_to_music", "cover", "repaint"}),
+        runtime="REMOTE",
+        cost_class="UNKNOWN",
+        status_url="https://api.acemusic.ai/health",
+        credential_pointer=(
+            "termux:~/.agents/skills/acestep/scripts/config.json#api_key"
+        ),
+        expected_json={"text": "health check"},
+        metadata={
+            "contract_status": "LIVE_READ_ONLY_VERIFIED",
+            "contract_verified_at": VERIFIED_AT,
+            "client_script": "~/.agents/skills/acestep/scripts/acestep.sh",
+            "api_mode": "completion",
+            "generation_model_observed": "acemusic/acestep-v1.5-turbo",
+        },
+    )
+
+
 def minimax_music_api_target() -> ProbeTarget:
     return ProbeTarget(
         provider_id="minimax-music-3-api",

@@ -46,3 +46,15 @@ Status: PLATFORM_CONFIRMED · CONTRACT_UNKNOWN_AUTH_REQUIRED
 A provider becomes AVAILABLE only when a harmless documented probe returns
 the expected service identity. HTTP 200 alone is insufficient. Generation
 endpoints are never probes, and secret values never enter evidence.
+
+
+## ACE-Step 1.5 cloud completion route
+
+Status: LIVE_READ_ONLY_VERIFIED · GENERATION_GATED
+
+- Host: https://api.acemusic.ai
+- Health: GET /health → HTTP 200 with exact body "health check".
+- Generation: POST /v1/chat/completions; not used by probes.
+- Model observed in two historical outputs: acemusic/acestep-v1.5-turbo.
+- Credential pointer exists in Termux config; secret value is not recorded.
+- Installed client payload contract is represented by AceMusicCompletionAdapter.

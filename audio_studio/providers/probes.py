@@ -131,3 +131,14 @@ def _contains_expected(actual: dict, expected: dict) -> bool:
         elif actual[key] != value:
             return False
     return True
+
+
+def read_text_status(url: str, timeout_seconds: float = 5.0) -> tuple[int, dict]:
+    """Perform one GET and wrap a bounded plain-text identity response."""
+    request = Request(url, method="GET", headers={
+        "Accept": "text/plain",
+        "User-Agent": "curl/8.7.1",
+    })
+    with urlopen(request, timeout=timeout_seconds) as response:
+        text = response.read(4096).decode("utf-8").strip()
+        return response.status, {"text": text}
