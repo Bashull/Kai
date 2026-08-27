@@ -8,6 +8,9 @@ from audio_studio.providers import (
     AceStepAdapter,
     MiniMaxMusic3Adapter,
     ProbeTarget,
+    ace_step_local_target,
+    minimax_music_api_target,
+    suno_platform_target,
     ReadOnlyCapabilityProbe,
     SunoV55Adapter,
 )
@@ -59,6 +62,32 @@ class ReadOnlyProbeTests(unittest.TestCase):
         self.assertEqual(called, [])
 
 
+    def test_expected_json_rejects_wrong_service_behind_http_200(self):
+        probe = ReadOnlyCapabilityProbe(
+            target(
+                "ace",
+                status_url="http://127.0.0.1:8001/health",
+                expected_json={"data": {"status": "ok", "service": "ACE-Step API"}},
+            ),
+            status_reader=lambda url: (200, {"data": {"status": "ok", "service": "other"}}),
+        )
+        snapshot = probe.run()
+        self.assertEqual(snapshot.availability, Availability.OFFLINE)
+        self.assertEqual(snapshot.evidence["endpoint_state"], "INVALID_RESPONSE")
+
+    def test_official_catalog_encodes_verified_boundaries(self):
+        ace = ace_step_local_target()
+        minimax = minimax_music_api_target()
+        suno = suno_platform_target()
+        self.assertEqual(ace.status_url, "http://127.0.0.1:8001/health")
+        self.assertIn("2026-08-20", minimax.policy_blocker)
+        self.assertIsNone(suno.status_url)
+        self.assertEqual(
+            suno.metadata["contract_status"],
+            "PLATFORM_CONFIRMED_DOCS_AUTH_REQUIRED",
+        )
+
+
 class DryRunPlanningTests(unittest.TestCase):
     def request(self):
         return SongRequest(
@@ -95,7 +124,8 @@ class DryRunPlanningTests(unittest.TestCase):
         )
         self.assertEqual(report.status, "PLANNED")
         self.assertEqual(report.selected_provider, "minimax")
-        self.assertIn("global_metadata", report.compiled)
+        self.assertEqual(report.compiled["model"], "music-3.0")
+        self.assertIn("prompt", report.compiled)
         self.assertFalse(report.generation_attempted)
 
     def test_real_blueprint_fixtures_compile_for_all_providers(self):

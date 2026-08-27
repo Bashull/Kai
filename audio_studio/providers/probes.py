@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Callable
+from urllib.request import Request, urlopen
 
 from audio_studio.models import Availability, CapabilitySnapshot
 
@@ -15,6 +16,8 @@ class ProbeTarget:
     status_url: str | None = None
     credential_pointer: str | None = None
     metadata: dict = field(default_factory=dict)
+    expected_json: dict = field(default_factory=dict)
+    policy_blocker: str | None = None
 
 
 class ReadOnlyCapabilityProbe:
@@ -24,7 +27,7 @@ class ReadOnlyCapabilityProbe:
         self,
         target: ProbeTarget,
         *,
-        status_reader: Callable[[str], int] | None = None,
+        status_reader: Callable[[str], int | tuple[int, dict]] | None = None,
         credential_resolver: Callable[[str], bool] | None = None,
     ):
         self.target = target
@@ -38,6 +41,10 @@ class ReadOnlyCapabilityProbe:
             "credential_pointer": self.target.credential_pointer,
             **self.target.metadata,
         }
+        if self.target.policy_blocker:
+            evidence["policy_blocker"] = self.target.policy_blocker
+            evidence["endpoint_state"] = "POLICY_BLOCKED"
+            return self._snapshot(Availability.TOOL_BLOCKED, evidence)
         if self.target.credential_pointer:
             if self.credential_resolver is None:
                 evidence["credential_state"] = "UNRESOLVED"
@@ -63,7 +70,8 @@ class ReadOnlyCapabilityProbe:
             evidence["endpoint_state"] = "NOT_PROBED"
             return self._snapshot(Availability.UNKNOWN, evidence)
         try:
-            status = self.status_reader(self.target.status_url)
+            observation = self.status_reader(self.target.status_url)
+            status, body = observation if isinstance(observation, tuple) else (observation, {})
         except Exception as exc:
             evidence["endpoint_state"] = "ERROR"
             evidence["error_type"] = type(exc).__name__
@@ -71,6 +79,11 @@ class ReadOnlyCapabilityProbe:
 
         evidence["endpoint_state"] = "RESPONDED"
         evidence["http_status"] = status
+        if self.target.expected_json and not _contains_expected(
+            body, self.target.expected_json
+        ):
+            evidence["endpoint_state"] = "INVALID_RESPONSE"
+            return self._snapshot(Availability.OFFLINE, evidence)
         if 200 <= status < 400:
             availability = Availability.AVAILABLE
         elif status in {401, 403}:
@@ -92,3 +105,29 @@ class ReadOnlyCapabilityProbe:
             runtime=self.target.runtime,
             evidence=evidence,
         )
+
+
+def read_json_status(url: str, timeout_seconds: float = 3.0) -> tuple[int, dict]:
+    """Perform one GET and return only status plus decoded JSON."""
+    request = Request(url, method="GET", headers={"Accept": "application/json"})
+    with urlopen(request, timeout=timeout_seconds) as response:
+        payload = response.read(65536)
+        import json
+        body = json.loads(payload.decode("utf-8"))
+        if not isinstance(body, dict):
+            raise ValueError("status response must be a JSON object")
+        return response.status, body
+
+
+def _contains_expected(actual: dict, expected: dict) -> bool:
+    for key, value in expected.items():
+        if key not in actual:
+            return False
+        if isinstance(value, dict):
+            if not isinstance(actual[key], dict):
+                return False
+            if not _contains_expected(actual[key], value):
+                return False
+        elif actual[key] != value:
+            return False
+    return True

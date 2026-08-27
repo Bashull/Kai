@@ -32,20 +32,23 @@ class CompilerTests(unittest.TestCase):
         })
     def test_ace_compiles_caption_and_native_fields(self):
         out = AceStepAdapter("ace", snapshot("ace")).compile(self.request)
-        self.assertIn("EDM", out["caption"])
+        self.assertIn("EDM", out["prompt"])
         self.assertEqual(out["seed"], 42)
-        self.assertFalse(out["format_rewriting"])
+        self.assertFalse(out["use_random_seed"])
+        self.assertFalse(out["use_format"])
 
     def test_minimax_separates_prompt_layers(self):
         out = MiniMaxMusic3Adapter("minimax", snapshot("minimax")).compile(self.request)
-        self.assertEqual(out["vocal_details"], "female lead")
-        self.assertIn("piano outro", out["arrangement"])
+        self.assertEqual(out["model"], "music-3.0")
+        self.assertIn("female lead", out["prompt"])
+        self.assertIn("piano outro", out["prompt"])
 
     def test_suno_separates_style_lyrics_and_exclude(self):
         out = SunoV55Adapter("suno", snapshot("suno")).compile(self.request)
-        self.assertEqual(out["model"], "v5.5")
-        self.assertEqual(out["lyrics"], "[Chorus]\nFly")
-        self.assertEqual(out["exclude"], ["shouting"])
+        self.assertFalse(out["executable"])
+        self.assertEqual(out["contract_status"], "UNVERIFIED_AUTH_REQUIRED")
+        self.assertEqual(out["blueprint_draft"]["lyrics"], "[Chorus]\nFly")
+        self.assertEqual(out["blueprint_draft"]["exclude"], ["shouting"])
 
 
 class ManifestStoreTests(unittest.TestCase):

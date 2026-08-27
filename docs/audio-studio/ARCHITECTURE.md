@@ -50,3 +50,14 @@ Implement ACE, MiniMax and Suno compiler/probe adapters without embedding creden
 - All three compilers pass the same fixture acceptance matrix.
 
 Concrete provider status URLs and credential resolvers remain unconfigured until their official interfaces and local secret pointers are verified. Live generation remains intentionally gated.
+
+
+## v0.4 delta
+
+- Provider contracts are governed in PROVIDER_CONTRACTS_CURRENT.md.
+- ACE-Step uses its official local GET /health contract with JSON identity validation.
+- ACE compilation now emits official release_task fields.
+- MiniMax compilation now emits the official music-3.0 request schema.
+- MiniMax API is policy-blocked by default after the official 2026-08-20 lifecycle change.
+- Suno remains a non-executable Blueprint draft until authenticated official docs are verified.
+- HTTP 200 without the expected provider identity is rejected.
