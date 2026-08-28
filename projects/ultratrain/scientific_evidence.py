@@ -37,6 +37,27 @@ class DatasetRef:
 
 
 @dataclass(frozen=True)
+class EvaluationRef:
+    evaluator_id: str
+    evaluator_version: str
+    task_id: str
+    task_version: str
+    dataset: DatasetRef
+
+    def __post_init__(self) -> None:
+        if not self.evaluator_id:
+            raise ValueError("evaluation.evaluator_id")
+        if not self.evaluator_version:
+            raise ValueError("evaluation.evaluator_version")
+        if not self.task_id:
+            raise ValueError("evaluation.task_id")
+        if not self.task_version:
+            raise ValueError("evaluation.task_version")
+        if not self.dataset.revision:
+            raise ValueError("evaluation.dataset_revision")
+
+
+@dataclass(frozen=True)
 class ScientificRunEnvelope:
     run_id: str
     recipe_digest: str
@@ -48,6 +69,7 @@ class ScientificRunEnvelope:
     runtime_profile: dict[str, Any] = field(default_factory=dict)
     metrics: dict[str, Any] = field(default_factory=dict)
     evals: dict[str, Any] = field(default_factory=dict)
+    evaluation_refs: tuple[EvaluationRef, ...] = field(default_factory=tuple)
     provider_refs: dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:

@@ -74,6 +74,13 @@ def evaluate_profile(profile: dict[str, Any]) -> CompatibilityResult:
     if tracking_result is not None:
         return tracking_result
 
+    transformers = profile.get("transformers", {})
+    if transformers.get("untrusted_repo"):
+        if not transformers.get("sandboxed"):
+            return _result(profile, Decision.UNSUPPORTED, "transformers.untrusted_repo.sandbox")
+        if not transformers.get("revision_pinned"):
+            return _result(profile, Decision.UNSUPPORTED, "transformers.untrusted_repo.revision_pin")
+
     peft = profile.get("peft", {})
     hardware = profile.get("hardware", {})
     packages = profile.get("packages", {})
@@ -85,6 +92,18 @@ def evaluate_profile(profile: dict[str, Any]) -> CompatibilityResult:
     distributed = profile.get("distributed", {})
     if "nodes" in distributed and distributed["nodes"] <= 0:
         return _result(profile, Decision.UNSUPPORTED, "distributed.nodes.positive")
+    if distributed.get("fsdp_version") == 2 and peft.get("qlora_4bit"):
+        accelerate_version = packages.get("accelerate")
+        try:
+            accelerate_hardened = accelerate_version is not None and _version_tuple(accelerate_version) >= (1, 14, 0)
+        except ValueError:
+            accelerate_hardened = False
+        if not accelerate_hardened:
+            return _result(profile, Decision.NEEDS_CANARY, "distributed.fsdp2_qlora.hardening", "fsdp2_qlora_compatibility")
+
+    megatron = profile.get("megatron", {})
+    if megatron.get("enabled") and megatron.get("multi_grid") and not megatron.get("explicit_process_groups"):
+        return _result(profile, Decision.UNSUPPORTED, "megatron.multigrid.explicit_process_groups")
 
     ray = profile.get("ray", {})
     if ray.get("requested") and not ray.get("enabled"):
@@ -106,7 +125,15 @@ def evaluate_profile(profile: dict[str, Any]) -> CompatibilityResult:
         return _result(profile, Decision.NEEDS_CANARY, "hub.xet.canary", "xet_roundtrip")
 
     runtime = profile.get("runtime", {})
-    if runtime.get("vllm") and not runtime.get("vllm_canary_passed"):
-        return _result(profile, Decision.NEEDS_CANARY, "runtime.vllm.canary", "vllm_runtime")
+    if runtime.get("vllm"):
+        vllm_version = runtime.get("vllm_version")
+        if vllm_version:
+            try:
+                if _version_tuple(vllm_version) < (0, 27, 0):
+                    return _result(profile, Decision.UNSUPPORTED, "runtime.vllm.security_floor")
+            except ValueError:
+                return _result(profile, Decision.NEEDS_CANARY, "runtime.vllm.version_identity", "vllm_version_identity")
+        if not runtime.get("vllm_canary_passed"):
+            return _result(profile, Decision.NEEDS_CANARY, "runtime.vllm.canary", "vllm_runtime")
 
     return _result(profile, Decision.SUPPORTED, "baseline.supported")
