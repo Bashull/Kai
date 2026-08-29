@@ -127,12 +127,33 @@ def evaluate_profile(profile: dict[str, Any]) -> CompatibilityResult:
     runtime = profile.get("runtime", {})
     if runtime.get("vllm"):
         vllm_version = runtime.get("vllm_version")
+        parsed_vllm_version: tuple[int, int, int] | None = None
         if vllm_version:
             try:
-                if _version_tuple(vllm_version) < (0, 27, 0):
+                parsed_vllm_version = _version_tuple(vllm_version)
+                if parsed_vllm_version < (0, 27, 0):
                     return _result(profile, Decision.UNSUPPORTED, "runtime.vllm.security_floor")
             except ValueError:
                 return _result(profile, Decision.NEEDS_CANARY, "runtime.vllm.version_identity", "vllm_version_identity")
+
+        if parsed_vllm_version == (0, 27, 1):
+            if peft.get("lora") and runtime.get("vllm_sleep_level") == 1:
+                if not runtime.get("post_wake_determinism_canary_passed"):
+                    return _result(
+                        profile,
+                        Decision.NEEDS_CANARY,
+                        "runtime.vllm.lora_sleep_wake_integrity",
+                        "vllm_lora_sleep_wake",
+                    )
+            if runtime.get("vllm_tool_server"):
+                mcp_version = packages.get("mcp")
+                if mcp_version:
+                    try:
+                        if _version_tuple(mcp_version) >= (2, 0, 0):
+                            return _result(profile, Decision.UNSUPPORTED, "runtime.vllm.mcp2_incompatible")
+                    except ValueError:
+                        return _result(profile, Decision.NEEDS_CANARY, "runtime.vllm.mcp_version_identity", "vllm_mcp_compatibility")
+
         if not runtime.get("vllm_canary_passed"):
             return _result(profile, Decision.NEEDS_CANARY, "runtime.vllm.canary", "vllm_runtime")
 
