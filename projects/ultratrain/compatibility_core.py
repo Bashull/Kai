@@ -125,26 +125,26 @@ def evaluate_profile(profile: dict[str, Any]) -> CompatibilityResult:
         return _result(profile, Decision.NEEDS_CANARY, "hub.xet.canary", "xet_roundtrip")
 
     runtime = profile.get("runtime", {})
+    if runtime.get("sglang") and runtime.get("sglang_gptq_marlin_moe"):
+        if runtime.get("dtype") in {"bfloat16", "bf16"} and runtime.get("tensor_parallel_size", 1) > 1:
+            if not runtime.get("sglang_gptq_marlin_moe_canary_passed"):
+                return _result(profile, Decision.NEEDS_CANARY, "runtime.sglang.gptq_marlin_moe_bf16_tp", "sglang_gptq_marlin_moe_tp")
+
     if runtime.get("vllm"):
         vllm_version = runtime.get("vllm_version")
         parsed_vllm_version: tuple[int, int, int] | None = None
         if vllm_version:
             try:
                 parsed_vllm_version = _version_tuple(vllm_version)
-                if parsed_vllm_version < (0, 27, 0):
-                    return _result(profile, Decision.UNSUPPORTED, "runtime.vllm.security_floor")
+                if parsed_vllm_version < (0, 28, 0):
+                    return _result(profile, Decision.UNSUPPORTED, "runtime.vllm.security_floor_028")
             except ValueError:
                 return _result(profile, Decision.NEEDS_CANARY, "runtime.vllm.version_identity", "vllm_version_identity")
 
         if parsed_vllm_version == (0, 27, 1):
             if peft.get("lora") and runtime.get("vllm_sleep_level") == 1:
                 if not runtime.get("post_wake_determinism_canary_passed"):
-                    return _result(
-                        profile,
-                        Decision.NEEDS_CANARY,
-                        "runtime.vllm.lora_sleep_wake_integrity",
-                        "vllm_lora_sleep_wake",
-                    )
+                    return _result(profile, Decision.NEEDS_CANARY, "runtime.vllm.lora_sleep_wake_integrity", "vllm_lora_sleep_wake")
             if runtime.get("vllm_tool_server"):
                 mcp_version = packages.get("mcp")
                 if mcp_version:
