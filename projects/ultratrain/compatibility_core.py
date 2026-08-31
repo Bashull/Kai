@@ -74,6 +74,43 @@ def evaluate_profile(profile: dict[str, Any]) -> CompatibilityResult:
     if tracking_result is not None:
         return tracking_result
 
+    trl = profile.get("trl", {})
+    distributed = profile.get("distributed", {})
+    runtime = profile.get("runtime", {})
+    packages = profile.get("packages", {})
+    trl_version = trl.get("version")
+    parsed_trl_version = None
+    if trl_version:
+        try:
+            parsed_trl_version = _version_tuple(trl_version)
+        except ValueError:
+            return _result(profile, Decision.NEEDS_CANARY, "trl.version_identity", "trl_version_identity")
+
+    if trl.get("packing") and distributed.get("context_parallelism"):
+        return _result(profile, Decision.UNSUPPORTED, "trl.packing_context_parallelism.incompatible")
+
+    if trl.get("async_distillation"):
+        if not runtime.get("vllm"):
+            return _result(profile, Decision.UNSUPPORTED, "trl.async_distillation.requires_vllm")
+        transformers_version = packages.get("transformers")
+        try:
+            transformers_ok = transformers_version is not None and _version_tuple(transformers_version) >= (5, 2, 0)
+        except ValueError:
+            transformers_ok = False
+        if not transformers_ok:
+            return _result(profile, Decision.UNSUPPORTED, "trl.async_distillation.requires_transformers_52")
+        if distributed.get("enabled") and distributed.get("fsdp_version") != 2:
+            return _result(profile, Decision.UNSUPPORTED, "trl.async_distillation.distributed_requires_fsdp2")
+
+    if trl.get("vllm_server_mode") and parsed_trl_version in {(1, 11, 0), (1, 12, 0)}:
+        vllm_version = runtime.get("vllm_version")
+        try:
+            vllm_post_security_floor = vllm_version is not None and _version_tuple(vllm_version) >= (0, 28, 0)
+        except ValueError:
+            vllm_post_security_floor = False
+        if vllm_post_security_floor and not trl.get("vllm_028_canary_passed"):
+            return _result(profile, Decision.NEEDS_CANARY, "trl.vllm_server.post_027_compatibility", "trl_vllm_server_compatibility")
+
     transformers = profile.get("transformers", {})
     if transformers.get("untrusted_repo"):
         if not transformers.get("sandboxed"):
