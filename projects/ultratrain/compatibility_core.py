@@ -52,9 +52,13 @@ def _evaluate_tracking(profile: dict[str, Any]) -> CompatibilityResult | None:
     if not version:
         return _result(profile, Decision.NEEDS_CANARY, "tracking.mlflow.version_identity", "tracking_version_identity")
     try:
-        vulnerable = _version_tuple(version) < (3, 15, 0)
+        parsed_version = _version_tuple(version)
+        vulnerable = parsed_version < (3, 15, 0)
     except ValueError:
         return _result(profile, Decision.NEEDS_CANARY, "tracking.mlflow.version_identity", "tracking_version_identity")
+
+    if tracking.get("statsmodels_flavor_load") and parsed_version < (3, 15, 0):
+        return _result(profile, Decision.UNSUPPORTED, "tracking.mlflow.statsmodels_pickle_guard")
 
     exposed = tracking.get("network_exposure") in {"lan", "public"}
     if vulnerable and (tracking.get("webhooks_enabled") or exposed):
@@ -112,6 +116,17 @@ def evaluate_profile(profile: dict[str, Any]) -> CompatibilityResult:
             return _result(profile, Decision.NEEDS_CANARY, "trl.vllm_server.post_027_compatibility", "trl_vllm_server_compatibility")
 
     transformers = profile.get("transformers", {})
+    transformers_version = packages.get("transformers")
+    if transformers.get("remote_custom_generate"):
+        if not transformers_version:
+            return _result(profile, Decision.NEEDS_CANARY, "transformers.custom_generate.version_identity", "transformers_custom_generate_security")
+        try:
+            parsed_transformers = _version_tuple(transformers_version)
+        except ValueError:
+            return _result(profile, Decision.NEEDS_CANARY, "transformers.custom_generate.version_identity", "transformers_custom_generate_security")
+        if (4, 49, 0) <= parsed_transformers <= (5, 8, 1):
+            return _result(profile, Decision.UNSUPPORTED, "transformers.custom_generate.preconsent_write")
+
     if transformers.get("untrusted_repo"):
         if not transformers.get("sandboxed"):
             return _result(profile, Decision.UNSUPPORTED, "transformers.untrusted_repo.sandbox")
