@@ -82,6 +82,34 @@ def evaluate_profile(profile: dict[str, Any]) -> CompatibilityResult:
     distributed = profile.get("distributed", {})
     runtime = profile.get("runtime", {})
     packages = profile.get("packages", {})
+
+    pytorch_214_capability = (
+        distributed.get("backend") == "nccl2"
+        or distributed.get("fault_tolerant_reconfiguration") is True
+    )
+    if pytorch_214_capability:
+        torch_version = packages.get("torch")
+        if not torch_version:
+            return _result(
+                profile,
+                Decision.NEEDS_CANARY,
+                "pytorch.214_capability.version_identity",
+                "pytorch_214_capability_identity",
+            )
+        try:
+            parsed_torch_version = _version_tuple(torch_version)
+        except ValueError:
+            return _result(
+                profile,
+                Decision.NEEDS_CANARY,
+                "pytorch.214_capability.version_identity",
+                "pytorch_214_capability_identity",
+            )
+        if distributed.get("backend") == "nccl2" and parsed_torch_version < (2, 14, 0):
+            return _result(profile, Decision.UNSUPPORTED, "pytorch.nccl2.requires_214")
+        if distributed.get("fault_tolerant_reconfiguration") and parsed_torch_version < (2, 14, 0):
+            return _result(profile, Decision.UNSUPPORTED, "pytorch.c10d_reconfiguration.requires_214")
+
     trl_version = trl.get("version")
     parsed_trl_version = None
     if trl_version:
