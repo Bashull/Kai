@@ -1,7 +1,11 @@
 import hashlib
 import unittest
 
-from projects.ultratrain.artifact_transport import ArtifactResolver, TransportPolicy
+from projects.ultratrain.artifact_transport import (
+    ArtifactResolver,
+    TransportFailure,
+    TransportPolicy,
+)
 from projects.ultratrain.scientific_evidence import ArtifactRef, IntegrityStatus
 
 
@@ -67,6 +71,65 @@ class ArtifactTransportTests(unittest.TestCase):
     def test_policy_rejects_nonpositive_max_bytes(self):
         with self.assertRaises(ValueError):
             TransportPolicy(allowed_schemes=("memory",), max_bytes=0)
+
+    def test_non_retryable_403_fails_once_and_preserves_diagnostic(self):
+        attempts = 0
+
+        def loader(ref):
+            nonlocal attempts
+            attempts += 1
+            raise TransportFailure(
+                "xet.forbidden",
+                status_code=403,
+                retryable=False,
+                diagnostic="access denied by xorb edge",
+            )
+
+        resolver = ArtifactResolver(
+            {"hf+xet": ("hf-xet", loader)},
+            TransportPolicy(allowed_schemes=("hf+xet",), max_attempts=5),
+        )
+        with self.assertRaises(TransportFailure) as ctx:
+            resolver.resolve(self._ref("hf+xet://repo/model.bin", b"x"))
+        self.assertEqual(attempts, 1)
+        self.assertEqual(ctx.exception.status_code, 403)
+        self.assertIn("access denied", ctx.exception.diagnostic)
+
+    def test_retryable_transport_failure_can_retry_then_succeed(self):
+        payload = b"weights"
+        attempts = 0
+
+        def loader(ref):
+            nonlocal attempts
+            attempts += 1
+            if attempts == 1:
+                raise TransportFailure("xet.url_expired", status_code=403, retryable=True)
+            return payload
+
+        resolver = ArtifactResolver(
+            {"hf+xet": ("hf-xet", loader)},
+            TransportPolicy(allowed_schemes=("hf+xet",), max_attempts=2),
+        )
+        result = resolver.resolve(self._ref("hf+xet://repo/model.bin", payload))
+        self.assertEqual(attempts, 2)
+        self.assertEqual(result.integrity.status, IntegrityStatus.VERIFIED)
+
+    def test_retry_budget_exhaustion_preserves_last_failure(self):
+        attempts = 0
+
+        def loader(ref):
+            nonlocal attempts
+            attempts += 1
+            raise TransportFailure("xet.transient", status_code=503, retryable=True)
+
+        resolver = ArtifactResolver(
+            {"hf+xet": ("hf-xet", loader)},
+            TransportPolicy(allowed_schemes=("hf+xet",), max_attempts=3),
+        )
+        with self.assertRaises(TransportFailure) as ctx:
+            resolver.resolve(self._ref("hf+xet://repo/model.bin", b"x"))
+        self.assertEqual(attempts, 3)
+        self.assertEqual(ctx.exception.status_code, 503)
 
 
 if __name__ == "__main__":
