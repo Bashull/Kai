@@ -250,7 +250,48 @@ describe('SpotSound service contract', () => {
       detectionReport,
       presenceDecision: 'YES',
       groundingAttempted: true,
+      groundingStatus: 'FOUND',
       rawAnswer: 'from 8.010s to 11.010s',
+      rawReport: groundingReport,
+    });
+  });
+
+  it('keeps presence true when detection says YES but grounding cannot produce a valid window', async () => {
+    const seenTasks = [] as string[];
+    const detectionReport = 'Answer: Yes.\nAudio: 57.0s  ·  inference: 1.5s';
+    const groundingReport =
+      'Answer: I could not determine a reliable time window.\n' +
+      'Audio: 57.0s  ·  inference: 1.4s';
+
+    const transport: SpotSoundTransport = {
+      async spot(request) {
+        seenTasks.push(request.task);
+        if (request.task === 'Event detection (does it occur?)') {
+          return { report: detectionReport };
+        }
+        return { report: groundingReport };
+      },
+    };
+
+    const result = await analyzeSpotSoundWithPresenceGate(
+      transport,
+      '/tmp/audio.wav',
+      'hair dryer',
+    );
+
+    expect(seenTasks).toEqual([
+      'Event detection (does it occur?)',
+      'Temporal grounding (when?)',
+    ]);
+    expect(result).toMatchObject({
+      present: true,
+      intervals: [],
+      detectionAnswer: 'Yes.',
+      detectionReport,
+      presenceDecision: 'YES',
+      groundingAttempted: true,
+      groundingStatus: 'FAILED',
+      rawAnswer: 'I could not determine a reliable time window.',
       rawReport: groundingReport,
     });
   });
