@@ -3,6 +3,7 @@ export type SpotSoundTask =
   | 'Event detection (does it occur?)';
 
 export type SpotSoundPresenceDecision = 'YES' | 'NO' | 'AMBIGUOUS';
+export type SpotSoundGroundingStatus = 'SKIPPED' | 'FOUND' | 'FAILED';
 
 export const SPOTSOUND_BACKEND_LIMITS = Object.freeze({
   minAudioSeconds: 30,
@@ -69,6 +70,7 @@ export interface SpotSoundPresenceGateResult extends SpotSoundResult {
   detectionReport?: string;
   presenceDecision: SpotSoundPresenceDecision;
   groundingAttempted: boolean;
+  groundingStatus: SpotSoundGroundingStatus;
 }
 
 function assertFiniteRequestControl(
@@ -202,15 +204,22 @@ export async function analyzeSpotSoundWithPresenceGate(
       detectionReport: detection.report,
       presenceDecision,
       groundingAttempted: false,
+      groundingStatus: 'SKIPPED',
     };
   }
 
   const grounding = await transport.spot(buildSpotSoundRequest(audioPath, query));
+  const normalizedGrounding = normalizeSpotSoundAnswer(grounding);
+  const groundingStatus: SpotSoundGroundingStatus =
+    normalizedGrounding.intervals.length > 0 ? 'FOUND' : 'FAILED';
+
   return {
-    ...normalizeSpotSoundAnswer(grounding),
+    ...normalizedGrounding,
+    present: true,
     detectionAnswer,
     detectionReport: detection.report,
     presenceDecision,
     groundingAttempted: true,
+    groundingStatus,
   };
 }
