@@ -18,22 +18,29 @@ The documented Compatibility Core v0.1.0 defined a dependency-free capability gr
 - `scientific_evidence.py` — run/artifact/evaluation identity, integrity and promotion refs.
 - `artifact_transport.py` — governed transport, retry classification and post-transport integrity verification.
 - `long_context_policy.py` — CP/SP, long-context memory and version gates.
-- `smart_planner.py` — first physical Smart Planner slice; currently long-context planning only.
+- `method_selector.py` — conservative SFT/DPO/GRPO/distillation method selection.
+- `runtime_policy.py` — training engine, rollout and teacher-provider routing.
+- `kernel_policy.py` — SDPA baseline and canary-governed Liger routing.
+- `smart_planner.py` — composes method/runtime/kernel/long-context planning and validates the generated profile through Compatibility Core.
 
-## Smart Planner v0.1 scope
-- Defaults to chunked loss for targets >=131072 tokens when the user did not explicitly choose a loss.
-- For >=1M tokens, prefers CP when the FSDP2/Accelerate/causal-SDPA stack is demonstrably available.
-- Falls back to SP only when the DeepSpeed/Accelerate stack is valid and requested parallelism does not exceed KV-head capacity.
-- Adds the expandable CUDA allocator guard for >=1M-token plans unless explicitly overridden.
-- Preserves explicit user parallelism and validates it through `long_context_policy` rather than silently rewriting it.
-- Never invents a positional-extension strategy.
-- Never silently opts into unreleased Transformers activation-offload behavior.
+## Smart Planner routing scope
+- Explicit training method wins if valid; implicit signals select DPO from preference pairs, GRPO from reward signal, distillation from teacher availability, and otherwise default to SFT.
+- Multiple implicit method signals are not guessed; they produce `NEEDS_CANARY` with `method_signal_ambiguity`.
+- SFT/DPO prefer TRL when explicitly available and fall back to Transformers when TRL is unavailable.
+- GRPO auto-selects vLLM only when vLLM is available, version >=0.28.0, and the runtime canary has passed; otherwise it stays on the in-process route.
+- Distillation requires a teacher provider; async distillation requests vLLM but remains subject to existing Compatibility Core Transformers/FSDP2/vLLM gates.
+- SDPA is the kernel baseline. Liger is never auto-promoted from version identity alone; auto-promotion requires availability plus a correctness canary.
+- Explicit unverified Liger is preserved but returns `NEEDS_CANARY`; it is not silently rewritten to SDPA.
+- Existing long-context planning remains intact: chunked loss defaults, CP/SP selection, allocator guard, explicit override preservation and positional-extension non-invention.
+- Overall planner severity is monotonic: `UNSUPPORTED` > `NEEDS_CANARY` > `FALLBACK` > `SUPPORTED`.
 
 ## Verification state
-- 2026-09-06 isolated-workspace TDD: RED confirmed because `smart_planner` did not exist; GREEN with 7 Smart Planner tests + 7 inherited long-context policy tests = 14/14 PASS.
-- `py_compile` passed for `smart_planner.py` and `long_context_policy.py` in the isolated workspace.
-- The remote GitHub branch contains the verified Smart Planner bytes.
-- Full branch-suite verification remains pending until a connected project runtime is available; do not upgrade this branch to CANONICAL from the isolated verification alone.
+- 2026-09-06 TDD RED confirmed independently for `method_selector`, `runtime_policy`/`kernel_policy`, and composite `plan_training` before production code existed.
+- Isolated-workspace discovery: 38/38 PASS across 7 method-selector tests, 6 runtime tests, 4 kernel tests, 7 composite planner tests, 7 inherited long-context policy tests, and 7 inherited long-context Smart Planner tests.
+- `py_compile` passed for `method_selector.py`, `runtime_policy.py`, `kernel_policy.py`, `smart_planner.py`, `long_context_policy.py`, and the reconstructed local copy of `compatibility_core.py` used for composition tests.
+- Remote GitHub bytes for the composite Smart Planner were re-fetched after commit.
+- CircleCI reports `error` for the latest commit, but the CircleCI detail is not accessible from the current environment; do not classify that status as a verified code regression without logs.
+- The complete historical branch snapshot was not materialized in this isolated workspace, so 38/38 is `VERIFIED_SCOPE`, not `FULL_INVENTORY` or full-branch-suite verification.
 
 ## Implemented capability families
 - Reconstructed Compatibility Core
@@ -43,18 +50,21 @@ The documented Compatibility Core v0.1.0 defined a dependency-free capability gr
 - Governed ArtifactResolver / TransportPolicy
 - Evaluation identity
 - LongContextPolicy
-- Smart Planner long-context selection slice
+- Smart Planner long-context selection
+- Training Method Selector
+- Runtime Provider routing
+- Kernel Policy routing
+- Composite Training Smart Planner
 
-## Planned adapters / next slices
-- KernelPolicy
-- RuntimeCompatibilityProfile
-- RolloutLifecycle
-- TeacherProvider / Distillation
+## Planned next slices
+- Hardware Doctor -> planner capability input contract
+- Recipe Compiler from immutable `TrainingSmartPlan`
+- Method-specific recipe adapters for SFT/DPO/GRPO/distillation
+- RolloutLifecycle and TeacherProvider operational adapters
 - FaultToleranceProvider
 - WeightDeltaPlane integration
 - Stateful cache capability integration
 - Collective backend capability integration
-- Smart Planner expansion to method/runtime/kernel selection
 
 ## Promotion rules
 1. Recover or reconstruct source with explicit provenance.
