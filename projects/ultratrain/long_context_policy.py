@@ -55,6 +55,8 @@ def evaluate_long_context_profile(profile: dict[str, Any]) -> LongContextResult:
             return _result(LongContextStatus.UNSUPPORTED, "long_context.cp.requires_fsdp2")
         if accelerate is None or accelerate < (1, 11, 0):
             return _result(LongContextStatus.UNSUPPORTED, "long_context.cp.requires_accelerate_111")
+        if profile.get("model_supports_context_parallel") is False:
+            return _result(LongContextStatus.UNSUPPORTED, "long_context.cp.model_unsupported")
         attention = profile.get("attention", "sdpa")
         if attention != "sdpa" or profile.get("causal_attention", True) is not True:
             return _result(LongContextStatus.UNSUPPORTED, "long_context.cp.requires_causal_sdpa")
