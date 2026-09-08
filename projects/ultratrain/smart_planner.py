@@ -48,6 +48,7 @@ def _cp_available(profile: dict[str, Any]) -> bool:
         profile.get('fsdp2_available') is True
         and accelerate is not None
         and accelerate >= (1, 11, 0)
+        and profile.get('model_supports_context_parallel', True) is not False
         and profile.get('attention', 'sdpa') == 'sdpa'
         and profile.get('causal_attention', True) is True
     )
