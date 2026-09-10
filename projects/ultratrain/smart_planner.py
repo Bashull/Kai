@@ -57,12 +57,14 @@ def _cp_available(profile: dict[str, Any]) -> bool:
 def _sp_available(profile: dict[str, Any]) -> bool:
     accelerate = _version_tuple(profile.get('accelerate'))
     deepspeed = _version_tuple(profile.get('deepspeed'))
+    trl_version = _version_tuple(profile.get('trl_version'))
+    required_deepspeed = (0, 18, 6) if trl_version is not None and trl_version >= (1, 13, 0) else (0, 18, 1)
     if not (
         profile.get('deepspeed_available') is True
         and accelerate is not None
         and accelerate >= (1, 12, 0)
         and deepspeed is not None
-        and deepspeed >= (0, 18, 1)
+        and deepspeed >= required_deepspeed
     ):
         return False
     size = int(profile.get('parallelism_size', 1))
@@ -78,6 +80,15 @@ def plan_long_context(request: dict[str, Any]) -> SmartPlan:
     if target >= 131_072 and 'loss_type' not in profile:
         profile['loss_type'] = 'chunked'
         decisions.append('long_context.loss.chunked_default')
+
+    trl_version = _version_tuple(profile.get('trl_version'))
+    if (
+        target >= 131_072
+        and profile.get('loss_type') == 'chunked'
+        and trl_version is not None
+        and trl_version >= (1, 13, 0)
+    ):
+        decisions.append('long_context.loss.trl_113_tensorcore_fastpath')
 
     if target >= 1_000_000:
         if 'expandable_segments' not in profile:
