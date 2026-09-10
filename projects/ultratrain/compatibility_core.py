@@ -118,6 +118,28 @@ def evaluate_profile(profile: dict[str, Any]) -> CompatibilityResult:
         except ValueError:
             return _result(profile, Decision.NEEDS_CANARY, "trl.version_identity", "trl_version_identity")
 
+    if parsed_trl_version is not None and parsed_trl_version >= (1, 13, 0):
+        peft = profile.get("peft", {})
+        if peft:
+            peft_version = packages.get("peft")
+            if not peft_version:
+                return _result(profile, Decision.NEEDS_CANARY, "trl.113.peft.version_identity", "trl_113_peft_identity")
+            try:
+                if _version_tuple(peft_version) < (0, 13, 0):
+                    return _result(profile, Decision.UNSUPPORTED, "trl.113.requires_peft_013")
+            except ValueError:
+                return _result(profile, Decision.NEEDS_CANARY, "trl.113.peft.version_identity", "trl_113_peft_identity")
+
+        if distributed.get("backend") == "deepspeed":
+            deepspeed_version = packages.get("deepspeed")
+            if not deepspeed_version:
+                return _result(profile, Decision.NEEDS_CANARY, "trl.113.deepspeed.version_identity", "trl_113_deepspeed_identity")
+            try:
+                if _version_tuple(deepspeed_version) < (0, 18, 6):
+                    return _result(profile, Decision.UNSUPPORTED, "trl.113.requires_deepspeed_0186")
+            except ValueError:
+                return _result(profile, Decision.NEEDS_CANARY, "trl.113.deepspeed.version_identity", "trl_113_deepspeed_identity")
+
     if trl.get("packing") and distributed.get("context_parallelism"):
         return _result(profile, Decision.UNSUPPORTED, "trl.packing_context_parallelism.incompatible")
 
