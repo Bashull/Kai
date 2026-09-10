@@ -43,12 +43,21 @@ def evaluate_long_context_profile(profile: dict[str, Any]) -> LongContextResult:
     if profile.get("loss_type") == "nll" and target >= 131_072:
         return _result(LongContextStatus.NEEDS_CANARY, "long_context.chunked_loss.preferred", "long_context_loss_memory")
 
-    if profile.get("activation_offload") and profile.get("transformers_source", "release") != "main":
-        return _result(LongContextStatus.NEEDS_CANARY, "long_context.activation_offload.unreleased_transformers", "transformers_main_activation_offload")
+    if profile.get("activation_offload"):
+        transformers_version = _version_tuple(profile.get("transformers_version"))
+        if transformers_version is None:
+            return _result(
+                LongContextStatus.NEEDS_CANARY,
+                "long_context.activation_offload.transformers_identity",
+                "transformers_activation_offload_identity",
+            )
+        if transformers_version < (5, 16, 0):
+            return _result(LongContextStatus.UNSUPPORTED, "long_context.activation_offload.requires_transformers_516")
 
     parallelism = profile.get("parallelism")
     backend = profile.get("backend")
     accelerate = _version_tuple(profile.get("accelerate"))
+    trl_version = _version_tuple(profile.get("trl_version"))
 
     if parallelism == "cp":
         if backend != "fsdp2":
@@ -67,8 +76,14 @@ def evaluate_long_context_profile(profile: dict[str, Any]) -> LongContextResult:
         if accelerate is None or accelerate < (1, 12, 0):
             return _result(LongContextStatus.UNSUPPORTED, "long_context.sp.requires_accelerate_112")
         deepspeed = _version_tuple(profile.get("deepspeed"))
-        if deepspeed is None or deepspeed < (0, 18, 1):
-            return _result(LongContextStatus.UNSUPPORTED, "long_context.sp.requires_deepspeed_0181")
+        required_deepspeed = (0, 18, 6) if trl_version is not None and trl_version >= (1, 13, 0) else (0, 18, 1)
+        if deepspeed is None or deepspeed < required_deepspeed:
+            rule = (
+                "long_context.sp.trl_113_requires_deepspeed_0186"
+                if required_deepspeed == (0, 18, 6)
+                else "long_context.sp.requires_deepspeed_0181"
+            )
+            return _result(LongContextStatus.UNSUPPORTED, rule)
         size = int(profile.get("parallelism_size", 1))
         kv_heads = profile.get("kv_heads")
         if kv_heads is not None and size > int(kv_heads):
