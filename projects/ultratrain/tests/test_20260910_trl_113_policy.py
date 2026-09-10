@@ -1,5 +1,6 @@
 import unittest
 
+from projects.ultratrain.compatibility_core import Decision, evaluate_profile
 from projects.ultratrain.long_context_policy import LongContextStatus, evaluate_long_context_profile
 from projects.ultratrain.smart_planner import plan_long_context
 
@@ -41,6 +42,26 @@ class TRL113PolicyTests(unittest.TestCase):
         })
         self.assertEqual(result.status, LongContextStatus.UNSUPPORTED)
         self.assertIn("long_context.sp.trl_113_requires_deepspeed_0186", result.rules)
+
+    def test_trl_113_peft_usage_requires_peft_013(self):
+        result = evaluate_profile({
+            "profile_id": "trl113-peft-floor",
+            "trl": {"version": "1.13.0"},
+            "peft": {"lora": True},
+            "packages": {"peft": "0.12.0"},
+        })
+        self.assertEqual(result.status, Decision.UNSUPPORTED)
+        self.assertIn("trl.113.requires_peft_013", result.rules)
+
+    def test_trl_113_deepspeed_backend_requires_0186(self):
+        result = evaluate_profile({
+            "profile_id": "trl113-deepspeed-floor",
+            "trl": {"version": "1.13.0"},
+            "distributed": {"enabled": True, "backend": "deepspeed"},
+            "packages": {"deepspeed": "0.18.1"},
+        })
+        self.assertEqual(result.status, Decision.UNSUPPORTED)
+        self.assertIn("trl.113.requires_deepspeed_0186", result.rules)
 
     def test_trl_113_chunked_loss_surfaces_tensorcore_fastpath(self):
         plan = plan_long_context({
