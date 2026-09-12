@@ -22,6 +22,7 @@ The documented Compatibility Core v0.1.0 defined a dependency-free capability gr
 - `method_selector.py` — conservative SFT/DPO/GRPO/distillation method selection.
 - `runtime_policy.py` — training engine, rollout and teacher-provider routing.
 - `kernel_policy.py` — SDPA baseline and canary-governed Liger routing, including capability-gated frozen-weight preference fast-path recognition.
+- `weight_delta_policy.py` — governed rollout weight-transfer selection for full NCCL, sparse NCCL and vLLM 0.29 `sharded_rdt`.
 - `smart_planner.py` — composes method/runtime/kernel/long-context planning and validates the generated profile through Compatibility Core.
 
 ## Smart Planner routing scope
@@ -37,6 +38,13 @@ The documented Compatibility Core v0.1.0 defined a dependency-free capability gr
 - Context parallelism consumes the model-level `supports_context_parallel` capability when the Hardware Doctor/runtime supplies it; models explicitly declaring `False` are rejected and are not auto-selected for CP.
 - `RegionRemat` is experimental-only: UltraTrain requires TorchTitan, `torch_remat`, explicit RNG handling, and a correctness canary before promotion. It is not an automatic default.
 - Overall planner severity is monotonic: `UNSUPPORTED` > `NEEDS_CANARY` > `FALLBACK` > `SUPPORTED`.
+
+## WeightDeltaPolicy scope
+- `full_nccl` remains the safe default when advanced transport capabilities are unknown.
+- `sharded_rdt` is only eligible for vLLM >=0.29.0 when the runtime proves that capability exists; automatic selection additionally requires TP or EP >1.
+- `sharded_rdt` is not promoted without `vllm_sharded_rdt_weight_sync` correctness evidence.
+- `sparse_nccl` is likewise capability- and canary-gated; release identity alone never activates it.
+- Explicit requests for unavailable/too-old advanced transports are rejected rather than silently rewritten.
 
 ## 2026-09-08 upstream delta
 - Transformers main commit `8eaf75f84e0ef68ccdaac14b739ace53a962bbee` adds `PreTrainedModel.supports_context_parallel`, explicitly rejecting configurations with sliding/chunked attention or recurrent sequence state that CP cannot preserve correctly.
@@ -57,13 +65,23 @@ The documented Compatibility Core v0.1.0 defined a dependency-free capability gr
 - TRL 1.13 supports vLLM 0.28.0 and drops vLLM 0.19.0 support; UltraTrain already had a stricter vLLM security floor of 0.28.0, so no floor relaxation was needed.
 - PPO is removed from TRL 1.13. UltraTrain's Method Selector never selected PPO, so no production routing path was removed.
 
+## 2026-09-12 upstream delta
+- vLLM `v0.29.0` was released on 2026-09-09. Its RL weight-sync path adds `sharded_rdt`, where each worker pulls only its TP/EP slice over NIXL or Ray Direct Transport; the same release adds rank-local IPC updates and sparse checkpoint-coordinate updates through native weight loaders.
+- vLLM 0.29 also makes Model Runner V2 the default, enables FlashInfer all-reduce by default for TP CUDA groups, and deprecates Model Runner V1 for removal around v0.32. UltraTrain records those as runtime capability/deprecation evidence but does not force a global runner switch from version identity alone.
+- The vLLM release additionally includes stateful trainer send over NCCL/sparse NCCL, tag-selective `CuMemAllocator.discard()`, and a LoRA level-2 sleep/wake/reload fix. These directly strengthen the future `RolloutLifecycle` and `WeightDeltaPlane` design.
+- UltraTrain now has a physical `weight_delta_policy.py`: `full_nccl` is the rollback baseline; `sparse_nccl` and `sharded_rdt` need explicit capability evidence and transport-specific canaries before promotion.
+- Axolotl `v0.19.0` was released on 2026-09-10 with declarative model-support profiles: a model selects a family template and declares only its deltas instead of scattering loader-specific conditionals. UltraTrain adopts this as Capability DNA for Hardware Doctor / Recipe Compiler: model family baseline + declarative capability deltas + preflight, rather than accumulating architecture-name if/else branches.
+- Axolotl 0.19 also makes `flash_attention_4` and `flash_attention_torch` canonical attention backend values and preflights the torch backend against installed Transformers support. UltraTrain will treat attention backends as declared/probed capabilities, not infer them from package presence.
+- Axolotl remains a donor/adapter candidate, not a newly mandated global dependency.
+
 ## Verification state
 - 2026-09-06 TDD RED confirmed independently for `method_selector`, `runtime_policy`/`kernel_policy`, and composite `plan_training` before production code existed.
 - Isolated-workspace discovery: 38/38 PASS across 7 method-selector tests, 6 runtime tests, 4 kernel tests, 7 composite planner tests, 7 inherited long-context policy tests, and 7 inherited long-context Smart Planner tests.
 - 2026-09-08 focused isolated verification: 5/5 PASS for explicit CP model-capability rejection / legacy-unknown behavior and RegionRemat canary, RNG, and promotion rules; `py_compile` passed for the two affected policy modules.
 - 2026-09-09 Liger fast-path TDD: RED reproduced against the previous `kernel_policy.py`; GREEN with 4/4 focused tests covering explicit DPO, unambiguous implicit DPO, ambiguous-signal rejection, and missing-capability non-claim; `py_compile` passed.
 - 2026-09-10 TRL 1.13 contract tests were added before the policy writes, covering Transformers 5.16 activation-offload gating, TRL 1.13 DeepSpeed/PEFT floors, and the chunked-loss tensor-core capability hint.
-- The current automation runtime cannot resolve `github.com` from its local shell, so the 2026-09-10 contract suite could not be executed locally. CircleCI reports `error` for commit `25d9569b...`, but no logs are available here; this is therefore `TEST_PENDING_RUNTIME`, not VERIFIED_SCOPE for the new 1.13 delta.
+- The 2026-09-10 contract suite remains `TEST_PENDING_RUNTIME`: the automation shell could not resolve `github.com`, and CircleCI reported `error` without accessible logs.
+- 2026-09-12 WeightDeltaPolicy TDD: RED reproduced as missing `projects.ultratrain.weight_delta_policy`; GREEN with 5/5 focused tests covering verified sharded RDT promotion, canary gating, pre-0.29 rejection, sparse NCCL capability gating and full-NCCL fallback; `py_compile` passed.
 - Direct clone/full-suite verification remains separate from focused isolated evidence; focused updates are `VERIFIED_SCOPE`, not `FULL_INVENTORY`.
 - CircleCI status remains separate evidence; do not infer a code regression without logs.
 
@@ -83,15 +101,22 @@ The documented Compatibility Core v0.1.0 defined a dependency-free capability gr
 - Kernel Policy routing
 - Liger frozen-weight DPO/PEFT fast-path capability hint
 - TRL 1.13 activation-offload / dependency-floor / chunked-loss capability gates
+- WeightDeltaPolicy for full NCCL / sparse NCCL / vLLM 0.29 sharded RDT
 - Composite Training Smart Planner
 
+## Adopted donor Capability DNA
+- Axolotl 0.19 declarative model-support profiles: family baseline + model delta + explicit preflight.
+- Axolotl 0.19 explicit attention-backend registry/preflight pattern for `flash_attention_4` and `flash_attention_torch`.
+- These patterns inform Hardware Doctor and Recipe Compiler contracts; they do not make Axolotl the source of truth for model capability.
+
 ## Planned next slices
-- Hardware Doctor -> planner capability input contract, including automatic `supports_context_parallel` discovery, TRL/Transformers/DeepSpeed/PEFT exact-version identity, and probing whether the installed Liger build contains the frozen-weight preference fast-path.
-- Recipe Compiler from immutable `TrainingSmartPlan`, including mapping abstract `chunked` loss to TRL `chunked_nll` when the selected TRL capability supports it, `RegionRemat.save_regions`, RNG hook materialization, and preference-loss fast-path selection.
+- Hardware Doctor -> planner capability input contract, including automatic `supports_context_parallel` discovery, TRL/Transformers/DeepSpeed/PEFT exact-version identity, probing whether the installed Liger build contains the frozen-weight preference fast-path, attention-backend capability discovery, and declarative model-family capability profiles.
+- Recipe Compiler from immutable `TrainingSmartPlan`, including mapping abstract `chunked` loss to TRL `chunked_nll` when the selected TRL capability supports it, `RegionRemat.save_regions`, RNG hook materialization, preference-loss fast-path selection, and attention-backend materialization.
 - Method-specific recipe adapters for SFT/DPO/GRPO/distillation.
-- RolloutLifecycle and TeacherProvider operational adapters.
+- RolloutLifecycle adapter consuming WeightDeltaPolicy, including vLLM 0.29 sleep/discard/stateful-send capabilities.
+- TeacherProvider operational adapter.
 - FaultToleranceProvider.
-- WeightDeltaPlane integration.
+- WeightDeltaPlane integration of sharded RDT / sparse NCCL with versioned model-weight identity.
 - Stateful cache capability integration.
 - Collective backend capability integration.
 
