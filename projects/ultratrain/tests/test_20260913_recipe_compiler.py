@@ -16,10 +16,11 @@ def _plan(
     canaries=(),
     rollout=None,
     teacher=None,
+    method="sft",
 ):
     return SimpleNamespace(
         status=status,
-        method=SimpleNamespace(value="sft"),
+        method=SimpleNamespace(value=method),
         runtime=SimpleNamespace(
             training_engine=engine,
             rollout_provider=rollout,
@@ -57,6 +58,31 @@ class RecipeCompilerTests(unittest.TestCase):
         )
         recipe = compile_recipe(plan, {"profile_id": "p"})
         self.assertEqual(recipe.training_args["loss_type"], "chunked")
+
+    def test_trl_sft_chunked_nll_and_liger_is_blocked(self):
+        plan = _plan(
+            method="sft",
+            kernel="liger",
+            long_profile={"loss_type": "chunked", "target_tokens": 131072},
+            decisions=("long_context.loss.trl_113_tensorcore_fastpath",),
+        )
+        recipe = compile_recipe(plan, {"profile_id": "p"})
+        self.assertEqual(recipe.status, "UNSUPPORTED")
+        self.assertFalse(recipe.executable)
+        self.assertIn("recipe.trl.sft.chunked_nll_liger.incompatible", recipe.rules)
+        with self.assertRaises(RecipeBlocked):
+            compile_recipe(plan, {"profile_id": "p"}, require_executable=True)
+
+    def test_dpo_long_context_loss_does_not_leak_into_preference_loss_type(self):
+        plan = _plan(
+            method="dpo",
+            long_profile={"loss_type": "chunked", "target_tokens": 131072},
+            decisions=("long_context.loss.trl_113_tensorcore_fastpath",),
+        )
+        recipe = compile_recipe(plan, {"profile_id": "p"})
+        self.assertNotIn("loss_type", recipe.training_args)
+        self.assertEqual(recipe.training_args["max_seq_length"], 131072)
+        self.assertIn("recipe.dpo.long_context_loss.deferred", recipe.decisions)
 
     def test_liger_and_verified_fastpath_are_materialized(self):
         plan = _plan(
