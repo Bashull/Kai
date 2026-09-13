@@ -80,7 +80,7 @@ class SmartPlannerLongContextTests(unittest.TestCase):
         self.assertEqual(explicit.profile["loss_type"], "nll")
         self.assertEqual(explicit.status, LongContextStatus.NEEDS_CANARY)
 
-    def test_planner_does_not_silently_enable_unreleased_activation_offload(self):
+    def test_planner_requires_exact_activation_offload_version_identity(self):
         plan = plan_long_context({
             "target_tokens": 262_144,
             "native_context_tokens": 262_144,
@@ -89,7 +89,7 @@ class SmartPlannerLongContextTests(unittest.TestCase):
         })
         self.assertTrue(plan.profile["activation_offload"])
         self.assertEqual(plan.status, LongContextStatus.NEEDS_CANARY)
-        self.assertIn("transformers_main_activation_offload", plan.canaries)
+        self.assertIn("transformers_activation_offload_identity", plan.canaries)
 
 
 if __name__ == "__main__":
