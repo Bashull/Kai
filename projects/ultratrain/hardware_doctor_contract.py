@@ -78,11 +78,29 @@ class RuntimeProviderDescriptor:
 
 
 @dataclass(frozen=True)
+class GPUDevice:
+    ordinal: int
+    name: str
+    vram_bytes: int
+    backend: str = "cuda"
+
+    def __post_init__(self) -> None:
+        if self.ordinal < 0:
+            raise ValueError("GPU ordinal cannot be negative")
+        if not self.name.strip():
+            raise ValueError("GPU name is required")
+        if self.vram_bytes < 0:
+            raise ValueError("GPU vram_bytes cannot be negative")
+        if not self.backend.strip():
+            raise ValueError("GPU backend is required")
+
+
+@dataclass(frozen=True)
 class HardwareSnapshot:
     platform: str
     ram_bytes: int
     cpu: str | None = None
-    gpus: tuple[str, ...] = field(default_factory=tuple)
+    gpus: tuple[GPUDevice, ...] = field(default_factory=tuple)
     source: str = "hardware-doctor"
 
     def __post_init__(self) -> None:
