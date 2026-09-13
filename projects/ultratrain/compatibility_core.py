@@ -90,21 +90,11 @@ def evaluate_profile(profile: dict[str, Any]) -> CompatibilityResult:
     if pytorch_214_capability:
         torch_version = packages.get("torch")
         if not torch_version:
-            return _result(
-                profile,
-                Decision.NEEDS_CANARY,
-                "pytorch.214_capability.version_identity",
-                "pytorch_214_capability_identity",
-            )
+            return _result(profile, Decision.NEEDS_CANARY, "pytorch.214_capability.version_identity", "pytorch_214_capability_identity")
         try:
             parsed_torch_version = _version_tuple(torch_version)
         except ValueError:
-            return _result(
-                profile,
-                Decision.NEEDS_CANARY,
-                "pytorch.214_capability.version_identity",
-                "pytorch_214_capability_identity",
-            )
+            return _result(profile, Decision.NEEDS_CANARY, "pytorch.214_capability.version_identity", "pytorch_214_capability_identity")
         if distributed.get("backend") == "nccl2" and parsed_torch_version < (2, 14, 0):
             return _result(profile, Decision.UNSUPPORTED, "pytorch.nccl2.requires_214")
         if distributed.get("fault_tolerant_reconfiguration") and parsed_torch_version < (2, 14, 0):
@@ -242,6 +232,10 @@ def evaluate_profile(profile: dict[str, Any]) -> CompatibilityResult:
                     return _result(profile, Decision.UNSUPPORTED, "runtime.vllm.security_floor_028")
             except ValueError:
                 return _result(profile, Decision.NEEDS_CANARY, "runtime.vllm.version_identity", "vllm_version_identity")
+
+        exposed_vllm = runtime.get("network_exposure") in {"lan", "public"} or runtime.get("vllm_tool_server") is True
+        if exposed_vllm and parsed_vllm_version is not None and parsed_vllm_version < (0, 29, 0):
+            return _result(profile, Decision.UNSUPPORTED, "runtime.vllm.exposed_security_floor_029")
 
         if parsed_vllm_version == (0, 27, 1):
             if peft.get("lora") and runtime.get("vllm_sleep_level") == 1:
