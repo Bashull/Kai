@@ -120,3 +120,124 @@ def adapt_trl_dpo(recipe: Any, request: dict[str, Any], *, trl_version: str) -> 
         environment=deepcopy(getattr(recipe, "environment", {}) or {}),
         provenance={"trl_version": trl_version, "source_recipe_schema": getattr(recipe, "schema_version", None)},
     )
+
+
+def adapt_trl_grpo(recipe: Any, request: dict[str, Any], *, trl_version: str) -> TRLTrainerRecipe:
+    _require_trl_113(recipe, trl_version)
+    if str(getattr(recipe, "method", "")).lower() != "grpo":
+        raise TRLAdapterError("GRPO adapter requires a GRPO compiled recipe")
+
+    config = _base_config(recipe, request)
+    runtime_args = deepcopy(getattr(recipe, "runtime_args", {}) or {})
+    rollout = runtime_args.get("rollout_provider")
+    if rollout == "vllm":
+        config["use_vllm"] = True
+        mode = request.get("grpo_vllm_mode")
+        if mode is not None:
+            if mode not in {"server", "colocate"}:
+                raise TRLAdapterError("GRPO vLLM mode must be 'server' or 'colocate'")
+            config["vllm_mode"] = mode
+        if request.get("grpo_ds3_gather_for_generation") is False:
+            raise TRLAdapterError("TRL 1.13 GRPO vLLM is incompatible with ds3_gather_for_generation=False")
+    elif rollout in {None, "trl_inprocess"}:
+        config["use_vllm"] = False
+    else:
+        raise TRLAdapterError(f"unsupported GRPO rollout provider: {rollout!r}")
+
+    if request.get("grpo_generation_batch_size") is not None and request.get("grpo_steps_per_generation") is not None:
+        raise TRLAdapterError("generation_batch_size and steps_per_generation are mutually exclusive")
+
+    for source_key, target_key in (
+        ("grpo_num_generations", "num_generations"),
+        ("grpo_num_generations_eval", "num_generations_eval"),
+        ("grpo_max_completion_length", "max_completion_length"),
+        ("grpo_generation_batch_size", "generation_batch_size"),
+        ("grpo_steps_per_generation", "steps_per_generation"),
+        ("grpo_temperature", "temperature"),
+        ("grpo_top_p", "top_p"),
+        ("grpo_top_k", "top_k"),
+        ("grpo_min_p", "min_p"),
+        ("grpo_generation_kwargs", "generation_kwargs"),
+        ("grpo_repetition_penalty", "repetition_penalty"),
+        ("grpo_beta", "beta"),
+        ("grpo_num_iterations", "num_iterations"),
+        ("grpo_epsilon", "epsilon"),
+        ("grpo_epsilon_high", "epsilon_high"),
+        ("grpo_loss_type", "loss_type"),
+        ("grpo_reward_weights", "reward_weights"),
+        ("grpo_scale_rewards", "scale_rewards"),
+        ("grpo_multi_objective_aggregation", "multi_objective_aggregation"),
+        ("grpo_ds3_gather_for_generation", "ds3_gather_for_generation"),
+        ("grpo_vllm_model_impl", "vllm_model_impl"),
+        ("grpo_vllm_enable_sleep_mode", "vllm_enable_sleep_mode"),
+        ("grpo_vllm_server_base_url", "vllm_server_base_url"),
+        ("grpo_vllm_server_host", "vllm_server_host"),
+        ("grpo_vllm_server_port", "vllm_server_port"),
+        ("grpo_vllm_server_timeout", "vllm_server_timeout"),
+        ("grpo_vllm_gpu_memory_utilization", "vllm_gpu_memory_utilization"),
+        ("grpo_vllm_max_model_length", "vllm_max_model_length"),
+        ("grpo_vllm_tensor_parallel_size", "vllm_tensor_parallel_size"),
+    ):
+        _copy_if_present(request, config, source_key, target_key)
+
+    return TRLTrainerRecipe(
+        method="grpo",
+        config_class="trl.GRPOConfig",
+        config_kwargs=config,
+        runtime_args=runtime_args,
+        environment=deepcopy(getattr(recipe, "environment", {}) or {}),
+        provenance={"trl_version": trl_version, "source_recipe_schema": getattr(recipe, "schema_version", None)},
+    )
+
+
+def adapt_trl_distillation(recipe: Any, request: dict[str, Any], *, trl_version: str) -> TRLTrainerRecipe:
+    _require_trl_113(recipe, trl_version)
+    if str(getattr(recipe, "method", "")).lower() != "distillation":
+        raise TRLAdapterError("distillation adapter requires a distillation compiled recipe")
+
+    runtime_args = deepcopy(getattr(recipe, "runtime_args", {}) or {})
+    teacher_provider = runtime_args.get("teacher_provider")
+    if teacher_provider == "vllm":
+        raise TRLAdapterError(
+            "TRL 1.13 DistillationConfig has no remote-teacher provider field; a governed TeacherProvider adapter is required"
+        )
+
+    teacher_model = request.get("teacher_model_name_or_path")
+    if not teacher_model:
+        raise TRLAdapterError("local TRL distillation requires teacher_model_name_or_path")
+
+    config = _base_config(recipe, request)
+    config["teacher_model_name_or_path"] = str(teacher_model)
+    for source_key, target_key in (
+        ("teacher_model_revision", "teacher_model_revision"),
+        ("teacher_model_init_kwargs", "teacher_model_init_kwargs"),
+        ("distillation_max_completion_length", "max_completion_length"),
+        ("distillation_temperature", "temperature"),
+        ("distillation_top_p", "top_p"),
+        ("distillation_top_k", "top_k"),
+        ("distillation_min_p", "min_p"),
+        ("distillation_generation_kwargs", "generation_kwargs"),
+        ("distillation_repetition_penalty", "repetition_penalty"),
+        ("distillation_beta", "beta"),
+        ("distillation_max_tool_calling_iterations", "max_tool_calling_iterations"),
+        ("distillation_shuffle_dataset", "shuffle_dataset"),
+        ("pad_to_multiple_of", "pad_to_multiple_of"),
+    ):
+        _copy_if_present(request, config, source_key, target_key)
+
+    beta = config.get("beta")
+    if beta is not None and not 0.0 <= float(beta) <= 1.0:
+        raise TRLAdapterError("TRL 1.13 DistillationConfig beta must be in [0.0, 1.0]")
+
+    sequence_parallelism = runtime_args.get("sequence_parallelism")
+    if sequence_parallelism in {"cp", "sp"}:
+        raise TRLAdapterError("TRL 1.13 DistillationTrainer does not support CP/SP sequence-dimension parallelism")
+
+    return TRLTrainerRecipe(
+        method="distillation",
+        config_class="trl.DistillationConfig",
+        config_kwargs=config,
+        runtime_args=runtime_args,
+        environment=deepcopy(getattr(recipe, "environment", {}) or {}),
+        provenance={"trl_version": trl_version, "source_recipe_schema": getattr(recipe, "schema_version", None)},
+    )
