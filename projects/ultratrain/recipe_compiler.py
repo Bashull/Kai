@@ -89,7 +89,7 @@ def compile_recipe(
     long_profile = dict(getattr(long_context, "profile", {}) or {}) if long_context is not None else {}
     if long_profile:
         loss_type = long_profile.get("loss_type")
-        if loss_type is not None:
+        if loss_type is not None and method == "sft":
             if (
                 loss_type == "chunked"
                 and training_engine == "trl"
@@ -98,6 +98,8 @@ def compile_recipe(
                 training_args["loss_type"] = "chunked_nll"
             else:
                 training_args["loss_type"] = loss_type
+        elif loss_type is not None:
+            decisions.append(f"recipe.{method}.long_context_loss.deferred")
         if long_profile.get("target_tokens") is not None:
             training_args["max_seq_length"] = int(long_profile["target_tokens"])
         if long_profile.get("parallelism") is not None:
@@ -141,8 +143,18 @@ def compile_recipe(
             if key in runtime_boundary:
                 runtime_args[key] = deepcopy(runtime_boundary[key])
 
+    materialization_status = "SUPPORTED"
+    if (
+        method == "sft"
+        and training_engine == "trl"
+        and training_args.get("loss_type") == "chunked_nll"
+        and training_args.get("use_liger_kernel") is True
+    ):
+        materialization_status = "UNSUPPORTED"
+        rules.append("recipe.trl.sft.chunked_nll_liger.incompatible")
+
     plan_status = _status(getattr(plan, "status", None))
-    overall_status = _worst_status(plan_status, activation_status)
+    overall_status = _worst_status(plan_status, activation_status, materialization_status)
     executable = overall_status in {"SUPPORTED", "FALLBACK"} and training_engine is not None
 
     recipe = CompiledRecipe(
@@ -162,6 +174,7 @@ def compile_recipe(
         provenance={
             "planner_status": plan_status,
             "activation_checkpoint_status": activation_status,
+            "materialization_status": materialization_status,
             "capability_schema_version": source.get("capability_schema_version"),
         },
     )
