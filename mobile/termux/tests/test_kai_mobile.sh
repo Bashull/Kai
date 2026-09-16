@@ -18,6 +18,7 @@ export CALL_LOG="$tmp/calls.log"
 cat > "$tmp/bin/am" <<'EOF'
 #!/usr/bin/env bash
 printf 'am %s\n' "$*" >> "$CALL_LOG"
+if [[ -n "${FAKE_AM_SLEEP:-}" ]]; then sleep "$FAKE_AM_SLEEP"; fi
 [[ "${FAKE_AM_FAIL:-0}" = "1" ]] && exit 1
 exit 0
 EOF
@@ -89,4 +90,34 @@ run_kai wake
 assert_eq 0 "$status"
 assert_contains "$(cat "$CALL_LOG")" "input keyevent KEYCODE_WAKEUP"
 
-printf 'PASS: typed mobile control contract\n'
+# Persistent STOP blocks mutating Android actions, but health remains readable.
+: > "$CALL_LOG"
+touch "$KAI_BRIDGE_ROOT/STOP"
+run_kai open-whatsapp
+assert_eq 75 "$status"
+assert_eq "" "$(cat "$CALL_LOG")"
+run_kai health
+assert_eq 0 "$status"
+rm -f "$KAI_BRIDGE_ROOT/STOP"
+
+# An atomic action lock prevents two Android actions from overlapping.
+: > "$CALL_LOG"
+export FAKE_AM_SLEEP=0.5
+bash "$CLI" open-whatsapp >"$tmp/first.out" 2>&1 &
+first_pid=$!
+for _ in $(seq 1 50); do
+  [[ -d "$KAI_BRIDGE_ROOT/state/action.lock" ]] && break
+  sleep 0.01
+done
+run_kai open-whatsapp
+assert_eq 75 "$status"
+wait "$first_pid"
+unset FAKE_AM_SLEEP
+
+# Secret-like log detail is redacted instead of persisted.
+# shellcheck source=../lib/common.sh
+source "$ROOT/mobile/termux/lib/common.sh"
+bridge_log test ok 'token=do-not-persist'
+assert_contains "$(tail -n 1 "$KAI_BRIDGE_ROOT/logs/events.jsonl")" '[REDACTED]'
+
+printf 'PASS: typed mobile control and safety contract\n'
