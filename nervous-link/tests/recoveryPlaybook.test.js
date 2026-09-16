@@ -83,23 +83,23 @@ test('bounds stdout and stderr using the global output limit', async () => {
 
 test('rejects unsafe playbook configuration shapes', async () => {
   const policy = makePolicy();
-  policy.recovery.playbooks.badShell = {
+  policy.recovery.playbooks.badshell = {
     executable: process.execPath,
     argv: ['--version'],
     shell: true,
   };
-  policy.recovery.playbooks.badEnv = {
+  policy.recovery.playbooks.badenv = {
     executable: process.execPath,
     argv: ['--version'],
     env: { PWNED: '1' },
   };
 
   await assert.rejects(
-    () => runRecoveryPlaybook({ playbook_id: 'badShell' }, policy),
-    /unsupported.*config|shell/i
+    () => runRecoveryPlaybook({ playbook_id: 'badshell' }, policy),
+    /unsupported.*config|shell|unexpected.*parameter/i
   );
   await assert.rejects(
-    () => runRecoveryPlaybook({ playbook_id: 'badEnv' }, policy),
-    /unsupported.*config|env/i
+    () => runRecoveryPlaybook({ playbook_id: 'badenv' }, policy),
+    /unsupported.*config|env|unexpected.*parameter/i
   );
 });
