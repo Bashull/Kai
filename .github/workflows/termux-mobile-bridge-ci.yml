@@ -1,0 +1,21 @@
+name: KAI Termux Mobile Bridge CI
+
+on:
+  push:
+    branches:
+      - feat/kai-termux-mobile-bridge-v0.1
+    paths:
+      - 'mobile/termux/**'
+      - '.github/workflows/termux-mobile-bridge-ci.yml'
+  pull_request:
+    paths:
+      - 'mobile/termux/**'
+      - '.github/workflows/termux-mobile-bridge-ci.yml'
+
+jobs:
+  shell-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run bootstrap contract
+        run: bash mobile/termux/tests/test_bootstrap.sh
