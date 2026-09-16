@@ -13,8 +13,14 @@ $report = [ordered]@{
     error = $null
 }
 
+function Protect-KaiOutput {
+    param([string]$Text)
+    if (-not $Text) { return $Text }
+    return ($Text -replace 'https://login\.tailscale\.com/\S+', '[TAILSCALE_AUTH_URL_REDACTED]')
+}
+
 function Save-KaiReport {
-    param([hashtable]$Data)
+    param([System.Collections.IDictionary]$Data)
     $json = $Data | ConvertTo-Json -Depth 12
     $targets = New-Object System.Collections.Generic.List[string]
 
@@ -24,9 +30,11 @@ function Save-KaiReport {
 
     $driveRoots = @(
         (Join-Path $env:USERPROFILE 'Mi unidad'),
-        (Join-Path $env:USERPROFILE 'My Drive')
+        (Join-Path $env:USERPROFILE 'My Drive'),
+        'G:\Mi unidad',
+        'G:\My Drive'
     )
-    foreach ($root in $driveRoots) {
+    foreach ($root in ($driveRoots | Select-Object -Unique)) {
         if (-not (Test-Path $root)) { continue }
         $core = Join-Path $root 'KAI\00_KAI_CORE'
         if (Test-Path $core) {
@@ -41,7 +49,6 @@ function Save-KaiReport {
         $Data.report_paths += $path
     }
 
-    # Rewrite once so report_paths are included in the persisted report.
     $json = $Data | ConvertTo-Json -Depth 12
     foreach ($path in ($targets | Select-Object -Unique)) {
         $json | Set-Content -LiteralPath $path -Encoding utf8
@@ -51,23 +58,24 @@ function Save-KaiReport {
 function Get-TailscaleState {
     param([string]$TailscaleExe)
     $raw = (& $TailscaleExe status --json 2>&1 | Out-String)
-    if ($LASTEXITCODE -ne 0) { throw "tailscale status failed: $raw" }
+    if ($LASTEXITCODE -ne 0) { throw "tailscale status failed: $(Protect-KaiOutput $raw)" }
     return ($raw | ConvertFrom-Json)
 }
 
 try {
-    $tsCandidates = @(
-        (Join-Path $env:ProgramFiles 'Tailscale\tailscale.exe'),
-        (Join-Path ${env:ProgramFiles(x86)} 'Tailscale\tailscale.exe')
-    ) | Where-Object { $_ -and (Test-Path $_) }
-    if (-not $tsCandidates) { throw 'tailscale.exe not found' }
-    $ts = $tsCandidates[0]
+    $tsCandidates = New-Object System.Collections.Generic.List[string]
+    $programFiles = [Environment]::GetEnvironmentVariable('ProgramFiles')
+    $programFilesX86 = [Environment]::GetEnvironmentVariable('ProgramFiles(x86)')
+    if ($programFiles) { $tsCandidates.Add((Join-Path $programFiles 'Tailscale\tailscale.exe')) }
+    if ($programFilesX86) { $tsCandidates.Add((Join-Path $programFilesX86 'Tailscale\tailscale.exe')) }
+    $ts = $tsCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+    if (-not $ts) { throw 'tailscale.exe not found' }
     $report.tailscale.executable = $ts
 
     $state = Get-TailscaleState -TailscaleExe $ts
     if ($state.BackendState -ne 'Running') {
         $upText = (& $ts up 2>&1 | Out-String)
-        $report.tailscale.up_initial_output = $upText.Trim()
+        $report.tailscale.up_initial_output = Protect-KaiOutput $upText.Trim()
         if ($upText -match '(https://login\.tailscale\.com/\S+)') {
             $authUrl = $Matches[1].TrimEnd('.', ',', ')')
             $report.tailscale.login_authorization_requested = $true
@@ -90,7 +98,7 @@ try {
     $report.tailscale.backend_state = $state.BackendState
     $report.tailscale.dns_name = $dnsName
     $report.tailscale.ipv4 = $ip4
-    $report.tailscale.tailnet = $state.MagicDNSSuffix
+    $report.tailscale.tailnet = [string]$state.MagicDNSSuffix
 
     $localHealth = Invoke-RestMethod -Uri 'http://127.0.0.1:8788/health' -TimeoutSec 8
     $report.relay.local_health_ok = [bool]$localHealth.ok
@@ -102,7 +110,7 @@ try {
     for ($i = 0; $i -lt 18; $i++) {
         $serveText = (& $ts serve --bg http://127.0.0.1:8788 2>&1 | Out-String)
         $serveExit = $LASTEXITCODE
-        $report.serve.last_command_output = $serveText.Trim()
+        $report.serve.last_command_output = Protect-KaiOutput $serveText.Trim()
         $report.serve.last_exit_code = $serveExit
         if ($serveExit -eq 0) { $serveOk = $true; break }
 
@@ -117,12 +125,12 @@ try {
         }
         break
     }
-    if (-not $serveOk) { throw "tailscale serve did not start: $($report.serve.last_command_output)" }
+    if (-not $serveOk) { throw "tailscale serve did not start: $(Protect-KaiOutput $serveText.Trim())" }
 
     $serveStatus = (& $ts serve status 2>&1 | Out-String).Trim()
     if ($LASTEXITCODE -ne 0) { throw 'tailscale serve status failed' }
     $endpoint = "https://$dnsName"
-    $report.serve.status = $serveStatus
+    $report.serve.status = Protect-KaiOutput $serveStatus
     $report.serve.endpoint = $endpoint
 
     $remoteHealth = Invoke-RestMethod -Uri "$endpoint/health" -TimeoutSec 12
@@ -131,12 +139,12 @@ try {
     if (-not $remoteHealth.ok) { throw 'Tailscale Serve HTTPS /health did not return ok=true' }
 
     $report.ok = $true
-    Write-Host "KAI LINK TAILSCALE SERVE: VERIFIED" -ForegroundColor Green
+    Write-Host 'KAI LINK TAILSCALE SERVE: VERIFIED' -ForegroundColor Green
     Write-Host "Endpoint: $endpoint"
 }
 catch {
-    $report.error = $_.Exception.Message
-    Write-Host "KAI LINK TAILSCALE SERVE: NOT VERIFIED" -ForegroundColor Yellow
+    $report.error = Protect-KaiOutput $_.Exception.Message
+    Write-Host 'KAI LINK TAILSCALE SERVE: NOT VERIFIED' -ForegroundColor Yellow
     Write-Host $report.error
 }
 finally {
