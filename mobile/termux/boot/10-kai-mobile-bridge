@@ -1,0 +1,12 @@
+#!/data/data/com.termux/files/usr/bin/sh
+set -u
+
+if command -v termux-wake-lock >/dev/null 2>&1; then
+  termux-wake-lock >/dev/null 2>&1 || true
+fi
+
+mkdir -p "$HOME/.kai/mobile-bridge/state" "$HOME/.kai/mobile-bridge/logs"
+
+if [ -r "$PREFIX/etc/profile.d/start-services.sh" ]; then
+  . "$PREFIX/etc/profile.d/start-services.sh"
+fi
