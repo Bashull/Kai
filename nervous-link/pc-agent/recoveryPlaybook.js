@@ -77,7 +77,7 @@ function normalizePlaybook(input, policy) {
   };
 }
 
-function runRecoveryPlaybook(input, policy) {
+async function runRecoveryPlaybook(input, policy) {
   const spec = normalizePlaybook(input, policy);
 
   return new Promise((resolve, reject) => {
