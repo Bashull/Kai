@@ -1,0 +1,38 @@
+name: Test Loop Factory
+
+on:
+  pull_request:
+    paths:
+      - 'core/loop_factory/**'
+      - 'tests/loop_factory/**'
+      - 'docs/loop_factory/**'
+      - 'docs/superpowers/specs/2026-09-16-autonomy-foundation-design.md'
+      - 'docs/superpowers/plans/2026-09-16-autonomy-foundation.md'
+      - '.github/workflows/test-loop-factory.yml'
+      - '.gitignore'
+  push:
+    branches: ['feat/loop-factory-cell-000']
+    paths:
+      - 'core/loop_factory/**'
+      - 'tests/loop_factory/**'
+      - '.github/workflows/test-loop-factory.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  unittest:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Compile Loop Factory
+        run: python -m compileall -q core/loop_factory
+      - name: Run CELL-000 tests
+        run: python -m unittest discover -s tests/loop_factory -p 'test_*.py' -v
