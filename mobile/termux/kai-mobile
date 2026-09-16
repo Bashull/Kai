@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+# shellcheck source=lib/common.sh
+source "$SCRIPT_DIR/lib/common.sh"
+# shellcheck source=lib/android.sh
+source "$SCRIPT_DIR/lib/android.sh"
+
+usage() {
+  printf 'usage: kai-mobile {health|status|open-whatsapp|open-app PACKAGE|home|wake|adb-status|doctor}\n' >&2
+  exit 64
+}
+
+run_launch() {
+  local component=$1
+  if android_launch_component "$component"; then
+    printf '{"ok":true,"action":"launch","component":"%s"}\n' "$component"
+    return 0
+  fi
+  local rc=$?
+  printf '{"ok":false,"action":"launch","status":"BLOCKED","code":%d}\n' "$rc" >&2
+  return "$rc"
+}
+
+command=${1-}
+case "$command" in
+  health|status)
+    bridge_json_ok
+    ;;
+  open-whatsapp)
+    component=$(resolve_component_for_package com.whatsapp) || { printf 'WhatsApp is not allowlisted.\n' >&2; exit 64; }
+    run_launch "$component"
+    ;;
+  open-app)
+    [[ $# -eq 2 ]] || usage
+    component=$(resolve_component_for_package "$2") || { printf 'Package is not allowlisted.\n' >&2; exit 64; }
+    run_launch "$component"
+    ;;
+  home)
+    android_keyevent KEYCODE_HOME
+    printf '{"ok":true,"action":"home"}\n'
+    ;;
+  wake)
+    android_keyevent KEYCODE_WAKEUP
+    printf '{"ok":true,"action":"wake"}\n'
+    ;;
+  adb-status)
+    if state=$(adb_state 2>/dev/null); then
+      printf '{"ok":true,"adb_state":"%s"}\n' "$state"
+    else
+      printf '{"ok":false,"adb_state":"BLOCKED"}\n'
+      exit 77
+    fi
+    ;;
+  doctor)
+    printf '{"ok":true,"classification":"UNRESOLVED","doctor":"minimal"}\n'
+    ;;
+  *)
+    usage
+    ;;
+esac
