@@ -1,11 +1,24 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+SCRIPT_PATH=$0
+if command -v readlink >/dev/null 2>&1; then
+  resolved=$(readlink -f "$0" 2>/dev/null || true)
+  [[ -n "$resolved" ]] && SCRIPT_PATH=$resolved
+fi
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$SCRIPT_PATH")" && pwd)
+if [[ -f "$SCRIPT_DIR/lib/common.sh" ]]; then
+  LIB_DIR="$SCRIPT_DIR/lib"
+elif [[ -f "$SCRIPT_DIR/../lib/common.sh" ]]; then
+  LIB_DIR=$(CDPATH= cd -- "$SCRIPT_DIR/../lib" && pwd)
+else
+  printf 'BLOCKED: Kai Mobile Bridge libraries not found.\n' >&2
+  exit 66
+fi
 # shellcheck source=lib/common.sh
-source "$SCRIPT_DIR/lib/common.sh"
+source "$LIB_DIR/common.sh"
 # shellcheck source=lib/android.sh
-source "$SCRIPT_DIR/lib/android.sh"
+source "$LIB_DIR/android.sh"
 
 usage() {
   printf 'usage: kai-mobile {health|status|open-whatsapp|open-app PACKAGE|home|wake|adb-status|doctor}\n' >&2
