@@ -11,7 +11,7 @@ BOOTSTRAP="$ROOT/mobile/termux/bootstrap.sh"
 
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
-mkdir -p "$tmp/bin" "$tmp/home/.kai/mobile-bridge" "$tmp/prefix"
+mkdir -p "$tmp/bin" "$tmp/home/.kai/mobile-bridge" "$tmp/prefix/bin"
 printf 'keep\n' > "$tmp/home/.kai/mobile-bridge/keep.txt"
 
 cat > "$tmp/bin/pkg" <<'EOF'
@@ -41,4 +41,21 @@ assert_contains "$calls" "pkg install -y termux-tools git curl jq openssh python
 assert_file "$HOME/.kai/mobile-bridge/keep.txt"
 assert_eq "700" "$(stat -c %a "$HOME/.kai/mobile-bridge/private")"
 assert_file "$HOME/.kai/mobile-bridge/state/bootstrap-current.json"
-printf 'PASS: bootstrap contract\n'
+
+assert_file "$HOME/.kai/mobile-bridge/bin/kai-mobile"
+assert_file "$HOME/.kai/mobile-bridge/lib/common.sh"
+assert_file "$HOME/.kai/mobile-bridge/lib/android.sh"
+assert_file "$HOME/.kai/mobile-bridge/config/apps.tsv"
+assert_file "$HOME/.termux/boot/10-kai-mobile-bridge"
+assert_eq "700" "$(stat -c %a "$HOME/.termux/boot/10-kai-mobile-bridge")"
+
+boot=$(cat "$HOME/.termux/boot/10-kai-mobile-bridge")
+assert_contains "$boot" "termux-wake-lock"
+assert_contains "$boot" "start-services.sh"
+if [[ "$boot" == *"sshd"* ]]; then
+  fail "boot script must not start sshd"
+fi
+
+[[ -L "$PREFIX/bin/kai-mobile" ]] || fail "expected kai-mobile symlink in PREFIX/bin"
+assert_eq "$HOME/.kai/mobile-bridge/bin/kai-mobile" "$(readlink "$PREFIX/bin/kai-mobile")"
+printf 'PASS: bootstrap and boot contract\n'
