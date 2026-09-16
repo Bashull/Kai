@@ -58,4 +58,6 @@ fi
 
 [[ -L "$PREFIX/bin/kai-mobile" ]] || fail "expected kai-mobile symlink in PREFIX/bin"
 assert_eq "$HOME/.kai/mobile-bridge/bin/kai-mobile" "$(readlink "$PREFIX/bin/kai-mobile")"
+installed_health=$(bash "$PREFIX/bin/kai-mobile" health)
+assert_contains "$installed_health" '"ok":true'
 printf 'PASS: bootstrap and boot contract\n'
