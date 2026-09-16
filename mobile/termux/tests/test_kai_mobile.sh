@@ -11,7 +11,7 @@ CLI="$ROOT/mobile/termux/kai-mobile"
 
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
-mkdir -p "$tmp/bin" "$tmp/bridge/state" "$tmp/bridge/logs" "$tmp/bridge/private"
+mkdir -p "$tmp/bin" "$tmp/bridge/state" "$tmp/bridge/logs" "$tmp/bridge/private" "$tmp/home/.termux/boot" "$tmp/prefix/bin"
 export CALL_LOG="$tmp/calls.log"
 : > "$CALL_LOG"
 
@@ -44,6 +44,16 @@ exit 0
 EOF
 chmod +x "$tmp/bin/adb"
 
+cat > "$tmp/bin/termux-battery-status" <<'EOF'
+#!/usr/bin/env bash
+printf '{}\n'
+EOF
+chmod +x "$tmp/bin/termux-battery-status"
+
+touch "$tmp/home/.termux/boot/10-kai-mobile-bridge"
+
+export HOME="$tmp/home"
+export PREFIX="$tmp/prefix"
 export PATH="$tmp/bin:/usr/bin:/bin"
 export KAI_BRIDGE_ROOT="$tmp/bridge"
 export KAI_AM_BIN="$tmp/bin/am"
@@ -120,4 +130,18 @@ source "$ROOT/mobile/termux/lib/common.sh"
 bridge_log test ok 'token=do-not-persist'
 assert_contains "$(tail -n 1 "$KAI_BRIDGE_ROOT/logs/events.jsonl")" '[REDACTED]'
 
-printf 'PASS: typed mobile control and safety contract\n'
+# Doctor exposes only bounded capability/evidence metadata.
+export FAKE_ADB_STATE=device
+run_kai doctor
+assert_eq 0 "$status"
+assert_contains "$output" '"version":"0.1.0"'
+assert_contains "$output" '"classification":"OBSERVED"'
+assert_contains "$output" '"prefix_present":true'
+assert_contains "$output" '"direct_am_available":true'
+assert_contains "$output" '"adb_available":true'
+assert_contains "$output" '"adb_state":"device"'
+assert_contains "$output" '"termux_api_available":true'
+assert_contains "$output" '"stop_active":false'
+assert_contains "$output" '"boot_script_present":true'
+
+printf 'PASS: typed mobile control, safety and doctor contract\n'
