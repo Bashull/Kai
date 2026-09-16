@@ -11,6 +11,11 @@ function Redact-Key([string]$v) {
     return $v.Substring(0,10) + '…' + $v.Substring($v.Length-8)
 }
 
+function Sanitize([string]$text) {
+    if (-not $text) { return $text }
+    return $text.Replace($NodeKey, '[NODEKEY_REDACTED]').Replace($RotationKey, '[TLPUB_REDACTED]')
+}
+
 $report = [ordered]@{
     schema = 'kai-tailnet-lock-sign-v1'
     timestamp = (Get-Date).ToString('o')
@@ -59,22 +64,22 @@ try {
     if (-not (Test-Path $ts)) { throw 'tailscale.exe not found' }
 
     $before = (& $ts lock status 2>&1 | Out-String).Trim()
-    $report.signer_status_before = $before
+    $report.signer_status_before = Sanitize $before
 
     $out = (& $ts lock sign $NodeKey $RotationKey 2>&1 | Out-String).Trim()
     $code = $LASTEXITCODE
     $report.sign_exit_code = $code
-    $report.sign_output = $out
-    if ($code -ne 0) { throw "tailscale lock sign failed: $out" }
+    $report.sign_output = Sanitize $out
+    if ($code -ne 0) { throw "tailscale lock sign failed: $(Sanitize $out)" }
 
     Start-Sleep -Seconds 2
     $after = (& $ts lock status 2>&1 | Out-String).Trim()
-    $report.signer_status_after = $after
+    $report.signer_status_after = Sanitize $after
     $report.ok = $true
     Write-Host 'TAILNET LOCK SIGN: VERIFIED' -ForegroundColor Green
 }
 catch {
-    $report.error = $_.Exception.Message
+    $report.error = Sanitize $_.Exception.Message
     Write-Host 'TAILNET LOCK SIGN: NOT VERIFIED' -ForegroundColor Yellow
     Write-Host $report.error
 }
