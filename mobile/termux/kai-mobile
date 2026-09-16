@@ -17,10 +17,53 @@ run_launch() {
   if android_launch_component "$component"; then
     printf '{"ok":true,"action":"launch","component":"%s"}\n' "$component"
     return 0
+  else
+    local rc=$?
+    printf '{"ok":false,"action":"launch","status":"BLOCKED","code":%d}\n' "$rc" >&2
+    return "$rc"
   fi
-  local rc=$?
-  printf '{"ok":false,"action":"launch","status":"BLOCKED","code":%d}\n' "$rc" >&2
+}
+
+run_guarded_action() {
+  local action=$1
+  shift
+
+  if ! assert_bridge_active; then
+    bridge_log "$action" blocked stop
+    printf '{"ok":false,"action":"%s","status":"BLOCKED_STOP"}\n' "$action" >&2
+    return 75
+  fi
+
+  if ! acquire_action_lock; then
+    bridge_log "$action" blocked busy
+    printf '{"ok":false,"action":"%s","status":"BLOCKED_BUSY"}\n' "$action" >&2
+    return 75
+  fi
+
+  local rc=0
+  if "$@"; then
+    rc=0
+  else
+    rc=$?
+  fi
+  release_action_lock
+
+  if [[ $rc -eq 0 ]]; then
+    bridge_log "$action" ok command-completed
+  else
+    bridge_log "$action" blocked "rc=$rc"
+  fi
   return "$rc"
+}
+
+do_home() {
+  android_keyevent KEYCODE_HOME
+  printf '{"ok":true,"action":"home"}\n'
+}
+
+do_wake() {
+  android_keyevent KEYCODE_WAKEUP
+  printf '{"ok":true,"action":"wake"}\n'
 }
 
 command=${1-}
@@ -30,20 +73,18 @@ case "$command" in
     ;;
   open-whatsapp)
     component=$(resolve_component_for_package com.whatsapp) || { printf 'WhatsApp is not allowlisted.\n' >&2; exit 64; }
-    run_launch "$component"
+    run_guarded_action open-whatsapp run_launch "$component"
     ;;
   open-app)
     [[ $# -eq 2 ]] || usage
     component=$(resolve_component_for_package "$2") || { printf 'Package is not allowlisted.\n' >&2; exit 64; }
-    run_launch "$component"
+    run_guarded_action open-app run_launch "$component"
     ;;
   home)
-    android_keyevent KEYCODE_HOME
-    printf '{"ok":true,"action":"home"}\n'
+    run_guarded_action home do_home
     ;;
   wake)
-    android_keyevent KEYCODE_WAKEUP
-    printf '{"ok":true,"action":"wake"}\n'
+    run_guarded_action wake do_wake
     ;;
   adb-status)
     if state=$(adb_state 2>/dev/null); then
