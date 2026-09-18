@@ -20,6 +20,20 @@ class KernelRoute:
     decisions: tuple[str, ...] = field(default_factory=tuple)
 
 
+def _version_tuple(value: str | None) -> tuple[int, int, int] | None:
+    if not value:
+        return None
+    parts = value.split(".")
+    if len(parts) < 3 or not all(part.isdigit() for part in parts[:3]):
+        return None
+    return tuple(int(part) for part in parts[:3])
+
+
+def _liger_083_or_newer(request: dict[str, Any]) -> bool:
+    version = _version_tuple(request.get("liger_version"))
+    return version is not None and version >= (0, 8, 3)
+
+
 def _is_resolved_dpo_request(request: dict[str, Any]) -> bool:
     explicit = request.get("method")
     if explicit is not None:
@@ -28,6 +42,17 @@ def _is_resolved_dpo_request(request: dict[str, Any]) -> bool:
         request.get("preference_pairs") is True
         and request.get("reward_signal") is not True
         and request.get("teacher_available") is not True
+    )
+
+
+def _is_distillation_request(request: dict[str, Any]) -> bool:
+    explicit = request.get("method")
+    if explicit is not None:
+        return str(explicit).lower() == "distillation"
+    return (
+        request.get("teacher_available") is True
+        and request.get("preference_pairs") is not True
+        and request.get("reward_signal") is not True
     )
 
 
@@ -47,6 +72,23 @@ def _verified_liger_decisions(request: dict[str, Any], base: str) -> tuple[str, 
         and request.get("liger_preference_frozen_weight_fastpath") is True
     ):
         decisions.append("kernel.liger.preference_frozen_weight_fastpath")
+
+    dsl = request.get("liger_dsl_backend")
+    if (
+        _liger_083_or_newer(request)
+        and dsl in {"triton", "cutedsl", "cutile"}
+        and request.get("liger_dsl_backend_available") is True
+        and request.get("liger_dsl_canary_passed") is True
+    ):
+        decisions.append(f"kernel.liger.dsl.{dsl}_verified")
+
+    if (
+        _liger_083_or_newer(request)
+        and _is_distillation_request(request)
+        and request.get("liger_fused_linear_kl_available") is True
+        and request.get("liger_fused_linear_kl_canary_passed") is True
+    ):
+        decisions.append("kernel.liger.distillation.fused_linear_kl_verified")
     return tuple(decisions)
 
 
