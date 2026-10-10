@@ -13,6 +13,9 @@ def create_skill(slug, purpose, trigger, out_root):
         raise ValueError('Invalid skill name; use lowercase hyphenated slug')
     if not purpose.strip() or not trigger.strip() or len(purpose) > 500 or len(trigger) > 250:
         raise ValueError('Purpose and trigger must be concise, nonempty text')
+    # Candidate text is untrusted; never let multiline input alter YAML or Markdown structure.
+    purpose = ' '.join(purpose.strip().split())
+    trigger = ' '.join(trigger.strip().split())
     target = Path(out_root).resolve() / slug
     if target.exists():
         raise FileExistsError('Candidate already exists; no overwrite')
@@ -20,7 +23,7 @@ def create_skill(slug, purpose, trigger, out_root):
         raise FileNotFoundError('Create the dedicated staging directory first')
     text = f'''---
 name: {slug}
-description: {trigger.strip().replace(chr(10), ' ')}
+description: {json.dumps(trigger, ensure_ascii=False)}
 ---
 
 # {slug}

@@ -1,0 +1,207 @@
+{
+  "schema_version": "0.1",
+  "as_of": "2026-10-10",
+  "status": "RESEARCH_CANDIDATE_NOT_DEPLOYED",
+  "provenance": "GitHub repository metadata and immutable branch HEAD queried using connected GitHub API; commit is a time-of-inspection snapshot, not an approval to copy",
+  "license_policy": "ADAPT means a candidate for separately reviewed integration, never unconditional reuse. STUDY_ONLY forbids direct source transfer until licensed review. CONTENT-OWNER license requirements apply separately.",
+  "donors": [
+    {
+      "repo": "PrismarineJS/mineflayer",
+      "url": "https://github.com/PrismarineJS/mineflayer",
+      "branch": "master",
+      "commit": "7b4bb8d2b56be9cdb832474af873acd37e609746",
+      "license": "MIT",
+      "policy": "ADAPT",
+      "role": "Java bot engine",
+      "license_evidence": "GitHub repository license metadata / pending file-level check",
+      "verified_at": "2026-10-10"
+    },
+    {
+      "repo": "yuniko-software/minecraft-mcp-server",
+      "url": "https://github.com/yuniko-software/minecraft-mcp-server",
+      "branch": "main",
+      "commit": "240c8cec337ce152cc9e058ebdef511055808406",
+      "license": "Apache-2.0",
+      "policy": "ADAPT",
+      "role": "Codex/MCP integration for Java",
+      "license_evidence": "GitHub repository license metadata / pending file-level check",
+      "verified_at": "2026-10-10"
+    },
+    {
+      "repo": "PrismarineJS/bedrock-protocol",
+      "url": "https://github.com/PrismarineJS/bedrock-protocol",
+      "branch": "master",
+      "commit": "f0ac6151322b2176244421c7c481f45814baf929",
+      "license": "MIT",
+      "policy": "ADAPT",
+      "role": "Bedrock protocol and native bot reference",
+      "license_evidence": "GitHub repository license metadata / pending file-level check",
+      "verified_at": "2026-10-10"
+    },
+    {
+      "repo": "AIKUSAN/minecraft-agent-skills-bundle",
+      "url": "https://github.com/AIKUSAN/minecraft-agent-skills-bundle",
+      "branch": "main",
+      "commit": "6fdc6b3043932f6cec4d0a2d51630b19d220dc0d",
+      "license": "MIT",
+      "policy": "STUDY",
+      "role": "Cross-edition Codex skills and QA patterns",
+      "license_evidence": "GitHub repository license metadata / pending file-level check",
+      "verified_at": "2026-10-10"
+    },
+    {
+      "repo": "NetherGamesMC/plugins",
+      "url": "https://github.com/NetherGamesMC/plugins",
+      "branch": "master",
+      "commit": "1e3ce2287fbffbebc95aa3e89dc71b9ed5601ede",
+      "license": "AGPL-3.0",
+      "policy": "STUDY_ONLY",
+      "role": "PocketMine duels and arena event logic",
+      "license_evidence": "direct repository LICENSE file",
+      "verified_at": "2026-10-10"
+    },
+    {
+      "repo": "NetherGamesMC/assets",
+      "url": "https://github.com/NetherGamesMC/assets",
+      "branch": "master",
+      "commit": "5cfda13ef2873c3a048d4a665fe100d1d24542b1",
+      "license": "CC-BY-4.0",
+      "policy": "ATTRIBUTION_REVIEW",
+      "role": "Arena maps and coordinate configurations",
+      "license_evidence": "direct repository LICENSE file",
+      "verified_at": "2026-10-10"
+    },
+    {
+      "repo": "GeyserMC/Geyser",
+      "url": "https://github.com/GeyserMC/Geyser",
+      "branch": "master",
+      "commit": "50a464d7db132ca5943b608a2110c158bf09702a",
+      "license": "MIT",
+      "policy": "STUDY",
+      "role": "Bedrock clients into Java host",
+      "license_evidence": "GitHub repository license metadata / pending file-level check",
+      "verified_at": "2026-10-10"
+    },
+    {
+      "repo": "GeyserMC/Floodgate",
+      "url": "https://github.com/GeyserMC/Floodgate",
+      "branch": "master",
+      "commit": "81b65ccb766bf8024858ebf3eefa6974056aecc5",
+      "license": "MIT",
+      "policy": "STUDY",
+      "role": "Geyser authentication extension",
+      "license_evidence": "GitHub repository license metadata / pending file-level check",
+      "verified_at": "2026-10-10"
+    },
+    {
+      "repo": "Mojang/bedrock-samples",
+      "url": "https://github.com/Mojang/bedrock-samples",
+      "branch": "main",
+      "commit": "46ba6ea985fb5a92d79a9419198f10dda14c199d",
+      "license": "UNVERIFIED",
+      "policy": "STUDY_ONLY",
+      "role": "Bedrock behavior/resource samples; check scoped license",
+      "license_evidence": "GitHub repository license metadata / pending file-level check",
+      "verified_at": "2026-10-10"
+    },
+    {
+      "repo": "Mojang/minecraft-scripting-libraries",
+      "url": "https://github.com/Mojang/minecraft-scripting-libraries",
+      "branch": "main",
+      "commit": "88f54aa2ecb5fff0f0698ee4b5465b9ea352cf3d",
+      "license": "MIT",
+      "policy": "STUDY",
+      "role": "Bedrock scripting utilities",
+      "license_evidence": "GitHub repository license metadata / pending file-level check",
+      "verified_at": "2026-10-10"
+    },
+    {
+      "repo": "mindcraft-bots/mindcraft",
+      "url": "https://github.com/mindcraft-bots/mindcraft",
+      "branch": "develop",
+      "commit": "f6a9556cf756e6bd88a75cc2fa0d5aed7599b101",
+      "license": "MIT",
+      "policy": "STUDY",
+      "role": "LLM tool loop and Java world state",
+      "license_evidence": "GitHub repository license metadata / pending file-level check",
+      "verified_at": "2026-10-10"
+    },
+    {
+      "repo": "MineDojo/Voyager",
+      "url": "https://github.com/MineDojo/Voyager",
+      "branch": "main",
+      "commit": "55e45a880755d0c8c66ca7fb5fe7962ac8974f89",
+      "license": "MIT",
+      "policy": "STUDY",
+      "role": "Agent memory and reusable skill library",
+      "license_evidence": "GitHub repository license metadata / pending file-level check",
+      "verified_at": "2026-10-10"
+    },
+    {
+      "repo": "CraftJarvis/MineStudio",
+      "url": "https://github.com/CraftJarvis/MineStudio",
+      "branch": "master",
+      "commit": "278aa8553668d591339dbf30d281594ed06ee882",
+      "license": "MIT",
+      "policy": "STUDY",
+      "role": "Agent evaluation and simulation",
+      "license_evidence": "GitHub repository license metadata / pending file-level check",
+      "verified_at": "2026-10-10"
+    },
+    {
+      "repo": "CloudburstMC/Protocol",
+      "url": "https://github.com/CloudburstMC/Protocol",
+      "branch": "3.0",
+      "commit": "6f466f0c88b0ee38b561835a324cba3817ead4f6",
+      "license": "Apache-2.0",
+      "policy": "STUDY",
+      "role": "Java Bedrock protocol stack",
+      "license_evidence": "GitHub repository license metadata / pending file-level check",
+      "verified_at": "2026-10-10"
+    },
+    {
+      "repo": "Bram1903/MinecraftSourcesGenerator",
+      "url": "https://github.com/Bram1903/MinecraftSourcesGenerator",
+      "branch": "main",
+      "commit": "8a72be554aabbc57ecf357beb81de663be4e463b",
+      "license": "UNVERIFIED",
+      "policy": "STUDY_ONLY",
+      "role": "Personal local vanilla source study: do not redistribute generated files",
+      "license_evidence": "GitHub repository license metadata / pending file-level check",
+      "verified_at": "2026-10-10"
+    },
+    {
+      "repo": "nexxii04/minecraft-bedrock-mcp",
+      "url": "https://github.com/nexxii04/minecraft-bedrock-mcp",
+      "branch": "main",
+      "commit": "896369fb0657376038cd5491669cec97c98efd02",
+      "license": "UNVERIFIED",
+      "policy": "STUDY_ONLY",
+      "role": "Experimental Bedrock MCP tools and tests",
+      "license_evidence": "GitHub repository license metadata / pending file-level check",
+      "verified_at": "2026-10-10"
+    },
+    {
+      "repo": "luanti-org/luanti",
+      "url": "https://github.com/luanti-org/luanti",
+      "branch": "master",
+      "commit": "5bb520ba544536c4c2914bc0a5ad386e758d7036",
+      "license": "LICENSE_COMPONENT_SPECIFIC",
+      "policy": "STUDY",
+      "role": "Open voxel engine architecture; review per-component licenses",
+      "license_evidence": "GitHub repository license metadata / pending file-level check",
+      "verified_at": "2026-10-10"
+    },
+    {
+      "repo": "VoxeLibre/VoxeLibre",
+      "url": "https://github.com/VoxeLibre/VoxeLibre",
+      "branch": "master",
+      "commit": "4492ce6ff8d856daa4567abe2ea689f4e7a39842",
+      "license": "GPL-3.0",
+      "policy": "STUDY_ONLY",
+      "role": "Open voxel game rules and mods (not Minecraft source)",
+      "license_evidence": "GitHub repository license metadata / pending file-level check",
+      "verified_at": "2026-10-10"
+    }
+  ]
+}

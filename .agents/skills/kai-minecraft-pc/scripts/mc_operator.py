@@ -132,6 +132,12 @@ def main(argv=None):
         except (ImportError, NotImplementedError, OSError):
             pass
     elif args.action in {'players', 'say'}:
+        # Validate the configured target BEFORE preview, so a dry-run never approves
+        # arguments that execution would reject.
+        if args.host not in LOCAL_HOSTS:
+            raise ValueError('Remote RCON rejected: localhost tunnel only')
+        if not (1 <= args.port <= 65535):
+            raise ValueError('Invalid RCON port')
         if args.action == 'say':
             command = 'say ' + validate_message(args.value)
             if not args.apply:
