@@ -12,6 +12,8 @@ FORWARD_PORT=int(os.environ.get("KAI_LIVE_FORWARD","27185"))
 MAX_SIZE=int(os.environ.get("KAI_LIVE_MAX_SIZE","960"))
 MAX_FPS=int(os.environ.get("KAI_LIVE_MAX_FPS","20"))
 BIT_RATE=int(os.environ.get("KAI_LIVE_BIT_RATE","3000000"))
+START_TIMEOUT=float(os.environ.get("KAI_LIVE_START_TIMEOUT","12"))
+START_ATTEMPTS=max(1,min(5,int(os.environ.get("KAI_LIVE_START_ATTEMPTS","3"))))
 VIDEO_ENCODER=os.environ.get("KAI_LIVE_VIDEO_ENCODER","c2.qti.avc.encoder").strip()
 ADB="adb"; FFMPEG="ffmpeg"; SCRCPY="scrcpy"
 SERVER_HOST="/data/data/com.termux/files/usr/share/scrcpy/scrcpy-server"
@@ -134,7 +136,7 @@ class Bridge:
         threading.Thread(target=self._fferr,args=(self.ffmpeg,gen),daemon=True).start()
         threading.Thread(target=self._pump,args=(gen,),daemon=True).start()
         threading.Thread(target=self._frames,args=(gen,),daemon=True).start()
-        if not self.ready_evt.wait(8): raise RuntimeError("first frame timeout")
+        if not self.ready_evt.wait(START_TIMEOUT): raise RuntimeError(f"first frame timeout after {START_TIMEOUT:.1f}s h264_bytes={self.h264_bytes} diagnostics={list(self.stderr)[-6:]}")
         self.log(f"ready gen={gen} frame={self.frame_size} logical={self.logical}")
 
     def _fferr(self,p,gen):
@@ -231,7 +233,17 @@ class Bridge:
             except Exception as e:self.log(f"supervise: {type(e).__name__}: {e}")
 
     def start(self):
-        self.start_session();threading.Thread(target=self.supervise,daemon=True).start()
+        last=None
+        for attempt in range(1,START_ATTEMPTS+1):
+            try:
+                self.start_session();last=None;break
+            except Exception as e:
+                last=e;self.log(f"startup[{attempt}/{START_ATTEMPTS}]: {type(e).__name__}: {e}")
+                try:self.stop_session()
+                except Exception as cleanup:self.log(f"startup-cleanup: {type(cleanup).__name__}: {cleanup}")
+                if attempt<START_ATTEMPTS:time.sleep(min(2.0,0.35*attempt))
+        if last is not None:raise last
+        threading.Thread(target=self.supervise,daemon=True).start()
 
     def stop(self):
         self.stop_evt.set();self.stop_session()
