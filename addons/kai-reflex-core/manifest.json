@@ -1,0 +1,33 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "KAI Reflex Core",
+    "description": "Reflejos defensivos locales para KAI: evasión mínima ante amenazas cercanas, sin teletransporte, curación ni daño automático.",
+    "uuid": "07d0b829-0cfb-4e60-b3f2-dcdc9e96c378",
+    "version": [0, 1, 0],
+    "min_engine_version": [1, 26, 50]
+  },
+  "modules": [
+    {
+      "description": "KAI Reflex Core runtime",
+      "type": "script",
+      "language": "javascript",
+      "uuid": "84e24ec4-b56d-4f2e-98c0-05741c9adfa7",
+      "version": [0, 1, 0],
+      "entry": "scripts/main.js"
+    }
+  ],
+  "dependencies": [
+    {
+      "module_name": "@minecraft/server",
+      "version": "2.2.0"
+    }
+  ],
+  "metadata": {
+    "authors": ["KAI"],
+    "license": "MIT",
+    "generated_with": {
+      "kai_termux": ["0.1.0"]
+    }
+  }
+}
