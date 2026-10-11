@@ -121,10 +121,22 @@ The encoder override is S24-specific evidence, not a universal requirement. Omit
 - A HOME key action completed in ~173 ms; the first newer frame arrived ~22 ms later.
 - `delivery_fps` is a decoder-delivery diagnostic, **not** a claim about device capture FPS. FFmpeg may flush/repeat frames around restarts; `target_max_fps` is the configured capture ceiling.
 
+
+
+### Termux service deployment · VERIFIED
+
+- Reviewed/deployed bridge SHA-256: `2b86fc4da5325b88b378ba231b8150887bab982b48bd1191f58dcf4a2a6b5223`.
+- Deployed source: `~/.kai_mobile/kai_minecraft_live.py`.
+- runit service: `$PREFIX/var/service/kai-minecraft-live`; log service uses `svlogd` under `~/.kai_mobile/log/kai-minecraft-live`.
+- The service intentionally does **not** persist the current Wireless Debugging host:port. It resolves the sole authorized ADB device at process start because the wireless port may change.
+- The S24 service sets `KAI_LIVE_VIDEO_ENCODER=c2.qti.avc.encoder`; that is local hardware evidence, not a repository-wide assumption.
+- A Termux FFmpeg `h264_mediacodec` decode experiment was rejected for this deployment: FFmpeg reported `No Java virtual machine has been registered`, CPU use did not improve materially, and RSS increased. The stable software decode path remains active.
+- Steady-state sample after reverting that experiment: bridge Python ~2% CPU, scrcpy ~3%, FFmpeg ~19%, with a 960×442 Minecraft frame and target max capture 20 fps. Treat these as one-device session observations, not universal performance promises.
+
 ### Current limits / next hardening gates
 
 - Input currently uses the already effect-verified ADB path; direct scrcpy-control or Kai Accessibility may later reduce command dispatch latency.
 - No audio stream is part of this checkpoint.
 - Rotation recovery intentionally causes a short video-only interruption; ADB and Minecraft remain alive.
-- Add service supervision only after the bridge source hash deployed in Termux matches the reviewed branch.
+- Service supervision is now deployed after exact source-hash parity was proven; keep that parity check mandatory before future service upgrades.
 - Before any autonomous traversal/combat mode, add explicit movement bounds, emergency stop, foreground-package guard and a no-destructive-block-action default.
