@@ -1,0 +1,8 @@
+{
+  "nerve_v04_zip_sha256": "43a3cddc5ec89668c4764c103d5213d1c5f9598fe1ccf369041dcd7a0c994abf",
+  "harvester_v021_attachment_sha256": "4a639c87e9eb5e7b8af91ee49777e126098acd062d5a01c24d0dabd1a9c3feb4",
+  "runtime_preimages": "install_termux.py PREIMAGES; observed twice on authorized Termux",
+  "resident_overlay": "preserved as donor, not activated by this integration",
+  "release": "0.4.1",
+  "harvester": "0.2.2"
+}

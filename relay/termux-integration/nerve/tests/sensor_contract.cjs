@@ -1,0 +1,13 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert');
+let logs=[],controls={},timers=[],count=80,fail=false;
+const player={id:'p',name:'test',typeId:'minecraft:player',location:{x:0,y:0,z:0},getComponent:()=>({currentValue:0,effectiveMax:20}),getTags:()=>[],getVelocity:()=>({x:0,y:0,z:0}),getViewDirection:()=>({x:0,y:0,z:1}),getRotation:()=>({x:0,y:0}),getBlockFromViewDirection:()=>null,selectedSlotIndex:0};
+player.dimension={id:'overworld',getEntities:opts=>{if(fail)throw Error('scan failed');return [player,...Array.from({length:count},(_,i)=>({...player,id:'mob'+i,typeId:'addon:ghost',location:{x:i+1,y:0,z:0}}))].slice(0,opts.closest)}};
+const context={world:{afterEvents:{},getAllPlayers:()=>[player]},system:{currentTick:1,afterEvents:{scriptEventReceive:{subscribe:fn=>controls.control=fn}},runInterval:fn=>timers.push(fn)},console:{warn:x=>logs.push(x)},Date,Math};
+vm.runInNewContext(fs.readFileSync(__dirname+'/../bedrock_pack/KAI_NERVE_Sensor_BP/scripts/main.js','utf8').replace(/^import .*;\n/,''),context);
+const decode=()=>JSON.parse(logs.filter(x=>x.startsWith('KAINERVE|4|STATE|')).at(-1).split('|').slice(3).join('|'));
+assert.equal(logs.length,1);timers.forEach(fn=>fn());assert.equal(logs.length,1);
+controls.control({id:'kai:nerve_enable',message:'test-correlation'});timers[0]();let e=decode();assert.equal(e.player_state.entities.length,64);assert.equal(e.player_state.entities_truncated,true);assert.equal(e.player_state.health.current,0);
+count=2;timers[0]();e=decode();assert.equal(e.player_state.entities.length,2);assert.equal(e.player_state.entities_truncated,false);
+fail=true;timers[0]();assert.ok(decode().player_state.entity_scan_error);
+controls.control({id:'kai:nerve_disable',message:''});let n=logs.length;timers.forEach(fn=>fn());assert.equal(logs.length,n);assert.equal(JSON.parse(logs.at(-1).split('|').slice(3).join('|')).enabled,false);
+console.log('SENSOR_MOCK_PASS: disabled, truncation, identity, health zero, scan error, OFF');

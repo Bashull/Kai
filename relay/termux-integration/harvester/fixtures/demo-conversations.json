@@ -1,0 +1,46 @@
+[
+  {
+    "id": "synthetic-example-001",
+    "title": "Ejemplo ficticio",
+    "current_node": "a",
+    "mapping": {
+      "r": {
+        "parent": null,
+        "children": [
+          "u"
+        ],
+        "message": null
+      },
+      "u": {
+        "parent": "r",
+        "children": [
+          "a"
+        ],
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "parts": [
+              "Hola"
+            ]
+          }
+        }
+      },
+      "a": {
+        "parent": "u",
+        "children": [],
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "parts": [
+              "Hola. Este es un fixture sintético; snake_case &lt; 🐼"
+            ]
+          }
+        }
+      }
+    }
+  }
+]

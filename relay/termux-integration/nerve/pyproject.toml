@@ -1,0 +1,9 @@
+[project]
+name = "kai-nerve"
+version = "0.4.1"
+description = "Reconciled fail-closed Minecraft Bedrock sensor ingress, provenance, WorldBus, leases, budgets, skills and GPT contract for Termux"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+kai-nerve = "kai_nerve.cli:main"

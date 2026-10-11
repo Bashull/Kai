@@ -1,0 +1,46 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "KAI NERVE Sensor v0.4 CANDIDATE",
+    "description": "Sensor-only structured telemetry v4. Disabled by default; no actuation.",
+    "uuid": "ebaf790a-ccf1-454a-834e-985e4404a532",
+    "version": [
+      0,
+      4,
+      1
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "data",
+      "uuid": "7aea3f30-0049-4c3d-9b51-20d2db7fe776",
+      "version": [
+        0,
+        4,
+        1
+      ]
+    },
+    {
+      "type": "script",
+      "language": "javascript",
+      "entry": "scripts/main.js",
+      "uuid": "279e0240-aa32-4520-ab2f-da53ff37001d",
+      "version": [
+        0,
+        4,
+        1
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "module_name": "@minecraft/server",
+      "version": "2.0.0"
+    }
+  ]
+}
