@@ -1,0 +1,14 @@
+#!/data/data/com.termux/files/usr/bin/sh
+set -eu
+# Android Codex 0.162.1 is installed, but 'codex sandbox' is not supported on Android.
+# Balanced profile blocks agent execution until an external containment layer is proven.
+case "${1:-}" in
+  --version|-V|--help|-h|doctor|features)
+    exec codex "$@"
+    ;;
+  *)
+    echo "KAI_BALANCED_GUARD: Codex agent execution is disabled on Android until external sandboxing is verified." >&2
+    echo "Allowed preflight commands: --version, --help, doctor, features" >&2
+    exit 78
+    ;;
+esac
