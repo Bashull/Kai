@@ -5,6 +5,7 @@ import collections
 import json
 import os
 import re
+import secrets
 import shutil
 import signal
 import subprocess
@@ -21,11 +22,37 @@ MAX_SIZE = int(os.environ.get("KAI_LIVE_MAX_SIZE", "960"))
 MAX_FPS = int(os.environ.get("KAI_LIVE_MAX_FPS", "20"))
 BIT_RATE = os.environ.get("KAI_LIVE_BIT_RATE", "3M")
 JPEG_QUALITY = int(os.environ.get("KAI_LIVE_JPEG_QUALITY", "5"))
+VIDEO_ENCODER = os.environ.get("KAI_LIVE_VIDEO_ENCODER", "").strip()
+TOKEN_FILE = Path(os.environ.get("KAI_LIVE_TOKEN_FILE", str(Path.home() / ".kai_mobile" / "kai-live-token")))
 ADB = shutil.which("adb") or "adb"
 SCRCPY = shutil.which("scrcpy") or "scrcpy"
 FFMPEG = shutil.which("ffmpeg") or "ffmpeg"
 
 SOF_MARKERS = {0xC0, 0xC1, 0xC2, 0xC3, 0xC5, 0xC6, 0xC7, 0xC9, 0xCA, 0xCB, 0xCD, 0xCE, 0xCF}
+
+
+def resolve_token() -> str:
+    configured = os.environ.get("KAI_LIVE_TOKEN", "").strip()
+    if configured:
+        return configured
+    try:
+        existing = TOKEN_FILE.read_text().strip()
+        if existing:
+            return existing
+    except FileNotFoundError:
+        pass
+    TOKEN_FILE.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        TOKEN_FILE.parent.chmod(0o700)
+    except OSError:
+        pass
+    token = secrets.token_urlsafe(32)
+    TOKEN_FILE.write_text(token + "\n")
+    TOKEN_FILE.chmod(0o600)
+    return token
+
+
+AUTH_TOKEN = resolve_token()
 
 
 def jpeg_dimensions(data: bytes) -> tuple[int, int] | None:
@@ -130,9 +157,10 @@ class LiveBridge:
             f"--max-fps={MAX_FPS}",
             f"--video-bit-rate={BIT_RATE}",
             "--video-codec=h264",
-            "--video-encoder=c2.qti.avc.encoder",
             "--video-codec-options=i-frame-interval=1",
         ]
+        if VIDEO_ENCODER:
+            sc_args.append(f"--video-encoder={VIDEO_ENCODER}")
         self.scrcpy = subprocess.Popen(
             sc_args,
             stdin=subprocess.DEVNULL,
@@ -277,11 +305,11 @@ class LiveBridge:
                 "ok": self.latest is not None,
                 "serial": self.serial,
                 "sequence": self.sequence,
-                "fps": round(self.fps(), 2),
+                "delivery_fps": round(self.fps(), 2),
+                "target_max_fps": MAX_FPS,
                 "frame_age_ms": age_ms,
                 "frame_size": {"width": self.frame_size[0], "height": self.frame_size[1]},
                 "max_size": MAX_SIZE,
-                "max_fps": MAX_FPS,
                 "bit_rate": BIT_RATE,
                 "scrcpy_alive": self.scrcpy is not None and self.scrcpy.poll() is None,
                 "ffmpeg_alive": self.ffmpeg is not None and self.ffmpeg.poll() is None,
@@ -421,7 +449,15 @@ bridge = LiveBridge()
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "KaiLive/0.2"
+    server_version = "KaiLive/0.3"
+
+    def _authorized(self) -> bool:
+        supplied = self.headers.get("Authorization", "")
+        if supplied.startswith("Bearer "):
+            supplied = supplied[7:]
+        else:
+            supplied = parse_qs(urlparse(self.path).query).get("token", [""])[0]
+        return bool(supplied) and secrets.compare_digest(supplied, AUTH_TOKEN)
 
     def log_message(self, fmt: str, *args) -> None:
         return
@@ -450,6 +486,9 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(frame)
 
     def do_GET(self) -> None:
+        if not self._authorized():
+            self._json(401, {"ok": False, "error": "unauthorized"})
+            return
         u = urlparse(self.path)
         q = parse_qs(u.query)
         if u.path in ("/", "/health", "/status"):
@@ -469,6 +508,9 @@ class Handler(BaseHTTPRequestHandler):
         self._json(404, {"ok": False, "error": "not found"})
 
     def do_POST(self) -> None:
+        if not self._authorized():
+            self._json(401, {"ok": False, "error": "unauthorized"})
+            return
         try:
             n = int(self.headers.get("Content-Length", "0") or 0)
             body = self.rfile.read(n)
