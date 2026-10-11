@@ -35,3 +35,15 @@ La prueba en el PC y un servidor staging es una fase distinta; consulta `docs/pl
 - All HTTP endpoints are localhost-only and token-protected. The saved Minecraft server-address privacy confirmation is not bypassed.
 - This path is client control only; it does not imply Sóloland server administration or RCON access.
 - Full evidence, launch contract, timings and limits are in `docs/KAI_MINECRAFT_CODEX_RUNBOOK.md`.
+
+
+## Termux Balanced profile
+
+The S24 runtime is now organized as a profile-driven deployment. See:
+
+- `docs/minecraft/TERMUX_UNIFIED_EVOLUTION_PLAN.md` — phased architecture and gates.
+- `docs/minecraft/KAI_TERMUX_BALANCED_PROFILE.md` — active Balanced settings, evidence and limits.
+- `relay/profiles/balanced.env` — portable runtime defaults.
+- `relay/kai-profile` — health-checked profile switcher with rollback.
+- `relay/kai_balanced_probe.py` — soak/health benchmark.
+- `relay/kai-codex-balanced` — Android guard; Codex agent execution stays blocked until external containment is proven.
