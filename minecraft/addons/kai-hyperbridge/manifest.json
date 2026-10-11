@@ -1,0 +1,29 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "KAI HyperBridge",
+    "description": "Direct Bedrock telemetry bridge for Kai/ChatGPT via Script API.",
+    "uuid": "3a9db3e5-d591-4a9b-a32d-7830af5cde99",
+    "version": [0, 1, 0],
+    "min_engine_version": [1, 26, 0]
+  },
+  "modules": [
+    {
+      "type": "script",
+      "language": "javascript",
+      "uuid": "52ed5422-2287-4e07-b5b9-33f7f967fcb1",
+      "version": [0, 1, 0],
+      "entry": "scripts/main.js"
+    }
+  ],
+  "dependencies": [
+    {
+      "module_name": "@minecraft/server",
+      "version": "2.0.0"
+    }
+  ],
+  "metadata": {
+    "authors": ["Kai / OpenAI"],
+    "product_type": "addon"
+  }
+}
