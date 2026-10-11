@@ -62,7 +62,7 @@ Verified behavior:
 - `GET /frame`, `GET /next`, `POST /act`, `POST /minecraft`
 - service supervised by `runsv`
 
-### L2 · CONTROL — ACTIVE FALLBACK + LAB FAST PATH
+### L2 · CONTROL — ACTIVE DIRECT SCRCPY + ADB FALLBACK
 
 Current fallback:
 `ADB shell input` through `kai_minecraft_live.py`.
@@ -240,7 +240,7 @@ A module is not "ACTIVE" merely because its package is installed.
 - create clean Kai workspace
 - create health authority
 
-### Phase B · Fast hands — IN PROGRESS
+### Phase B · Fast hands — DONE
 
 - build persistent scrcpy binary-control prototype
 - use low-cost mapper strategy or merge control into the primary scrcpy owner
@@ -313,3 +313,42 @@ Core upgrades require:
 4. post-change healthcheck
 
 If a promoted change degrades vision/control reliability, revert the affected layer only. Do not roll back unrelated layers.
+
+
+## Direct scrcpy V2 promotion · 2026-10-11 · ACTIVE
+
+The original MKV/ADB-input bridge has been superseded by a single-owner scrcpy session that carries both H.264 vision and binary control.
+
+Production path:
+
+```
+Android display
+  -> one scrcpy server / one Qualcomm H.264 encoder
+     -> raw H.264 video socket -> FFmpeg -> in-memory JPEG
+     -> binary control socket -> tap / swipe / key
+  -> localhost token-protected Kai API
+```
+
+Effect proof on the S24:
+
+- direct Android UI tap: ~12.8 ms dispatch with a 10 ms hold; next frame ~1.3 ms later
+- Minecraft uses a longer semantic press; 180 ms hold produced ~182 ms action time, meaning only a few ms of transport overhead
+- Minecraft Worlds ↔ Servers transitions were effect-verified through the binary control socket
+- a 300 ms Minecraft server-list swipe was effect-verified
+- portrait ↔ landscape restarts retain both vision and control
+- cleanup was tested so rotation leaves one bridge, one scrcpy server and one FFmpeg process
+- if the control socket is already unavailable before an action starts, the bridge may use the verified ADB input fallback; a gesture that fails mid-flight is not replayed to avoid duplicate actions
+
+Performance comparison in the same Minecraft scene over fixed sampling windows:
+
+- V1: bridge ~1.4% + FFmpeg ~39.0% + scrcpy CLI ~3.0% ≈ 43.4% of one CPU core
+- V2: bridge ~2.2% + FFmpeg ~39.4% ≈ 41.6% of one CPU core
+- V2 also removes the MKV FIFO and the extra scrcpy CLI process
+
+Production deployment SHA-256:
+`2f4461d626ea216bb538fefb91acc5ed1f96f3db64075c02c371cf2dd8cba923`
+
+Rollback V1 SHA-256:
+`2b86fc4da5325b88b378ba231b8150887bab982b48bd1191f58dcf4a2a6b5223`
+
+The health authority now reports `mode=scrcpy-direct-v2`, `control_alive` and `preferred_input`.
