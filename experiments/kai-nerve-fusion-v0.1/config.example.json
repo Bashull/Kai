@@ -1,0 +1,12 @@
+{
+  "schema": "kai.nerve.config.v1",
+  "engine_transport": "disabled",
+  "allowed_engine_transports": ["disabled","logcat","mcwss","bedrock_ws"],
+  "max_observation_age_ms": 750,
+  "policy": {"armed": false,"arm_lease_seconds":60,"control_owner":null,"dry_run":true},
+  "sensor": {"enabled":false},
+  "notes": [
+    "Select exactly one existing Bedrock transport. This candidate opens no Bedrock listener.",
+    "Actuation is denied until provenance, freshness, ownership, calibration and terrain safety all pass."
+  ]
+}
