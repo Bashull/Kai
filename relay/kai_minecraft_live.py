@@ -5,8 +5,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-HOME=Path.home()
-HOST=os.environ.get("KAI_LIVE_HOST","127.0.0.1")
+HOME=Path.home()\nTERMUX_PREFIX=Path("/data/data/com.termux/files/usr")\nos.environ.setdefault("TMPDIR",str(TERMUX_PREFIX/"tmp"))\n(TERMUX_PREFIX/"tmp").mkdir(parents=True,exist_ok=True)\nHOST=os.environ.get("KAI_LIVE_HOST","127.0.0.1")
 PORT=int(os.environ.get("KAI_LIVE_PORT","7190"))
 FORWARD_PORT=int(os.environ.get("KAI_LIVE_FORWARD","27185"))
 MAX_SIZE=int(os.environ.get("KAI_LIVE_MAX_SIZE","960"))
