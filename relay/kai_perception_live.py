@@ -59,6 +59,13 @@ def motion_thumb(im: Image.Image):
     g=im.convert("L").resize((160,90),Image.Resampling.BILINEAR)
     return np.asarray(g,dtype=np.int16)
 
+def survival_hud_present(im: Image.Image):
+    w,h=im.size
+    crop=np.asarray(im.crop((0,0,min(w,230),min(h,70))).convert("RGB"),dtype=np.int16)
+    r,g,b=crop[:,:,0],crop[:,:,1],crop[:,:,2]
+    red=(r>65)&(r>g*1.35)&(r>b*1.35)
+    return int(red.sum())>=24
+
 def region_motion(a,b):
     d=np.abs(a-b).astype(np.float32)/255.0
     h,w=d.shape
@@ -126,6 +133,7 @@ last_detect=0.0
 last_save=0.0
 last_event_path=None
 last_hits=[]
+prev_hud=None
 detect_ms=None
 battery_temp_c=read_battery_temp_c()
 thermal_guard=bool(battery_temp_c is not None and battery_temp_c>=THERMAL_GUARD_ON)
@@ -139,6 +147,9 @@ while True:
             seq=int(f.headers.get("X-Kai-Sequence",seq+1))
             age=float(f.headers.get("X-Kai-Age-Ms","0") or 0)
         im=Image.open(io.BytesIO(raw)).convert("RGB")
+        hud=survival_hud_present(im)
+        hud_changed=(prev_hud is not None and hud!=prev_hud)
+        prev_hud=hud
         th=motion_thumb(im)
         motion={"global":0.0,"left":0.0,"center":0.0,"right":0.0,"top":0.0,"middle":0.0,"bottom":0.0} if prev is None else region_motion(prev,th)
         prev=th
@@ -157,13 +168,15 @@ while True:
             duty_cap=0.22 if hot else 0.10
         compute_guard=((detect_ms or 0.0)/1000.0)/duty_cap if detect_ms else 0.0
         interval=max(base_interval,compute_guard)
-        do_detect=(now-last_detect)>=interval
+        do_detect=hud and (now-last_detect)>=interval
         if do_detect:
             last_hits,detect_ms=detect(im); last_detect=now
+        elif not hud:
+            last_hits=[]
         top=last_hits[0] if last_hits else None
         urgent=bool(top and ((top["class"]=="Creeper" and top["danger"]>=0.45) or top["danger"]>=0.70))
         scene_cut=motion["global"]>=SCENE_CUT
-        event=urgent or scene_cut or hot or (last_hits and now-last_save>=SAVE_GAP)
+        event=urgent or scene_cut or hot or hud_changed or (last_hits and now-last_save>=SAVE_GAP)
         frame_path=None
         if event and now-last_save>=SAVE_GAP:
             frame_path=FRAMES/f"{int(time.time()*1000)}_s{seq}.jpg"
@@ -173,7 +186,7 @@ while True:
         processed+=1
         status={
             "ok":True,"seq":seq,"frame_age_ms":round(age,2),"processed":processed,
-            "uptime_s":round(time.monotonic()-start,1),"motion":{k:round(v,4) for k,v in motion.items()},
+            "uptime_s":round(time.monotonic()-start,1),"hud_present":hud,"hud_changed":hud_changed,"motion":{k:round(v,4) for k,v in motion.items()},
             "hot":hot,"scene_cut":scene_cut,"detections":last_hits,"top_threat":top,"urgent":urgent,
             "detector":{"model":"mob-radar best.onnx","classes":CLASSES,"confidence":CONF,"last_infer_ms":detect_ms,"base_interval_s":BASE_DETECT,"hot_interval_s":HOT_DETECT,"effective_interval_s":round(interval,3),"duty_cap":duty_cap},
             "thermal":{"battery_c":round(battery_temp_c,2) if battery_temp_c is not None else None,"guard":thermal_guard,"guard_on_c":THERMAL_GUARD_ON,"guard_off_c":THERMAL_GUARD_OFF},
