@@ -42,3 +42,42 @@ No package upgrade, repository main modification, Android pairing reset, Minecra
 - The 10-minute soak harness is prepared but was intentionally not left running after this turn. Run it interactively when final acceptance testing is desired.
 - Gameplay-load latency/thermal testing and non-destructive scrcpy input calibration remain pending.
 - Do not hardcode the wireless-debugging port; it is ephemeral. Loopback works on this device while the session is active.
+
+
+## Acceptance result — 09:05 CEST
+**Balanced capture gate: PASS**
+
+### 10-minute soak
+- Duration: 600.08 s
+- Samples: 300 at 2 s interval
+- Transport failures: 0
+- Unhealthy samples: 0
+- Restart delta during soak: 0
+- Frame age: p50 30.8 ms, p95 138.5 ms, p99 190.6 ms, max 215.8 ms
+- Delivery FPS observation: p50 14.66, p05 14.32, min 14.1. This is a delivered-frame metric and MUST NOT be interpreted as Minecraft render FPS.
+- Gate thresholds: p95 <= 250 ms, max <= 1000 ms, >=250 samples, zero transport failures/unhealthy samples/restarts.
+- Thermal status after soak: Android `Thermal Status: 0`; sampled AP 34.8 C, BAT 31.1 C, SKIN 32.8 C. Vendor thermalservice exposes multiple historical/current sensors; only the status and contemporaneous lower readings are used here.
+- Memory after soak: ~3.45 GiB available; not a guaranteed reserve.
+
+### Safe input latency benchmark
+Event: Android `KEYCODE_UNKNOWN(0)`, 30 iterations each; chosen to avoid UI/world actions.
+- scrcpy binary control dispatch: p50 11.40 ms, p95 12.34 ms, p99 14.95 ms.
+- scrcpy API wall time including fresh-frame wait: p50 73.23 ms, p95 162.89 ms, p99 245.34 ms.
+- legacy `adb shell input` dispatch: p50 125.81 ms, p95 150.70 ms, p99 152.65 ms.
+- ADB post-dispatch wait for next frame: p50 6.46 ms, p95 12.99 ms, p99 16.49 ms.
+- Conclusion: on this device/session the direct scrcpy dispatch path is ~11x faster at the input-dispatch portion (125.81/11.40 median). End-to-observed-fresh-frame comparisons use different measurement boundaries; do not claim an 11x end-to-end speedup.
+
+### Recovery test
+- Deliberately disconnected the sole loopback ADB transport after soak, waited 3 s, and reconnected to the same active wireless-debugging endpoint.
+- Bridge process PID remained alive.
+- Supervisor restart_count advanced 1 -> 2 as expected.
+- Functional stream/control recovered by poll 4 (~3-4 s after reconnect): `ok:true`, scrcpy/FFmpeg/control alive.
+- Final preflight: frame age 8.7 ms, preferred input `scrcpy`, bearer auth 401 when anonymous.
+- Bridge RSS ~30.5 MiB, 6 threads.
+
+### Codex sandbox note
+- Native Codex 0.162.1 runtime is installed and consistent.
+- `codex sandbox` explicitly reports unsupported on Android. Therefore the built-in Codex sandbox MUST NOT be treated as a security boundary on this phone. Keep Codex unauthenticated/unprivileged until an Android-compatible isolation design (e.g. reviewed abwrap or equivalent) is adopted.
+
+## Balanced status
+The **capture/control foundation of Balanced is now validated** for the non-gameplay workload tested here. Gameplay-load thermal/latency validation remains a separate gate before increasing FPS/bitrate or enabling autonomous world actions.
