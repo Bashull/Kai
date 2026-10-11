@@ -211,11 +211,23 @@ class Bridge:
         with self.cond:
             self.latest=None;self.frame_size=(0,0);self.last_frame_at=0;self.frame_times.clear();self.cond.notify_all()
 
+    def _start_bounded(self,label):
+        last=None
+        for attempt in range(1,START_ATTEMPTS+1):
+            try:
+                self.start_session();return
+            except Exception as e:
+                last=e;self.log(f"{label}-attempt[{attempt}/{START_ATTEMPTS}]: {type(e).__name__}: {e}")
+                try:self.stop_session()
+                except Exception as cleanup:self.log(f"{label}-cleanup: {type(cleanup).__name__}: {cleanup}")
+                if attempt<START_ATTEMPTS:time.sleep(min(2.0,0.35*attempt))
+        raise last
+
     def restart(self,reason):
         if not self.restart_lock.acquire(blocking=False):return
         try:
             self.restart_count+=1;self.log(f"restart[{self.restart_count}]: {reason}")
-            self.stop_session();time.sleep(.12);self.start_session()
+            self.stop_session();time.sleep(.12);self._start_bounded(f"restart[{self.restart_count}]")
         finally:self.restart_lock.release()
 
     def supervise(self):
@@ -233,16 +245,7 @@ class Bridge:
             except Exception as e:self.log(f"supervise: {type(e).__name__}: {e}")
 
     def start(self):
-        last=None
-        for attempt in range(1,START_ATTEMPTS+1):
-            try:
-                self.start_session();last=None;break
-            except Exception as e:
-                last=e;self.log(f"startup[{attempt}/{START_ATTEMPTS}]: {type(e).__name__}: {e}")
-                try:self.stop_session()
-                except Exception as cleanup:self.log(f"startup-cleanup: {type(cleanup).__name__}: {cleanup}")
-                if attempt<START_ATTEMPTS:time.sleep(min(2.0,0.35*attempt))
-        if last is not None:raise last
+        self._start_bounded("startup")
         threading.Thread(target=self.supervise,daemon=True).start()
 
     def stop(self):
