@@ -17,6 +17,6 @@ con session_id, source_seq y freshness verificables.
 
 ## Artefacto completo
 Drive: KAI_NERVE_Fusion_v0.1_CANDIDATE.zip
-SHA-256: a59a845e5df0ad5414157b23c8b3ff2f9dfa85553d995e28177f86820e1aff71
+SHA-256: 5fc7881fa30ced1870b92c158bbd024090bc134adcfdffbe443a0680b5797ba2
 
 El ZIP contiene núcleo Python, tests, GPT SKILL, sensor Bedrock, donor matrix, runbook y manifiesto SHA-256 de cada archivo interno de los 22 ZIP.
