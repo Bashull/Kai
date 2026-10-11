@@ -156,7 +156,7 @@ def logcat_loop():
             time.sleep(2); continue
         proc=None
         try:
-            proc=subprocess.Popen(["adb","-s",serial,"logcat","-v","raw"],stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,text=True,bufsize=1,env=env)
+            proc=subprocess.Popen(["adb","-s",serial,"logcat","-v","raw"],stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,text=True,encoding="utf-8",errors="replace",bufsize=1,env=env)
             for line in proc.stdout:
                 if _stop.is_set(): break
                 mark="KAI_EYES:"
