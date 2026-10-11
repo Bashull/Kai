@@ -117,7 +117,10 @@ while True:
         motion={"global":0.0,"left":0.0,"center":0.0,"right":0.0,"top":0.0,"middle":0.0,"bottom":0.0} if prev is None else region_motion(prev,th)
         prev=th
         now=time.monotonic(); hot=motion["global"]>=MOTION_HOT
-        interval=HOT_DETECT if hot else BASE_DETECT
+        base_interval=HOT_DETECT if hot else BASE_DETECT
+        duty_cap=0.45 if hot else 0.25
+        compute_guard=((detect_ms or 0.0)/1000.0)/duty_cap if detect_ms else 0.0
+        interval=max(base_interval,compute_guard)
         do_detect=(now-last_detect)>=interval
         if do_detect:
             last_hits,detect_ms=detect(im); last_detect=now
@@ -136,7 +139,7 @@ while True:
             "ok":True,"seq":seq,"frame_age_ms":round(age,2),"processed":processed,
             "uptime_s":round(time.monotonic()-start,1),"motion":{k:round(v,4) for k,v in motion.items()},
             "hot":hot,"scene_cut":scene_cut,"detections":last_hits,"top_threat":top,"urgent":urgent,
-            "detector":{"model":"mob-radar best.onnx","classes":CLASSES,"confidence":CONF,"last_infer_ms":detect_ms,"base_interval_s":BASE_DETECT,"hot_interval_s":HOT_DETECT},
+            "detector":{"model":"mob-radar best.onnx","classes":CLASSES,"confidence":CONF,"last_infer_ms":detect_ms,"base_interval_s":BASE_DETECT,"hot_interval_s":HOT_DETECT,"effective_interval_s":round(interval,3),"duty_cap":duty_cap},
             "last_event_frame":str(frame_path) if frame_path else None
         }
         atomic_json(STATUS,status)
