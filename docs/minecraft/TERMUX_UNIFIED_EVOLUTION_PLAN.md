@@ -152,10 +152,10 @@ Diagnose downed kai-minecraft-live and its first-frame timeout without making un
 
 - Minecraft live service recovered under runit; authenticated video and scrcpy control socket are healthy.
 - Active profile layering implemented: portable profile -> device-local hardware override -> supervised bridge.
-- Balanced runtime defaults: 960 px max dimension, target max 20 fps, 3 Mbps H.264, 12 s first-frame timeout, 3 bounded startup attempts.
+- Balanced runtime defaults: 960 px max dimension, target max 20 fps, 3 Mbps H.264, 15 s first-frame timeout, 3 bounded startup attempts.
 - Profile switching now has authenticated health verification and rollback.
 - 60-second smoke: 30/30 healthy samples, zero restart delta, frame-age median 38.3 ms, p95 86.1 ms, max 104.0 ms.
 - Removing the FFmpeg fps filter increased observed process CPU (~46% -> ~54% of one CPU sample) and was reverted.
 - Codex 0.162.1 and code-mode host are installed. However, `codex sandbox` is **not supported on Android** in this build; Balanced therefore blocks Codex agent execution until external containment is proven. Codex authentication is also not configured.
 - Native X11/GUI, Ollama upgrade, GPU/NPU inference, Shizuku MCP, MagicDesk and virtualization remain disabled in Balanced.
-- A clean 10-minute soak is running; do not mark the profile fully accepted until it passes.
+- Bounded recovery is now shared by initial startup and orientation/process restarts; partial failed sessions are cleaned before retry. A final clean 10-minute soak is running; do not mark the profile fully accepted until it passes.
