@@ -26,3 +26,12 @@ python .agents/skills/kai-minecraft-cross-edition/scripts/route_mc.py --edition 
 ```
 
 La prueba en el PC y un servidor staging es una fase distinta; consulta `docs/plans/2026-10-10-kai-minecraft-java-bedrock.md`.
+
+
+## Android S24 live vision/control · 2026-10-11
+
+- `relay/kai_minecraft_live.py` is the verified local-only Bedrock vision/control bridge for the authorized S24 Ultra.
+- It uses official scrcpy capture, one H.264 encoder, an MKV FIFO, FFmpeg in-memory JPEG frames, sequence-aware action observation and automatic portrait/landscape capture recovery.
+- All HTTP endpoints are localhost-only and token-protected. The saved Minecraft server-address privacy confirmation is not bypassed.
+- This path is client control only; it does not imply Sóloland server administration or RCON access.
+- Full evidence, launch contract, timings and limits are in `docs/KAI_MINECRAFT_CODEX_RUNBOOK.md`.
