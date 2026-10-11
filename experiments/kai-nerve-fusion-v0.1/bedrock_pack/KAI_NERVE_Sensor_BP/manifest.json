@@ -1,0 +1,18 @@
+{
+  "format_version":2,
+  "header":{
+    "name":"KAI NERVE Sensor CANDIDATE",
+    "description":"Sensor-only structured telemetry for KAI NERVE. Disabled by default.",
+    "uuid":"1eebf8a2-b3aa-4cf8-9d66-e3e6712f9e1f",
+    "version":[0,1,0],
+    "min_engine_version":[1,26,0]
+  },
+  "modules":[{
+    "description":"KAI NERVE sensor runtime",
+    "type":"script","language":"javascript",
+    "uuid":"e6bfd9d2-7943-4f1f-8f62-4c74ca7c616f",
+    "version":[0,1,0],"entry":"scripts/main.js"
+  }],
+  "dependencies":[{"module_name":"@minecraft/server","version":"2.0.0"}],
+  "metadata":{"authors":["KAI / Asier"],"license":"MIT","product_type":"addon"}
+}
