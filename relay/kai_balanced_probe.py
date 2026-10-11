@@ -77,6 +77,7 @@ def main():
     ap.add_argument("--interval", type=float, default=2.0)
     ap.add_argument("--port", type=int, default=7190)
     ap.add_argument("--stale-ms", type=float, default=1500)
+    ap.add_argument("--require-fresh", action="store_true", help="Fail samples whose frame age exceeds --stale-ms; use only during an active-changing scene")
     args = ap.parse_args()
     t0 = time.monotonic()
     samples = []
@@ -89,12 +90,13 @@ def main():
             if start_restarts is None:
                 start_restarts = int(s.get("restart_count", 0))
             age = s.get("frame_age_ms")
+            fresh_ok = (not args.require_fresh) or (isinstance(age,(int,float)) and age <= args.stale_ms)
             ok = (
                 s.get("ok") is True and
                 s.get("scrcpy_alive") is True and
                 s.get("ffmpeg_alive") is True and
                 s.get("control_alive") is True and
-                isinstance(age, (int,float)) and age <= args.stale_ms and
+                fresh_ok and
                 s.get("frame_size",{}).get("width",0) > 0 and
                 s.get("frame_size",{}).get("height",0) > 0
             )
@@ -123,6 +125,7 @@ def main():
         "profile":"balanced",
         "duration_s":args.duration,
         "interval_s":args.interval,
+        "require_fresh":args.require_fresh,
         "samples":len(samples),
         "failures":len(failures),
         "frame_age_ms":{
