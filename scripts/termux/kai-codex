@@ -1,0 +1,11 @@
+#!/data/data/com.termux/files/usr/bin/sh
+set -eu
+export CODEX_HOME="$HOME/.kai_codex"
+WORKSPACE="$HOME/kai-workspaces/Kai"
+FLAG="$HOME/.kai_mobile/flags/enable-codex-agent"
+if [ ! -f "$FLAG" ]; then
+  echo "Kai Codex is installed but execution is gated: Android Codex sandbox is unsupported." >&2
+  echo "Enable only after an external sandbox (abwrap or equivalent) is verified, or after explicit manual approval." >&2
+  exit 64
+fi
+exec codex -C "$WORKSPACE" --ask-for-approval on-request --no-daemon "$@"
