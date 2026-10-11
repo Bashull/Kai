@@ -19,7 +19,7 @@ Portable profile: `relay/profiles/balanced.env`
 - max video dimension: 960 px
 - target max capture: 20 fps
 - H.264 bitrate: 3,000,000 bps
-- first-frame timeout: 12 s
+- first-frame timeout: 15 s
 - bounded startup attempts: 3
 
 Device-local hardware override on the verified S24:
@@ -54,18 +54,18 @@ Verified after restart:
 
 Current reviewed/deployed balanced source SHA-256 at implementation checkpoint:
 
-`955c1964cd48d25c3a45405afbcf0b25b75ab4a46a676d00d1bba891ec39a154`
+`98897f52d67462faa6796f412d0f0e067d7ea1f2da50da12edce9a2226efdddd`
 
 ## Startup resilience change
 
 The former fixed 8-second first-frame failure now uses:
 
-- configurable `KAI_LIVE_START_TIMEOUT` (Balanced: 12 s)
+- configurable `KAI_LIVE_START_TIMEOUT` (Balanced: 15 s)
 - bounded `KAI_LIVE_START_ATTEMPTS` (Balanced: 3)
 - cleanup between attempts
 - diagnostic data including received H.264 bytes and recent errors
 
-This does not create an infinite retry loop inside the bridge; runit remains the outer supervisor.
+The same bounded retry helper is used for initial startup and orientation/process recovery. Failed attempts clean up the partial scrcpy/FFmpeg session before retrying. This does not create an infinite retry loop inside the bridge; runit remains the outer supervisor.
 
 ## Initial 60-second smoke result
 
@@ -140,4 +140,4 @@ Results append locally to `~/.kai_mobile/benchmarks/balanced.jsonl`; tokens and 
 
 ## Acceptance gate still running
 
-A 10-minute soak is required by the master plan. Do not mark Balanced fully accepted until that soak completes with zero health failures and no unexplained restart.
+A final clean 10-minute soak is required by the master plan. Static screens are allowed to retain an older but still-current frame; active freshness is tested separately after actions. Orientation restarts are explained recovery events, while unexplained restarts remain failures. Do not mark Balanced fully accepted until the clean soak completes.
