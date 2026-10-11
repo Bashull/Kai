@@ -1,545 +1,399 @@
 #!/data/data/com.termux/files/usr/bin/python
 from __future__ import annotations
-
-import collections
-import json
-import os
-import re
-import secrets
-import shutil
-import signal
-import subprocess
-import tempfile
-import threading
-import time
+import collections, json, os, random, re, secrets, signal, socket, struct, subprocess, threading, time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-HOST = os.environ.get("KAI_LIVE_HOST", "127.0.0.1")
-PORT = int(os.environ.get("KAI_LIVE_PORT", "7190"))
-MAX_SIZE = int(os.environ.get("KAI_LIVE_MAX_SIZE", "960"))
-MAX_FPS = int(os.environ.get("KAI_LIVE_MAX_FPS", "20"))
-BIT_RATE = os.environ.get("KAI_LIVE_BIT_RATE", "3M")
-JPEG_QUALITY = int(os.environ.get("KAI_LIVE_JPEG_QUALITY", "5"))
-VIDEO_ENCODER = os.environ.get("KAI_LIVE_VIDEO_ENCODER", "").strip()
-TOKEN_FILE = Path(os.environ.get("KAI_LIVE_TOKEN_FILE", str(Path.home() / ".kai_mobile" / "kai-live-token")))
-ADB = shutil.which("adb") or "adb"
-SCRCPY = shutil.which("scrcpy") or "scrcpy"
-FFMPEG = shutil.which("ffmpeg") or "ffmpeg"
+HOME=Path.home()
+HOST=os.environ.get("KAI_LIVE_HOST","127.0.0.1")
+PORT=int(os.environ.get("KAI_LIVE_PORT","7190"))
+FORWARD_PORT=int(os.environ.get("KAI_LIVE_FORWARD","27185"))
+MAX_SIZE=int(os.environ.get("KAI_LIVE_MAX_SIZE","960"))
+MAX_FPS=int(os.environ.get("KAI_LIVE_MAX_FPS","20"))
+BIT_RATE=int(os.environ.get("KAI_LIVE_BIT_RATE","3000000"))
+VIDEO_ENCODER=os.environ.get("KAI_LIVE_VIDEO_ENCODER","c2.qti.avc.encoder").strip()
+ADB="adb"; FFMPEG="ffmpeg"; SCRCPY="scrcpy"
+SERVER_HOST="/data/data/com.termux/files/usr/share/scrcpy/scrcpy-server"
+SERVER_LOCAL="/data/local/tmp/scrcpy-server-kai-live.jar"
+TOKEN_FILE=HOME/".kai_mobile/kai-live-token"
+SOF={0xC0,0xC1,0xC2,0xC3,0xC5,0xC6,0xC7,0xC9,0xCA,0xCB,0xCD,0xCE,0xCF}
 
-SOF_MARKERS = {0xC0, 0xC1, 0xC2, 0xC3, 0xC5, 0xC6, 0xC7, 0xC9, 0xCA, 0xCB, 0xCD, 0xCE, 0xCF}
+def run(args,timeout=10,check=True):
+    p=subprocess.run(args,capture_output=True,text=True,timeout=timeout)
+    if check and p.returncode!=0: raise RuntimeError((p.stderr or p.stdout or "command failed").strip())
+    return p
 
+def resolve_serial():
+    e=os.environ.get("ANDROID_SERIAL","").strip()
+    if e:return e
+    out=run([ADB,"devices"]).stdout
+    ds=[]
+    for l in out.splitlines()[1:]:
+        c=l.split()
+        if len(c)>=2 and c[1]=="device": ds.append(c[0])
+    if len(ds)!=1: raise RuntimeError(f"expected one authorized adb device, got {ds}")
+    return ds[0]
 
-def resolve_token() -> str:
-    configured = os.environ.get("KAI_LIVE_TOKEN", "").strip()
-    if configured:
-        return configured
-    try:
-        existing = TOKEN_FILE.read_text().strip()
-        if existing:
-            return existing
-    except FileNotFoundError:
-        pass
-    TOKEN_FILE.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        TOKEN_FILE.parent.chmod(0o700)
-    except OSError:
-        pass
-    token = secrets.token_urlsafe(32)
-    TOKEN_FILE.write_text(token + "\n")
-    TOKEN_FILE.chmod(0o600)
-    return token
+def scrcpy_version():
+    m=re.search(r"scrcpy\s+([0-9]+(?:\.[0-9]+){1,2})",run([SCRCPY,"--version"]).stdout)
+    if not m: raise RuntimeError("cannot detect scrcpy version")
+    return m.group(1)
 
+def recv_exact(s,n):
+    b=bytearray()
+    while len(b)<n:
+        c=s.recv(n-len(b))
+        if not c: raise RuntimeError("socket closed")
+        b.extend(c)
+    return bytes(b)
 
-AUTH_TOKEN = resolve_token()
-
-
-def jpeg_dimensions(data: bytes) -> tuple[int, int] | None:
-    if len(data) < 4 or data[:2] != b"\xff\xd8":
-        return None
-    i = 2
-    n = len(data)
-    while i + 8 < n:
-        if data[i] != 0xFF:
-            i += 1
-            continue
-        while i < n and data[i] == 0xFF:
-            i += 1
-        if i >= n:
-            break
-        marker = data[i]
-        i += 1
-        if marker in (0xD8, 0xD9) or 0xD0 <= marker <= 0xD7:
-            continue
-        if i + 1 >= n:
-            break
-        seg_len = (data[i] << 8) | data[i + 1]
-        if seg_len < 2 or i + seg_len > n:
-            break
-        if marker in SOF_MARKERS and seg_len >= 7:
-            h = (data[i + 3] << 8) | data[i + 4]
-            w = (data[i + 5] << 8) | data[i + 6]
-            return w, h
-        i += seg_len
+def jpeg_dims(data):
+    if len(data)<4 or data[:2]!=b"\xff\xd8": return None
+    i=2
+    while i+8<len(data):
+        if data[i]!=0xff:i+=1;continue
+        while i<len(data) and data[i]==0xff:i+=1
+        if i>=len(data):break
+        m=data[i];i+=1
+        if m in (0xd8,0xd9) or 0xd0<=m<=0xd7:continue
+        if i+1>=len(data):break
+        n=(data[i]<<8)|data[i+1]
+        if n<2 or i+n>len(data):break
+        if m in SOF and n>=7:
+            h=(data[i+3]<<8)|data[i+4];w=(data[i+5]<<8)|data[i+6]
+            return w,h
+        i+=n
     return None
 
+def u16fp(v):
+    return min(0xffff,round(max(0.0,min(1.0,v))*65536))
 
-def resolve_serial() -> str:
-    explicit = os.environ.get("KAI_ANDROID_SERIAL") or os.environ.get("ANDROID_SERIAL")
-    if explicit:
-        return explicit.strip()
-    proc = subprocess.run([ADB, "devices"], capture_output=True, text=True, timeout=5)
-    devices = []
-    for line in proc.stdout.splitlines()[1:]:
-        cols = line.split()
-        if len(cols) >= 2 and cols[1] == "device":
-            devices.append(cols[0])
-    if len(devices) != 1:
-        raise RuntimeError(f"Expected one authorized ADB device, found {devices}")
-    return devices[0]
+AUTH=TOKEN_FILE.read_text().strip()
 
+class Bridge:
+    def __init__(self):
+        self.serial=resolve_serial(); self.version=scrcpy_version()
+        self.lock=threading.RLock(); self.cond=threading.Condition(self.lock)
+        self.restart_lock=threading.Lock(); self.stop_evt=threading.Event()
+        self.latest=None; self.sequence=0; self.last_frame_at=0.0
+        self.frame_size=(0,0); self.logical=(0,0); self.frame_times=collections.deque(maxlen=240)
+        self.video=None; self.control=None; self.server=None; self.ffmpeg=None
+        self.generation=0; self.restart_count=0; self.h264_bytes=0; self.stderr=collections.deque(maxlen=60)
+        self.ready_evt=threading.Event()
 
-class LiveBridge:
-    def __init__(self) -> None:
-        self.serial = resolve_serial()
-        self.lock = threading.RLock()
-        self.cond = threading.Condition(self.lock)
-        self.latest: bytes | None = None
-        self.sequence = 0
-        self.last_frame_at = 0.0
-        self.frame_size: tuple[int, int] = (0, 0)
-        self.frame_times = collections.deque(maxlen=240)
-        self.logical_frame: tuple[int, int] = (0, 0)
-        self.scrcpy: subprocess.Popen | None = None
-        self.ffmpeg: subprocess.Popen | None = None
-        self.stderr_tail = collections.deque(maxlen=80)
-        self.stop_event = threading.Event()
-        self.restart_count = 0
-        self.pipeline_started_at = 0.0
-        self.workdir = Path(tempfile.mkdtemp(prefix="kai-live-", dir=str(Path.home())))
-        self.fifo = self.workdir / "video.mkv"
-        os.mkfifo(self.fifo)
+    def log(self,s):
+        with self.lock:self.stderr.append(str(s))
 
-    def _log_reader(self, name: str, stream) -> None:
-        if stream is None:
-            return
-        for raw in iter(stream.readline, b""):
-            line = raw.decode("utf-8", "replace").rstrip()
-            if line:
-                with self.lock:
-                    self.stderr_tail.append(f"{name}: {line}")
+    def probe_logical(self):
+        out=run([ADB,"-s",self.serial,"shell","dumpsys","input"],timeout=5).stdout
+        m=re.search(r"Viewport INTERNAL: displayId=0[^\n]*logicalFrame=\[0, 0, (\d+), (\d+)\]",out)
+        if not m: raise RuntimeError("logical viewport unavailable")
+        return int(m.group(1)),int(m.group(2))
 
-    def _spawn_pipeline(self) -> None:
-        self.pipeline_started_at = time.monotonic()
-        ff_args = [
-            FFMPEG, "-hide_banner", "-loglevel", "error",
-            "-flags", "low_delay",
-            "-i", str(self.fifo), "-an",
-            "-q:v", str(JPEG_QUALITY),
-            "-f", "image2pipe", "-vcodec", "mjpeg", "pipe:1",
-        ]
-        self.ffmpeg = subprocess.Popen(
-            ff_args,
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            bufsize=0,
-        )
-        threading.Thread(target=self._log_reader, args=("ffmpeg", self.ffmpeg.stderr), daemon=True).start()
+    def _stderr_reader(self,p,gen):
+        if not p.stderr:return
+        for line in p.stderr:
+            if gen!=self.generation:break
+            line=line.strip()
+            if line:self.log("server: "+line)
 
-        sc_args = [
-            SCRCPY, "--serial", self.serial,
-            "--no-audio", "--no-control", "--no-playback", "--no-window",
-            f"--record={self.fifo}", "--record-format=mkv",
-            "--video-buffer=0",
-            f"--max-size={MAX_SIZE}",
-            f"--max-fps={MAX_FPS}",
-            f"--video-bit-rate={BIT_RATE}",
-            "--video-codec=h264",
-            "--video-codec-options=i-frame-interval=1",
-        ]
-        if VIDEO_ENCODER:
-            sc_args.append(f"--video-encoder={VIDEO_ENCODER}")
-        self.scrcpy = subprocess.Popen(
-            sc_args,
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.PIPE,
-            bufsize=0,
-        )
-        threading.Thread(target=self._log_reader, args=("scrcpy", self.scrcpy.stderr), daemon=True).start()
-        threading.Thread(target=self._frame_reader, daemon=True).start()
-
-    def _frame_reader(self) -> None:
-        proc = self.ffmpeg
-        if proc is None or proc.stdout is None:
-            return
-        buf = bytearray()
-        while not self.stop_event.is_set():
-            chunk = proc.stdout.read(65536)
-            if not chunk:
-                break
-            buf.extend(chunk)
-            while True:
-                soi = buf.find(b"\xff\xd8")
-                if soi < 0:
-                    if len(buf) > 2_000_000:
-                        del buf[:-2]
-                    break
-                eoi = buf.find(b"\xff\xd9", soi + 2)
-                if eoi < 0:
-                    if soi > 0:
-                        del buf[:soi]
-                    break
-                frame = bytes(buf[soi:eoi + 2])
-                del buf[:eoi + 2]
-                dims = jpeg_dimensions(frame)
-                now = time.monotonic()
-                with self.cond:
-                    self.latest = frame
-                    self.sequence += 1
-                    self.last_frame_at = now
-                    if dims:
-                        self.frame_size = dims
-                    self.frame_times.append(now)
-                    self.cond.notify_all()
-
-    def start(self) -> None:
-        self._spawn_pipeline()
-        threading.Thread(target=self._supervise, daemon=True).start()
-
-    def _supervise(self) -> None:
-        orientation_mismatch = 0
-        while not self.stop_event.wait(0.5):
-            process_bad = (
-                self.scrcpy is None or self.ffmpeg is None or
-                self.scrcpy.poll() is not None or self.ffmpeg.poll() is not None
-            )
-            reason = "process-exit" if process_bad else None
-
-            # scrcpy recording fixes the container geometry at session start.
-            # If Android rotates, restart only the capture pipeline so the new
-            # stream is born with the correct landscape/portrait dimensions.
-            if not process_bad:
-                try:
-                    logical_w, logical_h = self._probe_logical_size()
-                    with self.lock:
-                        self.logical_frame = (logical_w, logical_h)
-                        frame_w, frame_h = self.frame_size
-                        frame_age = (time.monotonic() - self.last_frame_at) if self.last_frame_at else 999.0
-                    comparable = frame_w > 0 and frame_h > 0 and frame_age < 2.0
-                    mismatched = comparable and ((logical_w > logical_h) != (frame_w > frame_h))
-                    orientation_mismatch = orientation_mismatch + 1 if mismatched else 0
-                    if orientation_mismatch >= 2:
-                        reason = f"orientation:{frame_w}x{frame_h}->{logical_w}x{logical_h}"
-                except Exception as exc:
-                    with self.lock:
-                        self.stderr_tail.append(f"orientation-check: {type(exc).__name__}: {exc}")
-
-            if reason is None:
-                continue
-
-            self.restart_count += 1
-            with self.lock:
-                self.stderr_tail.append(f"restart[{self.restart_count}]: {reason}")
-            self._terminate_pipeline()
-            orientation_mismatch = 0
-            delay = min(5.0, 0.5 + self.restart_count * 0.5) if process_bad else 0.1
-            if self.stop_event.wait(delay):
-                return
+    def _connect_video(self):
+        deadline=time.monotonic()+8; last=None
+        while time.monotonic()<deadline and not self.stop_evt.is_set():
             try:
-                if self.fifo.exists():
-                    self.fifo.unlink()
-                os.mkfifo(self.fifo)
-                self._spawn_pipeline()
-            except Exception as exc:
-                with self.lock:
-                    self.stderr_tail.append(f"restart: {type(exc).__name__}: {exc}")
+                s=socket.create_connection((HOST,FORWARD_PORT),timeout=1);s.settimeout(2)
+                recv_exact(s,1);return s
+            except Exception as e:
+                last=e;time.sleep(.08)
+        raise RuntimeError(f"video socket unavailable: {last}")
 
-    def _terminate_pipeline(self) -> None:
-        for proc in (self.scrcpy, self.ffmpeg):
-            if proc is None:
-                continue
-            if proc.poll() is None:
-                proc.terminate()
-        deadline = time.monotonic() + 1.5
-        for proc in (self.scrcpy, self.ffmpeg):
-            if proc is None:
-                continue
-            while proc.poll() is None and time.monotonic() < deadline:
-                time.sleep(0.03)
-            if proc.poll() is None:
-                proc.kill()
-        self.scrcpy = None
-        self.ffmpeg = None
-        with self.cond:
-            self.latest = None
-            self.frame_size = (0, 0)
-            self.last_frame_at = 0.0
-            self.frame_times.clear()
-            self.cond.notify_all()
+    def start_session(self):
+        gen=self.generation+1; self.generation=gen; self.ready_evt.clear()
+        run([ADB,"-s",self.serial,"push",SERVER_HOST,SERVER_LOCAL],timeout=30)
+        run([ADB,"-s",self.serial,"forward","--remove",f"tcp:{FORWARD_PORT}"],check=False)
+        scid=random.randint(1,0x7fffffff); sockname=f"scrcpy_{scid:08x}"
+        run([ADB,"-s",self.serial,"forward",f"tcp:{FORWARD_PORT}",f"localabstract:{sockname}"])
+        args=[ADB,"-s",self.serial,"shell",f"CLASSPATH={SERVER_LOCAL}","app_process","/","com.genymobile.scrcpy.Server",self.version,
+              f"scid={scid:08x}","log_level=warn",f"max_size={MAX_SIZE}",f"max_fps={MAX_FPS}",f"video_bit_rate={BIT_RATE}",
+              "tunnel_forward=true","control=true","audio=false","video=true","cleanup=true","power_off_on_close=false",
+              "clipboard_autosync=false","downsize_on_error=false","send_device_meta=true","send_frame_meta=false",
+              "send_dummy_byte=true","send_stream_meta=true","video_codec=h264","video_codec_options=i-frame-interval=1"]
+        if VIDEO_ENCODER:args.append(f"video_encoder={VIDEO_ENCODER}")
+        self.server=subprocess.Popen(args,stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.PIPE,text=True,bufsize=1)
+        threading.Thread(target=self._stderr_reader,args=(self.server,gen),daemon=True).start()
+        self.video=self._connect_video()
+        self.control=socket.create_connection((HOST,FORWARD_PORT),timeout=3);self.control.settimeout(None)
+        meta=recv_exact(self.video,80)
+        self.video.settimeout(None)
+        fw=struct.unpack(">I",meta[72:76])[0];fh=struct.unpack(">I",meta[76:80])[0]
+        self.logical=self.probe_logical(); self.frame_size=(fw,fh)
+        ff=[FFMPEG,"-hide_banner","-loglevel","error","-flags","low_delay","-f","h264","-i","pipe:0",
+            "-an","-vf",f"fps={MAX_FPS}","-q:v","5","-fps_mode","passthrough","-f","image2pipe","-vcodec","mjpeg","pipe:1"]
+        self.ffmpeg=subprocess.Popen(ff,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,bufsize=0)
+        threading.Thread(target=self._fferr,args=(self.ffmpeg,gen),daemon=True).start()
+        threading.Thread(target=self._pump,args=(gen,),daemon=True).start()
+        threading.Thread(target=self._frames,args=(gen,),daemon=True).start()
+        if not self.ready_evt.wait(8): raise RuntimeError("first frame timeout")
+        self.log(f"ready gen={gen} frame={self.frame_size} logical={self.logical}")
 
-    def stop(self) -> None:
-        self.stop_event.set()
-        self._terminate_pipeline()
+    def _fferr(self,p,gen):
+        if not p.stderr:return
+        for raw in iter(p.stderr.readline,b""):
+            if gen!=self.generation:break
+            s=raw.decode("utf-8","replace").strip()
+            if s:self.log("ffmpeg: "+s)
+
+    def _pump(self,gen):
         try:
-            self.fifo.unlink(missing_ok=True)
-            self.workdir.rmdir()
-        except Exception:
-            pass
+            while gen==self.generation and not self.stop_evt.is_set():
+                b=self.video.recv(65536)
+                if not b:break
+                self.h264_bytes+=len(b)
+                self.ffmpeg.stdin.write(b);self.ffmpeg.stdin.flush()
+        except Exception as e:
+            if gen==self.generation and not self.stop_evt.is_set():
+                self.log(f"pump: {type(e).__name__}: {e}")
 
-    def fps(self) -> float:
-        with self.lock:
-            if len(self.frame_times) < 2:
-                return 0.0
-            dt = self.frame_times[-1] - self.frame_times[0]
-            # FFmpeg may flush a burst of buffered frames immediately after a
-            # rotation restart. Do not present that burst rate as steady FPS.
-            return 0.0 if dt < 2.0 else (len(self.frame_times) - 1) / dt
+    def _frames(self,gen):
+        buf=bytearray()
+        try:
+            while gen==self.generation and not self.stop_evt.is_set():
+                b=self.ffmpeg.stdout.read(65536)
+                if not b:break
+                buf.extend(b)
+                while True:
+                    a=buf.find(b"\xff\xd8")
+                    if a<0:break
+                    z=buf.find(b"\xff\xd9",a+2)
+                    if z<0:
+                        if a>0:del buf[:a]
+                        break
+                    frame=bytes(buf[a:z+2]);del buf[:z+2]; dims=jpeg_dims(frame); now=time.monotonic()
+                    with self.cond:
+                        self.latest=frame;self.sequence+=1;self.last_frame_at=now
+                        if dims:self.frame_size=dims
+                        self.frame_times.append(now);self.ready_evt.set();self.cond.notify_all()
+        except Exception as e:self.log(f"frames: {type(e).__name__}: {e}")
 
-    def status(self) -> dict:
-        with self.lock:
-            age_ms = None if not self.last_frame_at else round((time.monotonic() - self.last_frame_at) * 1000, 1)
-            return {
-                "ok": self.latest is not None,
-                "serial": self.serial,
-                "sequence": self.sequence,
-                "delivery_fps": round(self.fps(), 2),
-                "target_max_fps": MAX_FPS,
-                "frame_age_ms": age_ms,
-                "frame_size": {"width": self.frame_size[0], "height": self.frame_size[1]},
-                "max_size": MAX_SIZE,
-                "bit_rate": BIT_RATE,
-                "scrcpy_alive": self.scrcpy is not None and self.scrcpy.poll() is None,
-                "ffmpeg_alive": self.ffmpeg is not None and self.ffmpeg.poll() is None,
-                "restart_count": self.restart_count,
-                "diagnostic_tail": list(self.stderr_tail)[-12:],
-            }
-
-    def get_frame(self) -> tuple[int, bytes | None, float | None, tuple[int, int]]:
-        with self.lock:
-            age = None if not self.last_frame_at else (time.monotonic() - self.last_frame_at) * 1000
-            return self.sequence, self.latest, age, self.frame_size
-
-    def wait_frame(self, after: int, timeout_ms: int) -> tuple[int, bytes | None, float | None, tuple[int, int]]:
-        deadline = time.monotonic() + max(0, timeout_ms) / 1000
+    def stop_session(self):
+        self.generation+=1
+        for s in (self.control,self.video):
+            try:
+                if s:
+                    try:s.shutdown(socket.SHUT_RDWR)
+                    except:pass
+                    s.close()
+            except:pass
+        self.control=None;self.video=None
+        if self.ffmpeg and self.ffmpeg.stdin:
+            try:self.ffmpeg.stdin.close()
+            except:pass
+        procs=[self.ffmpeg,self.server]
+        for p in procs:
+            try:
+                if p and p.poll() is None:p.terminate()
+            except:pass
+        deadline=time.monotonic()+1.2
+        for p in procs:
+            if not p:continue
+            while p.poll() is None and time.monotonic()<deadline:
+                time.sleep(.03)
+            if p.poll() is None:
+                try:p.kill()
+                except:pass
+            try:p.wait(timeout=.5)
+            except:pass
+        self.ffmpeg=None;self.server=None
+        run([ADB,"-s",self.serial,"forward","--remove",f"tcp:{FORWARD_PORT}"],check=False)
         with self.cond:
-            while self.sequence <= after and not self.stop_event.is_set():
-                left = deadline - time.monotonic()
-                if left <= 0:
-                    break
+            self.latest=None;self.frame_size=(0,0);self.last_frame_at=0;self.frame_times.clear();self.cond.notify_all()
+
+    def restart(self,reason):
+        if not self.restart_lock.acquire(blocking=False):return
+        try:
+            self.restart_count+=1;self.log(f"restart[{self.restart_count}]: {reason}")
+            self.stop_session();time.sleep(.12);self.start_session()
+        finally:self.restart_lock.release()
+
+    def supervise(self):
+        mismatch=0
+        while not self.stop_evt.wait(.5):
+            bad=(not self.server or self.server.poll() is not None or not self.ffmpeg or self.ffmpeg.poll() is not None or not self.control_ready())
+            if bad:self.restart("process-or-socket");continue
+            try:
+                logical=self.probe_logical()
+                with self.lock:fw,fh=self.frame_size;age=time.monotonic()-self.last_frame_at if self.last_frame_at else 999
+                mm=fw>0 and fh>0 and age<2 and ((logical[0]>logical[1])!=(fw>fh))
+                mismatch=mismatch+1 if mm else 0
+                self.logical=logical
+                if mismatch>=2:self.restart(f"orientation:{fw}x{fh}->{logical[0]}x{logical[1]}");mismatch=0
+            except Exception as e:self.log(f"supervise: {type(e).__name__}: {e}")
+
+    def start(self):
+        self.start_session();threading.Thread(target=self.supervise,daemon=True).start()
+
+    def stop(self):
+        self.stop_evt.set();self.stop_session()
+
+    def fps(self):
+        with self.lock:
+            if len(self.frame_times)<2:return 0.0
+            dt=self.frame_times[-1]-self.frame_times[0]
+            return 0.0 if dt<2 else (len(self.frame_times)-1)/dt
+
+    def status(self):
+        with self.lock:
+            age=None if not self.last_frame_at else round((time.monotonic()-self.last_frame_at)*1000,1)
+            return {"ok":self.latest is not None,"mode":"scrcpy-direct-v2","serial":self.serial,"scrcpy":self.version,
+                    "sequence":self.sequence,"delivery_fps":round(self.fps(),2),"target_max_fps":MAX_FPS,"frame_age_ms":age,
+                    "frame_size":{"width":self.frame_size[0],"height":self.frame_size[1]},"logical_size":{"width":self.logical[0],"height":self.logical[1]},
+                    "max_size":MAX_SIZE,"bit_rate":BIT_RATE,"scrcpy_alive":self.server is not None and self.server.poll() is None,
+                    "ffmpeg_alive":self.ffmpeg is not None and self.ffmpeg.poll() is None,
+                    "control_alive":self.control_ready(),"preferred_input":"scrcpy" if self.control_ready() else "adb-fallback","h264_bytes":self.h264_bytes,"restart_count":self.restart_count,
+                    "diagnostic_tail":list(self.stderr)[-12:]}
+
+    def get_frame(self):
+        with self.lock:
+            age=None if not self.last_frame_at else (time.monotonic()-self.last_frame_at)*1000
+            return self.sequence,self.latest,age,self.frame_size
+
+    def wait_frame(self,after,timeout_ms):
+        end=time.monotonic()+timeout_ms/1000
+        with self.cond:
+            while self.sequence<=after and not self.stop_evt.is_set():
+                left=end-time.monotonic()
+                if left<=0:break
                 self.cond.wait(left)
-            age = None if not self.last_frame_at else (time.monotonic() - self.last_frame_at) * 1000
-            return self.sequence, self.latest, age, self.frame_size
+            age=None if not self.last_frame_at else (time.monotonic()-self.last_frame_at)*1000
+            return self.sequence,self.latest,age,self.frame_size
 
-    def _probe_logical_size(self) -> tuple[int, int]:
-        out = subprocess.check_output(
-            [ADB, "-s", self.serial, "shell", "dumpsys", "input"],
-            text=True, errors="replace", timeout=4,
-        )
-        m = re.search(r"Viewport INTERNAL: displayId=0[^\n]*logicalFrame=\[0, 0, (\d+), (\d+)\]", out)
-        if not m:
-            raise RuntimeError("Could not resolve active logical viewport")
-        return int(m.group(1)), int(m.group(2))
+    def map_point(self,x,y,space):
+        lw,lh=self.logical;fw,fh=self.frame_size
+        if space=="logical":return round(x),round(y)
+        if space=="frame":return round(x*lw/fw),round(y*lh/fh)
+        if space=="norm":return round(x*lw/1000),round(y*lh/1000)
+        raise ValueError("space must be logical, frame, or norm")
 
-    def logical_size(self) -> tuple[int, int]:
-        with self.lock:
-            cached = self.logical_frame
-        if cached[0] > 0 and cached[1] > 0:
-            return cached
-        fresh = self._probe_logical_size()
-        with self.lock:
-            self.logical_frame = fresh
-        return fresh
+    def touch_msg(self,action,x,y,pressure):
+        lw,lh=self.logical;fw,fh=self.frame_size
+        fx=round(x*fw/lw);fy=round(y*fh/lh)
+        b=bytearray(32);b[0]=2;b[1]=action;struct.pack_into(">Q",b,2,(1<<64)-2)
+        struct.pack_into(">i",b,10,fx);struct.pack_into(">i",b,14,fy);struct.pack_into(">H",b,18,fw);struct.pack_into(">H",b,20,fh)
+        struct.pack_into(">H",b,22,min(0xffff,round(max(0,min(1,pressure))*65536)));struct.pack_into(">I",b,24,0);struct.pack_into(">I",b,28,0)
+        self.control.sendall(b)
 
-    def map_point(self, x: float, y: float, space: str) -> tuple[int, int]:
-        logical_w, logical_h = self.logical_size()
-        with self.lock:
-            frame_w, frame_h = self.frame_size
-        if space == "logical":
-            return round(x), round(y)
-        if space == "norm":
-            return round(x * logical_w / 1000), round(y * logical_h / 1000)
-        if space == "frame":
-            if frame_w <= 0 or frame_h <= 0:
-                raise RuntimeError("No frame geometry yet")
-            return round(x * logical_w / frame_w), round(y * logical_h / frame_h)
-        raise ValueError("space must be logical, norm, or frame")
+    def key_msg(self,action,keycode):
+        b=bytearray(14);b[0]=0;b[1]=action;struct.pack_into(">i",b,2,keycode);struct.pack_into(">i",b,6,0);struct.pack_into(">i",b,10,0)
+        self.control.sendall(b)
 
-    def run_actions(self, actions: list[dict]) -> dict:
-        baseline = self.sequence
-        t0 = time.monotonic()
-        executed = []
-        for action in actions:
-            typ = str(action.get("type", "")).lower()
-            if typ == "tap":
-                space = str(action.get("space", "frame"))
-                x, y = self.map_point(float(action["x"]), float(action["y"]), space)
-                hold_ms = max(20, min(1500, int(action.get("hold_ms", 180))))
-                subprocess.run(
-                    [ADB, "-s", self.serial, "shell", "input", "touchscreen", "swipe",
-                     str(x), str(y), str(x), str(y), str(hold_ms)],
-                    check=True, timeout=5,
-                )
-                executed.append({"type": "tap", "logical": [x, y], "hold_ms": hold_ms})
-            elif typ == "swipe":
-                space = str(action.get("space", "frame"))
-                x1, y1 = self.map_point(float(action["x1"]), float(action["y1"]), space)
-                x2, y2 = self.map_point(float(action["x2"]), float(action["y2"]), space)
-                duration = max(20, min(10000, int(action.get("duration_ms", 300))))
-                subprocess.run(
-                    [ADB, "-s", self.serial, "shell", "input", "touchscreen", "swipe",
-                     str(x1), str(y1), str(x2), str(y2), str(duration)],
-                    check=True, timeout=max(5, duration / 1000 + 3),
-                )
-                executed.append({"type": "swipe", "logical": [x1, y1, x2, y2], "duration_ms": duration})
-            elif typ == "key":
-                key = str(action["keycode"])
-                subprocess.run(
-                    [ADB, "-s", self.serial, "shell", "input", "keyevent", key],
-                    check=True, timeout=5,
-                )
-                executed.append({"type": "key", "keycode": key})
-            elif typ == "sleep":
-                ms = max(0, min(5000, int(action.get("ms", 0))))
-                time.sleep(ms / 1000)
-                executed.append({"type": "sleep", "ms": ms})
-            else:
-                raise ValueError(f"Unsupported action type: {typ}")
-        action_ms = round((time.monotonic() - t0) * 1000, 1)
-        with self.lock:
-            post_action_sequence = self.sequence
-        wait_t0 = time.monotonic()
-        seq, _, age, frame_size = self.wait_frame(post_action_sequence, 1200)
-        next_frame_ms = round((time.monotonic() - wait_t0) * 1000, 1)
-        logical_w, logical_h = self.logical_size()
-        return {
-            "ok": True,
-            "baseline_sequence": baseline,
-            "post_action_sequence": post_action_sequence,
-            "sequence": seq,
-            "action_ms": action_ms,
-            "next_frame_ms": next_frame_ms,
-            "frame_age_ms": None if age is None else round(age, 1),
-            "frame_size": {"width": frame_size[0], "height": frame_size[1]},
-            "logical_size": {"width": logical_w, "height": logical_h},
-            "executed": executed,
-        }
+    def control_ready(self):
+        c=self.control
+        return c is not None and c.fileno() >= 0
 
-    def launch_minecraft(self) -> dict:
-        baseline = self.sequence
-        t0 = time.monotonic()
-        proc = subprocess.run(
-            [ADB, "-s", self.serial, "shell", "monkey", "-p", "com.mojang.minecraftpe",
-             "-c", "android.intent.category.LAUNCHER", "1"],
-            capture_output=True, text=True, timeout=8,
-        )
-        seq, _, age, frame_size = self.wait_frame(baseline, 1500)
-        return {
-            "ok": proc.returncode == 0,
-            "sequence": seq,
-            "elapsed_ms": round((time.monotonic() - t0) * 1000, 1),
-            "frame_age_ms": None if age is None else round(age, 1),
-            "frame_size": {"width": frame_size[0], "height": frame_size[1]},
-        }
+    def adb_tap(self,x,y,hold_ms):
+        run([ADB,"-s",self.serial,"shell","input","touchscreen","swipe",str(x),str(y),str(x),str(y),str(hold_ms)],timeout=max(5,hold_ms/1000+3))
 
+    def adb_swipe(self,x1,y1,x2,y2,duration_ms):
+        run([ADB,"-s",self.serial,"shell","input","touchscreen","swipe",str(x1),str(y1),str(x2),str(y2),str(duration_ms)],timeout=max(5,duration_ms/1000+3))
 
-bridge = LiveBridge()
+    def adb_key(self,keycode):
+        run([ADB,"-s",self.serial,"shell","input","keyevent",str(keycode)],timeout=5)
 
-
-class Handler(BaseHTTPRequestHandler):
-    server_version = "KaiLive/0.3"
-
-    def _authorized(self) -> bool:
-        supplied = self.headers.get("Authorization", "")
-        if supplied.startswith("Bearer "):
-            supplied = supplied[7:]
-        else:
-            supplied = parse_qs(urlparse(self.path).query).get("token", [""])[0]
-        return bool(supplied) and secrets.compare_digest(supplied, AUTH_TOKEN)
-
-    def log_message(self, fmt: str, *args) -> None:
-        return
-
-    def _json(self, code: int, payload: dict) -> None:
-        body = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode()
-        self.send_response(code)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Cache-Control", "no-store")
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
-
-    def _image(self, seq: int, frame: bytes | None, age: float | None, size: tuple[int, int]) -> None:
-        if frame is None:
-            self._json(503, {"ok": False, "error": "no frame yet"})
-            return
-        self.send_response(200)
-        self.send_header("Content-Type", "image/jpeg")
-        self.send_header("Cache-Control", "no-store, max-age=0")
-        self.send_header("Content-Length", str(len(frame)))
-        self.send_header("X-Kai-Sequence", str(seq))
-        self.send_header("X-Kai-Age-Ms", "" if age is None else f"{age:.1f}")
-        self.send_header("X-Kai-Frame-Size", f"{size[0]}x{size[1]}")
-        self.end_headers()
-        self.wfile.write(frame)
-
-    def do_GET(self) -> None:
-        if not self._authorized():
-            self._json(401, {"ok": False, "error": "unauthorized"})
-            return
-        u = urlparse(self.path)
-        q = parse_qs(u.query)
-        if u.path in ("/", "/health", "/status"):
-            self._json(200, bridge.status())
-            return
-        if u.path == "/frame":
-            self._image(*bridge.get_frame())
-            return
-        if u.path == "/next":
-            try:
-                after = int(q.get("after", [str(bridge.sequence)])[0])
-                timeout_ms = max(0, min(5000, int(q.get("timeout_ms", ["1000"])[0])))
-                self._image(*bridge.wait_frame(after, timeout_ms))
-            except Exception as exc:
-                self._json(400, {"ok": False, "error": str(exc)})
-            return
-        self._json(404, {"ok": False, "error": "not found"})
-
-    def do_POST(self) -> None:
-        if not self._authorized():
-            self._json(401, {"ok": False, "error": "unauthorized"})
-            return
+    def actions(self,acts):
+        baseline=self.sequence;t0=time.perf_counter();done=[]
         try:
-            n = int(self.headers.get("Content-Length", "0") or 0)
-            body = self.rfile.read(n)
-            payload = json.loads(body or b"{}")
-            if self.path == "/act":
-                actions = payload.get("actions")
-                if not isinstance(actions, list) or not actions:
-                    raise ValueError("actions must be a non-empty list")
-                self._json(200, bridge.run_actions(actions))
-                return
-            if self.path == "/minecraft":
-                self._json(200, bridge.launch_minecraft())
-                return
-            self._json(404, {"ok": False, "error": "not found"})
-        except Exception as exc:
-            self._json(400, {"ok": False, "error": f"{type(exc).__name__}: {exc}"})
+            for a in acts:
+                typ=a.get("type","").lower()
+                if typ=="tap":
+                    x,y=self.map_point(float(a["x"]),float(a["y"]),a.get("space","frame"));hold=max(5,min(1500,int(a.get("hold_ms",10))))
+                    if self.control_ready():
+                        transport="scrcpy"
+                        self.touch_msg(0,x,y,1);time.sleep(hold/1000);self.touch_msg(1,x,y,0)
+                    else:
+                        transport="adb-fallback"
+                        self.adb_tap(x,y,hold)
+                    done.append({"type":"tap","transport":transport,"logical":[x,y],"hold_ms":hold})
+                elif typ=="swipe":
+                    x1,y1=self.map_point(float(a["x1"]),float(a["y1"]),a.get("space","frame"));x2,y2=self.map_point(float(a["x2"]),float(a["y2"]),a.get("space","frame"))
+                    dur=max(20,min(5000,int(a.get("duration_ms",200))))
+                    if self.control_ready():
+                        transport="scrcpy"
+                        steps=max(2,int(dur/16));delay=dur/1000/steps
+                        self.touch_msg(0,x1,y1,1)
+                        for i in range(1,steps):
+                            time.sleep(delay);self.touch_msg(2,round(x1+(x2-x1)*i/steps),round(y1+(y2-y1)*i/steps),1)
+                        time.sleep(delay);self.touch_msg(1,x2,y2,0)
+                    else:
+                        transport="adb-fallback"
+                        self.adb_swipe(x1,y1,x2,y2,dur)
+                    done.append({"type":"swipe","transport":transport,"logical":[x1,y1,x2,y2],"duration_ms":dur})
+                elif typ=="key":
+                    k=int(a["keycode"])
+                    if self.control_ready():
+                        transport="scrcpy"
+                        self.key_msg(0,k);time.sleep(.01);self.key_msg(1,k)
+                    else:
+                        transport="adb-fallback"
+                        self.adb_key(k)
+                    done.append({"type":"key","transport":transport,"keycode":k})
+                elif typ=="sleep":
+                    ms=max(0,min(5000,int(a.get("ms",0))));time.sleep(ms/1000);done.append({"type":"sleep","ms":ms})
+                else:raise ValueError(f"unsupported action {typ}")
+        except Exception as e:
+            # ADB is the explicit safety fallback, never the silent primary path.
+            self.log(f"control-fallback: {type(e).__name__}: {e}")
+            raise
+        action_ms=(time.perf_counter()-t0)*1000
+        with self.lock:post=self.sequence
+        w0=time.perf_counter();seq,_,age,size=self.wait_frame(post,1200);next_ms=(time.perf_counter()-w0)*1000
+        return {"ok":True,"baseline_sequence":baseline,"post_action_sequence":post,"sequence":seq,"action_ms":round(action_ms,2),
+                "next_frame_ms":round(next_ms,2),"frame_age_ms":None if age is None else round(age,1),
+                "frame_size":{"width":size[0],"height":size[1]},"executed":done}
 
+    def launch_minecraft(self):
+        base=self.sequence;t=time.perf_counter()
+        p=run([ADB,"-s",self.serial,"shell","monkey","-p","com.mojang.minecraftpe","-c","android.intent.category.LAUNCHER","1"],timeout=8,check=False)
+        seq,_,age,size=self.wait_frame(base,1500)
+        return {"ok":p.returncode==0,"sequence":seq,"elapsed_ms":round((time.perf_counter()-t)*1000,1),"frame_age_ms":None if age is None else round(age,1),"frame_size":{"width":size[0],"height":size[1]}}
 
-def shutdown(*_args) -> None:
-    bridge.stop()
-    raise SystemExit(0)
+bridge=Bridge();bridge.start()
 
+class H(BaseHTTPRequestHandler):
+    def log_message(self,*a):pass
+    def auth(self):
+        v=self.headers.get("Authorization","")
+        if v.startswith("Bearer "):v=v[7:]
+        else:v=parse_qs(urlparse(self.path).query).get("token",[""])[0]
+        return bool(v) and secrets.compare_digest(v,AUTH)
+    def js(self,c,d):
+        b=json.dumps(d,separators=(",",":")).encode();self.send_response(c);self.send_header("Content-Type","application/json");self.send_header("Content-Length",str(len(b)));self.end_headers();self.wfile.write(b)
+    def img(self,t):
+        seq,frame,age,size=t
+        if not frame:return self.js(503,{"ok":False})
+        self.send_response(200);self.send_header("Content-Type","image/jpeg");self.send_header("Content-Length",str(len(frame)));self.send_header("Cache-Control","no-store")
+        self.send_header("X-Kai-Sequence",str(seq));self.send_header("X-Kai-Age-Ms","" if age is None else f"{age:.1f}");self.end_headers();self.wfile.write(frame)
+    def do_GET(self):
+        if not self.auth():return self.js(401,{"ok":False})
+        u=urlparse(self.path);q=parse_qs(u.query)
+        if u.path in ("/","/status"):return self.js(200,bridge.status())
+        if u.path=="/frame":return self.img(bridge.get_frame())
+        if u.path=="/next":
+            return self.img(bridge.wait_frame(int(q.get("after",[str(bridge.sequence)])[0]),max(0,min(5000,int(q.get("timeout_ms",["1000"])[0])))))
+        return self.js(404,{"ok":False})
+    def do_POST(self):
+        if not self.auth():return self.js(401,{"ok":False})
+        try:
+            n=int(self.headers.get("Content-Length","0") or 0);d=json.loads(self.rfile.read(n) or b"{}")
+            path=urlparse(self.path).path
+            if path=="/act":return self.js(200,bridge.actions(d["actions"]))
+            if path=="/minecraft":return self.js(200,bridge.launch_minecraft())
+            return self.js(404,{"ok":False})
+        except Exception as e:return self.js(400,{"ok":False,"error":f"{type(e).__name__}: {e}"})
 
-signal.signal(signal.SIGINT, shutdown)
-signal.signal(signal.SIGTERM, shutdown)
-bridge.start()
-server = ThreadingHTTPServer((HOST, PORT), Handler)
-try:
-    server.serve_forever(poll_interval=0.2)
-finally:
-    server.server_close()
-    bridge.stop()
+def shutdown(*_):
+    bridge.stop();raise SystemExit
+signal.signal(signal.SIGINT,shutdown);signal.signal(signal.SIGTERM,shutdown)
+srv=ThreadingHTTPServer((HOST,PORT),H)
+try:srv.serve_forever(.2)
+finally:srv.server_close();bridge.stop()
