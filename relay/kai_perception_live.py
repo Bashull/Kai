@@ -124,6 +124,7 @@ seq=0
 prev=None
 last_detect=0.0
 last_save=0.0
+last_event_path=None
 last_hits=[]
 detect_ms=None
 battery_temp_c=read_battery_temp_c()
@@ -162,11 +163,11 @@ while True:
         top=last_hits[0] if last_hits else None
         urgent=bool(top and ((top["class"]=="Creeper" and top["danger"]>=0.45) or top["danger"]>=0.70))
         scene_cut=motion["global"]>=SCENE_CUT
-        event=urgent or scene_cut or (last_hits and now-last_save>=SAVE_GAP)
+        event=urgent or scene_cut or hot or (last_hits and now-last_save>=SAVE_GAP)
         frame_path=None
         if event and now-last_save>=SAVE_GAP:
             frame_path=FRAMES/f"{int(time.time()*1000)}_s{seq}.jpg"
-            frame_path.write_bytes(raw); last_save=now; prune()
+            frame_path.write_bytes(raw); last_save=now; last_event_path=frame_path; prune()
             with EVENTS.open("a") as log:
                 log.write(json.dumps({"ts":time.time(),"seq":seq,"motion":motion,"detections":last_hits,"urgent":urgent,"scene_cut":scene_cut,"frame":str(frame_path)},ensure_ascii=False)+"\n")
         processed+=1
@@ -176,7 +177,7 @@ while True:
             "hot":hot,"scene_cut":scene_cut,"detections":last_hits,"top_threat":top,"urgent":urgent,
             "detector":{"model":"mob-radar best.onnx","classes":CLASSES,"confidence":CONF,"last_infer_ms":detect_ms,"base_interval_s":BASE_DETECT,"hot_interval_s":HOT_DETECT,"effective_interval_s":round(interval,3),"duty_cap":duty_cap},
             "thermal":{"battery_c":round(battery_temp_c,2) if battery_temp_c is not None else None,"guard":thermal_guard,"guard_on_c":THERMAL_GUARD_ON,"guard_off_c":THERMAL_GUARD_OFF},
-            "last_event_frame":str(frame_path) if frame_path else None
+            "last_event_frame":str(last_event_path) if last_event_path else None
         }
         atomic_json(STATUS,status)
     except KeyboardInterrupt:
