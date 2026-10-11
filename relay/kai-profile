@@ -1,0 +1,58 @@
+#!/data/data/com.termux/files/usr/bin/sh
+set -eu
+
+BASE="$HOME/.kai_mobile"
+PROFILES="$BASE/profiles"
+SERVICE="/data/data/com.termux/files/usr/var/service/kai-minecraft-live"
+TOKEN_FILE="$BASE/kai-live-token"
+
+status() {
+  current="$(readlink "$PROFILES/active.env" 2>/dev/null || true)"
+  echo "profile=${current:-none}"
+  sv status "$SERVICE" 2>/dev/null || true
+}
+
+health_ok() {
+  [ -s "$TOKEN_FILE" ] || return 1
+  token="$(cat "$TOKEN_FILE")"
+  body="$(curl -fsS -m 2 -H "Authorization: Bearer $token" http://127.0.0.1:7190/status 2>/dev/null || true)"
+  [ -n "$body" ] || return 1
+  printf '%s' "$body" | python -c 'import json,sys; d=json.load(sys.stdin); raise SystemExit(0 if d.get("ok") and d.get("scrcpy_alive") and d.get("ffmpeg_alive") and d.get("control_alive") else 1)'
+}
+
+apply_profile() {
+  name="$1"
+  target="$name.env"
+  [ -f "$PROFILES/$target" ] || { echo "unknown profile: $name" >&2; exit 2; }
+  old="$(readlink "$PROFILES/active.env" 2>/dev/null || true)"
+  ln -sfn "$target" "$PROFILES/active.env"
+  sv down "$SERVICE" || true
+  sleep 1
+  sv up "$SERVICE"
+  i=0
+  while [ "$i" -lt 30 ]; do
+    if health_ok; then
+      echo "profile=$name health=ok"
+      return 0
+    fi
+    i=$((i+1))
+    sleep 1
+  done
+  echo "profile=$name health=failed; rolling back to ${old:-none}" >&2
+  if [ -n "$old" ]; then
+    ln -sfn "$old" "$PROFILES/active.env"
+    sv down "$SERVICE" || true
+    sleep 1
+    sv up "$SERVICE" || true
+  fi
+  exit 3
+}
+
+case "${1:-status}" in
+  status) status ;;
+  apply)
+    [ "$#" -eq 2 ] || { echo "usage: kai-profile apply <name>" >&2; exit 2; }
+    apply_profile "$2"
+    ;;
+  *) echo "usage: kai-profile [status|apply <name>]" >&2; exit 2 ;;
+esac
