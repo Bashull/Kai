@@ -61,9 +61,9 @@ def motion_thumb(im: Image.Image):
 
 def survival_hud_score(im: Image.Image):
     w,h=im.size
-    crop=np.asarray(im.crop((0,0,min(w,230),min(h,70))).convert("RGB"),dtype=np.int16)
+    crop=np.asarray(im.crop((0,0,min(w,150),min(h,22))).convert("RGB"),dtype=np.int16)
     r,g,b=crop[:,:,0],crop[:,:,1],crop[:,:,2]
-    red=(r>20)&(r>g*1.25)&(r>b*1.25)
+    red=(r>15)&(r>g*1.22)&(r>b*1.22)
     return int(red.sum())
 
 def region_motion(a,b):
@@ -151,7 +151,7 @@ while True:
         if prev_hud is None:
             hud=hud_score>=300
         elif prev_hud:
-            hud=hud_score>=160
+            hud=hud_score>=120
         else:
             hud=hud_score>=300
         hud_changed=(prev_hud is not None and hud!=prev_hud)
