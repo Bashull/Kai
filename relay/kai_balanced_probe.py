@@ -56,6 +56,21 @@ def foreground_package():
             return line.strip()[-220:]
     return None
 
+def thermal_snapshot():
+    serial=adb_serial()
+    if not serial:return None
+    p=shell(["adb","-s",serial,"shell","dumpsys","thermalservice"])
+    status=None; skin=[]
+    for line in p.stdout.splitlines():
+        line=line.strip()
+        if line.startswith("Thermal Status:"):
+            try: status=int(line.split(":",1)[1].strip())
+            except Exception: pass
+        if "mName=SKIN" in line and "mValue=" in line:
+            try: skin.append(float(line.split("mValue=",1)[1].split(",",1)[0]))
+            except Exception: pass
+    return {"status":status,"skin_c_max":max(skin) if skin else None}
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--duration", type=int, default=60)
@@ -118,6 +133,7 @@ def main():
             "ffmpeg_alive","control_alive","preferred_input","restart_count"
         )},
         "battery_temp_c":battery_temp_c(),
+        "thermal":thermal_snapshot(),
         "foreground":foreground_package(),
         "processes":proc_snapshot(),
         "pass":len(failures)==0 and int(final.get("restart_count",0)) == int(start_restarts or 0),
