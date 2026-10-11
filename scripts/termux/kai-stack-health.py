@@ -41,7 +41,7 @@ def live():
         req=urllib.request.Request("http://127.0.0.1:7190/status",headers={"Authorization":"Bearer "+token.read_text().strip()})
         with urllib.request.urlopen(req,timeout=2) as r:
             d=json.load(r)
-        return {k:d.get(k) for k in ("ok","sequence","frame_age_ms","frame_size","restart_count","scrcpy_alive","ffmpeg_alive")}
+        return {k:d.get(k) for k in ("ok","mode","sequence","frame_age_ms","frame_size","restart_count","scrcpy_alive","ffmpeg_alive","control_alive","preferred_input")}
     except Exception as e:
         return {"ok":False,"reason":f"{type(e).__name__}: {e}"}
 
