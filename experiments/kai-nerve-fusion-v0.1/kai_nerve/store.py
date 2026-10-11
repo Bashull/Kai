@@ -8,6 +8,9 @@ CREATE TABLE IF NOT EXISTS events(
  session_id TEXT,source_seq INTEGER,observed_wall_ms REAL,effective_age_ms REAL,
  freshness TEXT NOT NULL,allow_actuation INTEGER NOT NULL,payload TEXT NOT NULL,provenance TEXT NOT NULL);
 CREATE INDEX IF NOT EXISTS idx_events_source_session_seq ON events(source,session_id,source_seq);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_events_source_session_seq_kind
+ ON events(source,session_id,source_seq,kind)
+ WHERE session_id IS NOT NULL AND source_seq IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_events_received ON events(received_wall_ms);"""
 class EventStore:
  def __init__(self,path):
