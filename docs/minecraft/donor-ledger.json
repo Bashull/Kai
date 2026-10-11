@@ -1,6 +1,6 @@
 {
   "schema_version": "0.1",
-  "as_of": "2026-10-10",
+  "as_of": "2026-10-11",
   "status": "RESEARCH_CANDIDATE_NOT_DEPLOYED",
   "provenance": "GitHub repository metadata and immutable branch HEAD queried using connected GitHub API; commit is a time-of-inspection snapshot, not an approval to copy",
   "license_policy": "ADAPT means a candidate for separately reviewed integration, never unconditional reuse. STUDY_ONLY forbids direct source transfer until licensed review. CONTENT-OWNER license requirements apply separately.",
@@ -202,6 +202,50 @@
       "role": "Open voxel game rules and mods (not Minecraft source)",
       "license_evidence": "GitHub repository license metadata / pending file-level check",
       "verified_at": "2026-10-10"
+    },
+    {
+      "repo": "Genymobile/scrcpy",
+      "url": "https://github.com/Genymobile/scrcpy",
+      "branch": "master",
+      "commit": "a60891aea193d92e7e5c3942700eca63f9d19a5f",
+      "license": "Apache-2.0",
+      "policy": "ADAPT",
+      "role": "Android low-latency video/control transport; official client/server protocol and recording pipeline",
+      "license_evidence": "direct repository LICENSE file",
+      "verified_at": "2026-10-11"
+    },
+    {
+      "repo": "JuanCF/scrcpy-mcp",
+      "url": "https://github.com/JuanCF/scrcpy-mcp",
+      "branch": "main",
+      "commit": "5f93d15617f9eb047cbe8a28d244e5cc91151551",
+      "license": "MIT",
+      "policy": "ADAPT",
+      "role": "MCP vision/control patterns, in-memory latest-frame and MJPEG fan-out",
+      "license_evidence": "direct repository LICENSE file",
+      "verified_at": "2026-10-11"
+    },
+    {
+      "repo": "EF-Code/android-agent-mcp",
+      "url": "https://github.com/EF-Code/android-agent-mcp",
+      "branch": "main",
+      "commit": "af0dea0cf93c8998c3cf8f1472706c6ef07d437c",
+      "license": "MIT",
+      "policy": "ADAPT",
+      "role": "scrcpy CLI recording-to-FIFO plus FFmpeg frame-stream and post-action observation patterns",
+      "license_evidence": "direct repository LICENSE file",
+      "verified_at": "2026-10-11"
+    },
+    {
+      "repo": "bilbospocketses/ws-scrcpy-web",
+      "url": "https://github.com/bilbospocketses/ws-scrcpy-web",
+      "branch": "main",
+      "commit": "9b7e4c1d07cd13e988cf6fc7a6aa8208314a638b",
+      "license": "GPL-3.0",
+      "policy": "STUDY_ONLY",
+      "role": "Browser/WebSocket scrcpy streaming architecture reference; no source transfer into Kai",
+      "license_evidence": "direct repository LICENSE file",
+      "verified_at": "2026-10-11"
     }
   ]
 }
