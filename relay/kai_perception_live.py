@@ -59,12 +59,12 @@ def motion_thumb(im: Image.Image):
     g=im.convert("L").resize((160,90),Image.Resampling.BILINEAR)
     return np.asarray(g,dtype=np.int16)
 
-def survival_hud_present(im: Image.Image):
+def survival_hud_score(im: Image.Image):
     w,h=im.size
     crop=np.asarray(im.crop((0,0,min(w,230),min(h,70))).convert("RGB"),dtype=np.int16)
     r,g,b=crop[:,:,0],crop[:,:,1],crop[:,:,2]
-    red=(r>65)&(r>g*1.35)&(r>b*1.35)
-    return int(red.sum())>=24
+    red=(r>20)&(r>g*1.25)&(r>b*1.25)
+    return int(red.sum())
 
 def region_motion(a,b):
     d=np.abs(a-b).astype(np.float32)/255.0
@@ -147,7 +147,13 @@ while True:
             seq=int(f.headers.get("X-Kai-Sequence",seq+1))
             age=float(f.headers.get("X-Kai-Age-Ms","0") or 0)
         im=Image.open(io.BytesIO(raw)).convert("RGB")
-        hud=survival_hud_present(im)
+        hud_score=survival_hud_score(im)
+        if prev_hud is None:
+            hud=hud_score>=300
+        elif prev_hud:
+            hud=hud_score>=160
+        else:
+            hud=hud_score>=300
         hud_changed=(prev_hud is not None and hud!=prev_hud)
         prev_hud=hud
         th=motion_thumb(im)
@@ -186,7 +192,7 @@ while True:
         processed+=1
         status={
             "ok":True,"seq":seq,"frame_age_ms":round(age,2),"processed":processed,
-            "uptime_s":round(time.monotonic()-start,1),"hud_present":hud,"hud_changed":hud_changed,"motion":{k:round(v,4) for k,v in motion.items()},
+            "uptime_s":round(time.monotonic()-start,1),"hud_present":hud,"hud_score":hud_score,"hud_changed":hud_changed,"motion":{k:round(v,4) for k,v in motion.items()},
             "hot":hot,"scene_cut":scene_cut,"detections":last_hits,"top_threat":top,"urgent":urgent,
             "detector":{"model":"mob-radar best.onnx","classes":CLASSES,"confidence":CONF,"last_infer_ms":detect_ms,"base_interval_s":BASE_DETECT,"hot_interval_s":HOT_DETECT,"effective_interval_s":round(interval,3),"duty_cap":duty_cap},
             "thermal":{"battery_c":round(battery_temp_c,2) if battery_temp_c is not None else None,"guard":thermal_guard,"guard_on_c":THERMAL_GUARD_ON,"guard_off_c":THERMAL_GUARD_OFF},
