@@ -50,9 +50,9 @@ def battery_temp_c():
 def foreground_package():
     serial=adb_serial()
     if not serial:return None
-    p = shell(["adb","-s",serial,"shell","dumpsys","window","windows"])
+    p = shell(["adb","-s",serial,"shell","dumpsys","activity","activities"])
     for line in p.stdout.splitlines():
-        if "mCurrentFocus=" in line:
+        if "topResumedActivity=" in line:
             return line.strip()[-220:]
     return None
 
