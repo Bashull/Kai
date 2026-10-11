@@ -1,0 +1,6 @@
+#!/data/data/com.termux/files/usr/bin/sh
+set -eu
+PROFILE_DIR="$HOME/.kai_mobile/profiles"
+. "$PROFILE_DIR/active.env"
+[ -f "$HOME/.kai_mobile/hardware.env" ] && . "$HOME/.kai_mobile/hardware.env"
+exec python "$HOME/.kai_mobile/kai_minecraft_live.py" 2>&1
