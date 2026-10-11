@@ -1,0 +1,15 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "KAI Nueve Reinos · Ojos del Mundo",
+    "description": "Telemetría sensorial para KAI: jugador, entidades, familias, vida, daño y muerte. Observación solamente.",
+    "uuid": "5265ce79-4f3a-4cca-9cd4-c3d746e9c1fb",
+    "version": [0, 2, 0],
+    "min_engine_version": [1, 21, 70]
+  },
+  "modules": [
+    {"type":"data","uuid":"86630a95-18b0-4cbb-9ce8-b6c1b5d63adb","version":[0,2,0]},
+    {"type":"script","language":"javascript","entry":"scripts/main.js","uuid":"43f9c5bd-ab32-4ffe-8998-d5d195c860ad","version":[0,2,0]}
+  ],
+  "dependencies": [{"module_name":"@minecraft/server","version":"2.0.0"}]
+}
