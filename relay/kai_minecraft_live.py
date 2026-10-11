@@ -75,7 +75,7 @@ AUTH=TOKEN_FILE.read_text().strip()
 
 class Bridge:
     def __init__(self):
-        self.serial=resolve_serial(); self.version=scrcpy_version()
+        self.serial=""; self.version=scrcpy_version()
         self.lock=threading.RLock(); self.cond=threading.Condition(self.lock)
         self.restart_lock=threading.Lock(); self.stop_evt=threading.Event()
         self.latest=None; self.sequence=0; self.last_frame_at=0.0
@@ -111,6 +111,9 @@ class Bridge:
         raise RuntimeError(f"video socket unavailable: {last}")
 
     def start_session(self):
+        previous=self.serial
+        self.serial=resolve_serial()
+        if previous and previous!=self.serial:self.log(f"adb-serial: {previous}->{self.serial}")
         gen=self.generation+1; self.generation=gen; self.ready_evt.clear()
         run([ADB,"-s",self.serial,"push",SERVER_HOST,SERVER_LOCAL],timeout=30)
         run([ADB,"-s",self.serial,"forward","--remove",f"tcp:{FORWARD_PORT}"],check=False)
@@ -231,10 +234,18 @@ class Bridge:
         finally:self.restart_lock.release()
 
     def supervise(self):
-        mismatch=0
+        mismatch=0; failure_streak=0
         while not self.stop_evt.wait(.5):
             bad=(not self.server or self.server.poll() is not None or not self.ffmpeg or self.ffmpeg.poll() is not None or not self.control_ready())
-            if bad:self.restart("process-or-socket");continue
+            if bad:
+                try:
+                    self.restart("process-or-socket");failure_streak=0
+                except Exception as e:
+                    failure_streak+=1
+                    delay=min(15.0,0.75*(2**min(failure_streak-1,4)))
+                    self.log(f"supervise-restart[{failure_streak}]: {type(e).__name__}: {e}; backoff={delay:.2f}s")
+                    self.stop_evt.wait(delay)
+                continue
             try:
                 logical=self.probe_logical()
                 with self.lock:fw,fh=self.frame_size;age=time.monotonic()-self.last_frame_at if self.last_frame_at else 999
