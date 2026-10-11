@@ -79,6 +79,27 @@ def region_motion(a,b):
         "bottom":float(d[2*h//3:].mean()),
     }
 
+def tile_motion(a,b,cols=10,rows=6):
+    """x11vnc-inspired dirty-tile map over the cheap motion thumbnail."""
+    d=np.abs(a-b).astype(np.float32)/255.0
+    h,w=d.shape
+    hits=[]
+    for ry in range(rows):
+        y1=(ry*h)//rows; y2=((ry+1)*h)//rows
+        for cx in range(cols):
+            x1=(cx*w)//cols; x2=((cx+1)*w)//cols
+            score=float(d[y1:y2,x1:x2].mean())
+            hits.append((score,cx,ry))
+    hits.sort(reverse=True)
+    peak,cx,ry=hits[0]
+    dirty=[{"x":x,"y":y,"score":round(s,4)} for s,x,y in hits[:8] if s>=0.018]
+    return {
+        "cols":cols,"rows":rows,"peak":round(float(peak),4),
+        "peak_norm":[round((cx+0.5)/cols,3),round((ry+0.5)/rows,3)],
+        "dirty_count":sum(1 for s,_,__ in hits if s>=0.018),
+        "top":dirty,
+    }
+
 def detect(im: Image.Image):
     c=crop169(im.convert("RGB")).resize((1024,576),Image.Resampling.BILINEAR)
     x=np.asarray(c,dtype=np.float32).transpose(2,0,1)[None]/255.0
@@ -158,6 +179,7 @@ while True:
         prev_hud=hud
         th=motion_thumb(im)
         motion={"global":0.0,"left":0.0,"center":0.0,"right":0.0,"top":0.0,"middle":0.0,"bottom":0.0} if prev is None else region_motion(prev,th)
+        tiles={"cols":10,"rows":6,"peak":0.0,"peak_norm":[0.5,0.5],"dirty_count":0,"top":[]} if prev is None else tile_motion(prev,th)
         prev=th
         now=time.monotonic(); hot=motion["global"]>=MOTION_HOT
         if now-last_thermal_check>=THERMAL_CHECK:
@@ -193,7 +215,7 @@ while True:
         status={
             "ok":True,"seq":seq,"frame_age_ms":round(age,2),"processed":processed,
             "uptime_s":round(time.monotonic()-start,1),"hud_present":hud,"hud_score":hud_score,"hud_changed":hud_changed,"motion":{k:round(v,4) for k,v in motion.items()},
-            "hot":hot,"scene_cut":scene_cut,"detections":last_hits,"top_threat":top,"urgent":urgent,
+            "tiles":tiles,"hot":hot,"scene_cut":scene_cut,"detections":last_hits,"top_threat":top,"urgent":urgent,
             "detector":{"model":"mob-radar best.onnx","classes":CLASSES,"confidence":CONF,"last_infer_ms":detect_ms,"base_interval_s":BASE_DETECT,"hot_interval_s":HOT_DETECT,"effective_interval_s":round(interval,3),"duty_cap":duty_cap},
             "thermal":{"battery_c":round(battery_temp_c,2) if battery_temp_c is not None else None,"guard":thermal_guard,"guard_on_c":THERMAL_GUARD_ON,"guard_off_c":THERMAL_GUARD_OFF},
             "last_event_frame":str(last_event_path) if last_event_path else None
