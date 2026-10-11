@@ -17,6 +17,9 @@ con session_id, source_seq y freshness verificables.
 
 ## Artefacto completo
 Drive: KAI_NERVE_Fusion_v0.1_CANDIDATE.zip
-SHA-256: 5fc7881fa30ced1870b92c158bbd024090bc134adcfdffbe443a0680b5797ba2
+SHA-256: bc7358dbbbb73409ccc5f28e97082758a9d3ee562ebff5c7f4fe974e491067d1
 
 El ZIP contiene núcleo Python, tests, GPT SKILL, sensor Bedrock, donor matrix, runbook y manifiesto SHA-256 de cada archivo interno de los 22 ZIP.
+
+## Termux staging verification
+Python compile OK; 17/17 unit tests OK on the Samsung/Termux staging copy. No service restarted and no pack activated.
