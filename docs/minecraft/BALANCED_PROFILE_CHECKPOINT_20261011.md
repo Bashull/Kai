@@ -24,3 +24,21 @@ Re-establish Android Wireless Debugging authorization on the phone; do not guess
 
 ## Safety
 No package upgrade, repository main modification, Android pairing reset, Minecraft world action, or privilege change was performed. The observed service is running without functional capture; do not label the profile fully deployed.
+
+
+## Recovery update — 08:45 CEST
+- Wireless debugging was confirmed active by the user. The advertised Wi-Fi endpoint was not reachable from the Termux process namespace, but the same TLS ADB endpoint accepted loopback.
+- Established authorized ADB over `127.0.0.1:35981`, then verified one device only.
+- Restarted `kai-minecraft-live`; read-only preflight passed: stream `ok:true`, scrcpy/FFmpeg alive, frame 442x960, fresh frame age observed at 24.3 ms.
+- Verified bearer protection: anonymous `/status` returned HTTP 401.
+- Verified a real JPEG frame was fetchable from the bridge.
+- Tested ADB serial migration without restarting the bridge process: disconnected `127.0.0.1:35981`, reconnected as `localhost:35981`; the same service process recovered automatically. Status showed `restart_count:1`, serial changed to `localhost:35981`, control alive, preferred input `scrcpy`.
+- Hardened bridge: session startup now re-resolves the single authorized ADB serial; supervisor catches failed restart attempts and uses bounded exponential backoff instead of dying silently. Commit: `65aabea8`.
+- Added read-only test harnesses: `relay/tests/balanced_preflight.py` and `relay/tests/balanced_soak.py`.
+- Codex doctor: native Android/aarch64 runtime is consistent; authentication is not configured, and WebSocket diagnostics warned that HTTPS fallback may be required. No credentials were requested or changed.
+- Resource snapshot while capture was healthy: bridge RSS about 30 MiB, 6 threads, Android cpuset `0-1,5-6`; Thermal Status 0. These are point-in-time observations, not sustained-load results.
+
+## Remaining acceptance work
+- The 10-minute soak harness is prepared but was intentionally not left running after this turn. Run it interactively when final acceptance testing is desired.
+- Gameplay-load latency/thermal testing and non-destructive scrcpy input calibration remain pending.
+- Do not hardcode the wireless-debugging port; it is ephemeral. Loopback works on this device while the session is active.
