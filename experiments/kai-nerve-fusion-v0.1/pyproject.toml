@@ -1,0 +1,9 @@
+[project]
+name="kai-nerve"
+version="0.1.0"
+description="Fail-closed Minecraft Bedrock/Termux observation, provenance and skill core"
+requires-python=">=3.11"
+license={text="MIT"}
+
+[project.scripts]
+kai-nerve="kai_nerve.cli:main"
