@@ -316,6 +316,12 @@ class Bridge:
         b=bytearray(14);b[0]=0;b[1]=action;struct.pack_into(">i",b,2,keycode);struct.pack_into(">i",b,6,0);struct.pack_into(">i",b,10,0)
         self.control.sendall(b)
 
+    def text_msg(self,text):
+        data=str(text).encode("utf-8")
+        if len(data)>4096: raise ValueError("text too long")
+        b=bytearray(5+len(data));b[0]=1;struct.pack_into(">I",b,1,len(data));b[5:]=data
+        self.control.sendall(b)
+
     def control_ready(self):
         c=self.control
         return c is not None and c.fileno() >= 0
@@ -328,6 +334,10 @@ class Bridge:
 
     def adb_key(self,keycode):
         run([ADB,"-s",self.serial,"shell","input","keyevent",str(keycode)],timeout=5)
+
+    def adb_text(self,text):
+        safe=str(text).replace(" ","%s")
+        run([ADB,"-s",self.serial,"shell","input","text",safe],timeout=5)
 
     def actions(self,acts):
         baseline=self.sequence;t0=time.perf_counter();done=[]
@@ -366,6 +376,16 @@ class Bridge:
                         transport="adb-fallback"
                         self.adb_key(k)
                     done.append({"type":"key","transport":transport,"keycode":k})
+                elif typ=="text":
+                    s=str(a.get("text",""))
+                    if not s: raise ValueError("text action requires non-empty text")
+                    if self.control_ready():
+                        transport="scrcpy"
+                        self.text_msg(s)
+                    else:
+                        transport="adb-fallback"
+                        self.adb_text(s)
+                    done.append({"type":"text","transport":transport,"chars":len(s)})
                 elif typ=="sleep":
                     ms=max(0,min(5000,int(a.get("ms",0))));time.sleep(ms/1000);done.append({"type":"sleep","ms":ms})
                 else:raise ValueError(f"unsupported action {typ}")
