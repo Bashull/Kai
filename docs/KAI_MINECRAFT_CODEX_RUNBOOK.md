@@ -140,3 +140,35 @@ The encoder override is S24-specific evidence, not a universal requirement. Omit
 - Rotation recovery intentionally causes a short video-only interruption; ADB and Minecraft remain alive.
 - Service supervision is now deployed after exact source-hash parity was proven; keep that parity check mandatory before future service upgrades.
 - Before any autonomous traversal/combat mode, add explicit movement bounds, emergency stop, foreground-package guard and a no-destructive-block-action default.
+
+
+## Direct scrcpy control V2 · 2026-10-11 · VERIFIED / DEPLOYED
+
+V2 replaces the V1 input path while preserving the localhost API contract and token.
+
+Key changes:
+
+- one scrcpy server owns **both** video and control
+- raw H.264 is read directly from the scrcpy video socket
+- the MKV recording FIFO and separate scrcpy CLI client are removed
+- tap/swipe/key actions use the scrcpy binary control socket
+- Android logical coordinates are mapped into the current encoded-frame coordinate space required by scrcpy's `PositionMapper`
+- a pre-action ADB fallback exists only when the control socket is already unavailable; mid-gesture failures are not replayed
+
+Measured effect proof:
+
+- Android UI tap: ~12.8 ms total with a 10 ms hold
+- Minecraft 180 ms semantic press: ~182 ms total
+- post-input fresh frame commonly arrived within low tens of milliseconds, with individual samples around 1–23 ms
+- Minecraft tab switching and server-list scrolling were visually effect-verified
+- portrait/landscape restart retained a single scrcpy server + single FFmpeg process after cleanup fixes
+
+Fixed-window CPU comparison in the same Minecraft screen:
+
+- V1 ≈ 43.4% of one core (bridge + FFmpeg + scrcpy CLI)
+- V2 ≈ 41.6% of one core (bridge + FFmpeg)
+
+Deployed/repository SHA-256 parity was verified exactly:
+`2f4461d626ea216bb538fefb91acc5ed1f96f3db64075c02c371cf2dd8cba923`
+
+The V1 file is retained locally as a rollback artifact; it is not the current authority.
