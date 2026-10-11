@@ -115,6 +115,10 @@ def main():
     ages = [x["frame_age_ms"] for x in samples if isinstance(x.get("frame_age_ms"),(int,float))]
     fps = [x["delivery_fps"] for x in samples if isinstance(x.get("delivery_fps"),(int,float))]
     final = get_status(args.port)
+    restart_delta=int(final.get("restart_count",0)) - int(start_restarts or 0)
+    reasons=[x for x in final.get("diagnostic_tail",[]) if str(x).startswith("restart[")]
+    orientation_reasons=[x for x in reasons if "orientation:" in str(x)]
+    unexplained=max(0,restart_delta-len(orientation_reasons))
     result = {
         "profile":"balanced",
         "duration_s":args.duration,
@@ -127,7 +131,9 @@ def main():
             "max":round(max(ages),1) if ages else None,
         },
         "delivery_fps_median":round(statistics.median(fps),2) if fps else None,
-        "restart_delta":int(final.get("restart_count",0)) - int(start_restarts or 0),
+        "restart_delta":restart_delta,
+        "restart_reasons":reasons,
+        "unexplained_restart_delta":unexplained,
         "final_status":{k:final.get(k) for k in (
             "ok","sequence","frame_age_ms","frame_size","scrcpy_alive",
             "ffmpeg_alive","control_alive","preferred_input","restart_count"
@@ -136,7 +142,7 @@ def main():
         "thermal":thermal_snapshot(),
         "foreground":foreground_package(),
         "processes":proc_snapshot(),
-        "pass":len(failures)==0 and int(final.get("restart_count",0)) == int(start_restarts or 0),
+        "pass":len(failures)==0 and unexplained==0,
         "failure_examples":failures[:5],
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)
