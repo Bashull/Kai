@@ -23,6 +23,7 @@ def tool_result(status,data):
 def serve(token_file):
     for line in sys.stdin:
         if not line.strip():continue
+        req=None
         try:
             req=json.loads(line)
             if not isinstance(req,dict):continue
