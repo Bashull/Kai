@@ -84,8 +84,12 @@ def send(config, action, *, runner=subprocess.run):
             raise ValueError()
         txt = rpc["result"]["content"][0]["text"]
         rec = json.loads(txt)
-        if rec.get("schema") != "kai.master.receipt/1" or rec.get("request_id") != action["request_id"]:
+        if rec.get("schema") != "kai.master.receipt/1":
             raise ValueError()
+        if rec.get("request_id") != action["request_id"]:
+            # Policy rejection can occur before request_id is recorded.
+            if rec.get("request_id") is not None or rec.get("status") != "DENIED":
+                raise ValueError()
         return rec
     except (ValueError, TypeError, KeyError, IndexError, AttributeError):
         raise ClientError("MCP_RESPONSE_INVALID") from None
