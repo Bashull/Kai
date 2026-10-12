@@ -1,0 +1,21 @@
+{
+  "DONOR_LEDGER.md": "faf5bd3eb4c80788dc10e12c18ee71bf875e86bcb0aa3ff219f9481f6c97f636",
+  "INTEGRATION_MANIFEST.json": "8100b0e76eae7108baad29610237e305a2cccdbd5dd48e0aa2e8e03e0d22b59a",
+  "PORTS_AND_DEPENDENCIES.md": "07cfbcdbac22bbdab509be183492b36d0fc2a94f724d8f77acba6900142fd723",
+  "README.md": "210fa24ce168181e9da1607e4fa84b5e3ce2fcbd8545ca76506c16942294b2e4",
+  "RETIREMENT_RUNBOOK.md": "dafb684c0055439b8c74e95c9124726c7b0804e466bceba36d1aa08e374239fb",
+  "config/.gitignore": "5fddc17dd39a7f60324cfc155d181172dedb028263d6993548cc96495f47735b",
+  "config/config.example.json": "a7c65d986bcc1ff17f23dcecaca0e2f3ac4fe2e06f3a546a95e7cf1de0de2633",
+  "kai_master_bridge/__init__.py": "f9a3e1250305f1f3bc469172fb2558c610ebe3f6dc159852bc62fb90ea38789a",
+  "kai_master_bridge/adapters.py": "5a2d609eaef7b9b0a5b0d9658dceb53bb3477ead50f2aa10e499d58e7f2aa62d",
+  "kai_master_bridge/cli.py": "2dd6ef3c18158325f5786fabfceb5918ea2c4d7238924196208889cf84d9babf",
+  "kai_master_bridge/contracts.py": "57debdc1d63a3fa3e0dbfeea5318f464678a7d1c8b1cadf82c94a4a85994e538",
+  "kai_master_bridge/gateway.py": "54f24939f11f776ac3fd52d230e5dfe72d7c922d3c3e1fcf7a62346432135e8c",
+  "kai_master_bridge/ledger.py": "cbae1674e9b704bef2ac092ff9f219be59f3c4262fe3a88da3422e3037b406af",
+  "kai_master_bridge/mcp_stdio.py": "35a9d41c3f868a6caeb5f6db428eb8bcd11daf9b83d542806024beb5f5fa40ef",
+  "kai_master_bridge/policy.py": "58d6fc8232a046519858ccc15e29c34e8bf7e7ea75f13bd44632e6945b597d64",
+  "pyproject.toml": "7a7a35d0e957e9b14965d9bb552357fe85c4912f78c2b013c1ad325fe4961361",
+  "test_receipt.txt": "9464954f4a65035d0966d96dc07380e91be37f2d13bcc5cbff88f25328845db4",
+  "tests/test_adapters.py": "937295987340d62b84e1d9ed2439c9214964e9597efe7b6e309b16a1a86352a5",
+  "tests/test_gateway.py": "b2f99448cce3b2ddb02c857efefc7b0b37acd6bf3f616f5ea3fcf763eb5f3871"
+}

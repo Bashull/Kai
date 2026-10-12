@@ -1,0 +1,31 @@
+{
+  "name": "KAI_MASTER_BRIDGE_vNEXT",
+  "version": "0.1.0-lab",
+  "created": "2026-10-13",
+  "doc_state": "DRAFT",
+  "tech_state": "TESTED_CANDIDATE",
+  "not_canonical": true,
+  "not_deployed": true,
+  "source_authority": "Bashull/Kai branch feat/kai-master-bridge-vnext-20261013 (if write verified)",
+  "current_staging": "/mnt/data/kai_master_bridge_vnext",
+  "primary_document_authority": "Google Drive KAI / 10_KAI_LAB_INGESTION_FORENSICS / 30_CAPABILITY_DNA_FORGE",
+  "input_donors": [
+    "Bashull/Kai main/companion",
+    "Bashull/Kai feat/kai-nervous-link-v0.1",
+    "Bashull/Kai feat/kai-private-pc-bridge-staging-20261012",
+    "Windows C:/KAI/Bridge,Node,Relay,MobileNode",
+    "Termux historical worktree kai-mesh-mvp1",
+    "Drive KAI Node/Relay/MobileNode Wiki and Master Bridge Forensics"
+  ],
+  "reconciliation_required": [
+    "Termux source/dirty state and installed APK",
+    "Windows execution channel parity",
+    "PC and Android permissions",
+    "Authenticated ChatGPT MCP tunnel and pairing",
+    "Restic full backup and ACL",
+    "Actual port owners and no RDC rollback dependency"
+  ],
+  "retires": [],
+  "mutated_external_services": [],
+  "secrets_in_repo": false
+}

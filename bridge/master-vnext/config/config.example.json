@@ -1,0 +1,27 @@
+{
+  "node_id": "kai-lab",
+  "roots": {"fixtures": "REPLACE_WITH_EXISTING_SAFE_TEST_DIRECTORY"},
+  "capabilities": {
+    "host.status": {"enabled": true},
+    "fs.list": {"enabled": false},
+    "fs.sha256": {"enabled": false},
+    "pc.agent.health": {"enabled": false},
+    "pc.agent.apps": {"enabled": false},
+    "pc.agent.launch": {"enabled": false},
+    "android.adb.devices": {"enabled": false},
+    "android.adb.model": {"enabled": false},
+    "android.adb.launch": {"enabled": false},
+    "pc.gui.windows": {"enabled": false}
+  },
+  "pc_agent": {
+    "port": 18761,
+    "token_file": "REPLACE_WITH_PRIVATE_WINDOWS_TOKEN_POINTER",
+    "allowed_app_ids": []
+  },
+  "android": {
+    "adb_executable": "REPLACE_WITH_VERIFIED_ADB_BINARY_PATH",
+    "serial": "REPLACE_WITH_CURRENT_AUTHORIZED_ADB_SERIAL",
+    "allowed_packages": []
+  },
+  "gui": {"script": "REPLACE_WITH_VERIFIED_C_KAI_BRIDGE_GUI_PY_PATH"}
+}
