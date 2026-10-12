@@ -149,9 +149,12 @@ class Adapters:
         if capability == 'android.adb.devices':
             self._expect(args,set())
             output=self._adb(['devices','-l'])
-            lines=[line.split(' ')[0] for line in output.splitlines()[1:]
-                    if '\tdevice' in line]
-            return {'authorized_devices':len(lines),'device_identifiers_redacted':True}
+            devices=set()
+            for line in output.splitlines()[1:]:
+                columns=line.split()
+                if len(columns)>=2 and columns[1]=='device':
+                    devices.add(columns[0])
+            return {'authorized_devices':len(devices),'device_identifiers_redacted':True}
         if capability in ('android.adb.model','android.adb.launch'):
             expected=self.config.get('android',{}).get('serial','')
             if not expected or '\x00' in expected or '\n' in expected:
