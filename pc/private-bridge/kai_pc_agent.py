@@ -30,10 +30,8 @@ def handler_factory(config, token, audit_path):
     audit_path = pathlib.Path(audit_path)
     class Handler(BaseHTTPRequestHandler):
         server_version = "KaiPC/0.1"
-
         def log_message(self, fmt, *args):
             pass
-
         def respond(self, status, value):
             body = json.dumps(value, separators=(",", ":")).encode("utf-8")
             self.send_response(status)
@@ -42,16 +40,13 @@ def handler_factory(config, token, audit_path):
             self.send_header("Cache-Control", "no-store")
             self.end_headers()
             self.wfile.write(body)
-
         def audit(self, action, ok):
             entry = {"at": time.time(), "action": action, "ok": bool(ok)}
             with audit_path.open("a", encoding="utf-8") as f:
                 f.write(json.dumps(entry, separators=(",", ":")) + "\n")
-
         def authorized(self):
             supplied = self.headers.get("Authorization", "")
             return hmac.compare_digest(supplied, "Bearer " + token)
-
         def do_GET(self):
             if not self.authorized():
                 return self.respond(401, {"error": "unauthorized"})
@@ -63,7 +58,6 @@ def handler_factory(config, token, audit_path):
                 items = [name for name, obj in config["apps"].items() if isinstance(obj, dict) and obj.get("enabled")]
                 return self.respond(200, {"allowed_apps": sorted(items)})
             self.respond(404, {"error": "not_found"})
-
         def do_POST(self):
             if not self.authorized():
                 return self.respond(401, {"error": "unauthorized"})
@@ -71,7 +65,13 @@ def handler_factory(config, token, audit_path):
                 return self.respond(404, {"error": "not_found"})
             try:
                 length = int(self.headers.get("Content-Length", "-1"))
-                if length <= 0 or length > MAX_BODY:
+                if length <= 0:
+                    return self.respond(413, {"error": "invalid_size"})
+                if length > MAX_BODY:
+                    # Windows resets TCP on close with an unread body; drain a bounded excess.
+                    if length <= 2 * MAX_BODY:
+                        self.connection.settimeout(2)
+                        self.rfile.read(length)
                     return self.respond(413, {"error": "invalid_size"})
                 body = json.loads(self.rfile.read(length).decode("utf-8"))
                 if not isinstance(body, dict) or set(body) != {"id"} or not isinstance(body["id"], str):
