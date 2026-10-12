@@ -1,0 +1,6 @@
+{
+  "apps": {
+    "notepad": {"enabled": false, "path": "C:\\Windows\\System32\\notepad.exe"},
+    "calculator": {"enabled": false, "path": "C:\\Windows\\System32\\calc.exe"}
+  }
+}
