@@ -1,0 +1,8 @@
+/android/build*/
+__pycache__/
+*.py[cod]
+*.apk
+*.p12
+*.jks
+*.keystore
+signing-password

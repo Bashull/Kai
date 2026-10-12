@@ -5,5 +5,6 @@
   "android/build.sh": "48b82c7d5345aebc4b39e3b160337181b4ad5d3704ce63ba981bcb52ce09df87",
   "android/AndroidManifest.xml": "d58d374022a893462a8c26ac8e026f5f86a1c619b3b89d7040dfbac8456bb75d",
   "android/res/values/strings.xml": "374218f499b7b3c04e741b108eee255043dae9d4a0768c2d3fb0cc8a0323c30c",
-  "android/src/com/kai/controlprobe/ProbeActivity.java": "107a033c6cfbc71ba7edeff938428cea67900e5b04588a6ece45b248d81c0663"
+  "android/src/com/kai/controlprobe/ProbeActivity.java": "107a033c6cfbc71ba7edeff938428cea67900e5b04588a6ece45b248d81c0663",
+  ".gitignore": "0ed6d717f189a535861813dc3e104b255f0d771ff3594d4e3632dce284ec4837"
 }
