@@ -76,19 +76,19 @@ class AdapterCases(unittest.TestCase):
     def test_android_bad_package(self):
         with self.assertRaises(AdapterError):self.adapters.execute('android.adb.launch',{'package':'com.example.app;rm'})
     def test_adb_device_list_mock(self):
-        self.cfg['android']['adb_executable']='/fake/adb'
+        self.cfg['android']['adb_executable']=str(self.root/'fake-adb.exe')
         with mock.patch('pathlib.Path.is_file',return_value=True),mock.patch('subprocess.run') as run:
             run.return_value=mock.Mock(returncode=0,stdout=b'List of devices attached\n123\tdevice product:a\n456\tunauthorized\n')
             result=self.adapters.execute('android.adb.devices',{})
             self.assertEqual(result['authorized_devices'],1)
             self.assertNotIn('123',str(result))
     def test_adb_launch_typed_argv_mock(self):
-        self.cfg['android']['adb_executable']='/fake/adb'
+        self.cfg['android']['adb_executable']=str(self.root/'fake-adb.exe')
         with mock.patch('pathlib.Path.is_file',return_value=True),mock.patch('subprocess.run') as run:
             run.return_value=mock.Mock(returncode=0,stdout=b'Events injected: 1')
             result=self.adapters.execute('android.adb.launch',{'package':'com.example.app'})
             self.assertFalse(result['effect_observed'])
-            self.assertEqual(run.call_args.args[0],['/fake/adb','-s','test-serial','shell','monkey','-p','com.example.app','1'])
+            self.assertEqual(run.call_args.args[0],[str(self.root/'fake-adb.exe'),'-s','test-serial','shell','monkey','-p','com.example.app','1'])
             self.assertFalse(run.call_args.kwargs.get('shell',False))
     def test_approval_e2e_mock_pc(self):
         cfg=self.root/'policy.json';cfg.write_text(json.dumps(self.cfg))
