@@ -9,6 +9,7 @@ import unittest
 from unittest import mock
 
 from kai_master_bridge.ssh_client import ClientError, load_config, make_action, send
+from kai_master_bridge.contracts import Action
 
 
 class SSHClientTests(unittest.TestCase):
@@ -41,9 +42,13 @@ class SSHClientTests(unittest.TestCase):
         return make_action(load_config(self.path),"host.status",{})
 
     def response(self, action, *, rid=None, status="COMPLETED", include_id=True):
-        rec={"schema":"kai.master.receipt/1","status":status,"result":{}}
+        rec={"schema":"kai.master.receipt/1","status":status,"result":{},
+             "node_id": action["node_id"], "capability": action["capability"],
+             "digest": Action.parse(action).digest()}
         if include_id:
             rec["request_id"]=action["request_id"] if rid is None else rid
+        elif status=="DENIED":
+            rec["error"]="POLICY_DENIED"
         rpc={"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":json.dumps(rec)}]}}
         return subprocess.CompletedProcess(["ssh"],0,json.dumps(rpc)+"\n","")
 
@@ -96,6 +101,44 @@ class SSHClientTests(unittest.TestCase):
         with self.assertRaises(ClientError):
             send(load_config(self.path),a,
                  runner=lambda *args,**kwargs:self.response(a,rid="wrong"))
+
+    def _response_with_changed_receipt(self, action, key, value):
+        p = self.response(action)
+        rpc = json.loads(p.stdout)
+        rec = json.loads(rpc["result"]["content"][0]["text"])
+        rec[key] = value
+        rpc["result"]["content"][0]["text"] = json.dumps(rec)
+        return subprocess.CompletedProcess(["ssh"], 0, json.dumps(rpc)+"\n", "")
+
+    def test_reject_mismatched_digest(self):
+        action=self.action()
+        with self.assertRaises(ClientError):
+            send(load_config(self.path), action,
+                 runner=lambda *a,**k:self._response_with_changed_receipt(action,"digest","0"*64))
+
+    def test_reject_mismatched_capability(self):
+        action=self.action()
+        with self.assertRaises(ClientError):
+            send(load_config(self.path),action,
+                 runner=lambda *a,**k:self._response_with_changed_receipt(action,"capability","fs.list"))
+
+    def test_reject_mismatched_node(self):
+        action=self.action()
+        with self.assertRaises(ClientError):
+            send(load_config(self.path),action,
+                 runner=lambda *a,**k:self._response_with_changed_receipt(action,"node_id","untrusted"))
+
+    def test_reject_unknown_status(self):
+        action=self.action()
+        with self.assertRaises(ClientError):
+            send(load_config(self.path),action,
+                 runner=lambda *a,**k:self._response_with_changed_receipt(action,"status","UNVERIFIED"))
+
+    def test_reject_missing_digest(self):
+        action=self.action()
+        with self.assertRaises(ClientError):
+            send(load_config(self.path),action,
+                 runner=lambda *a,**k:self._response_with_changed_receipt(action,"digest",None))
 
     def test_reject_remote_execution_failure(self):
         a=self.action()
