@@ -81,3 +81,58 @@ Windows PowerShell: usar `$env:PYTHONPATH='.'; py -3 -m unittest discover -s tes
 Suite reproducible bajo `python -W error::ResourceWarning -m unittest discover -s tests -q` con casos unitarios y emulador local de PC Agent, reintentos concurrentes, consentimiento, contención FS, rechazo de shell, límite de salida, parada y MCP stdio. Evidencia de ejecución en el informe Drive y `test_receipt.txt` del paquete.
 
 **NO RETIRAR** Desktop Commander, Node, Relay, MobileNode, SFTP, SSH 22, PC Agent, Restic, Watchdogs ni borradores únicos. Consultar `RETIREMENT_RUNBOOK.md` antes de liberar espacio. Ninguna ruta del proyecto anterior es eliminada por esta entrega.
+
+
+## 2026-10-13 · Physical LAN bridge verified (candidate, not canonical)
+
+**Evidence:** Windows Python 3.13.3 and Galaxy/Termux Python 3.14.6 each passed
+52/52 vNEXT tests. On the Galaxy the optional SSH client suite brought this to
+60/60. Windows Gateway runs from a user-owned, protected AppData copy, not the
+broadly writable `C:\\KAI\\staging` Git checkout.
+
+The master now supports an **on-demand SSH transport** over Windows OpenSSH
+TCP 22, without opening a new port or running a second Relay. Its Windows
+`ssh_entry.py` is registered as a forced command for one dedicated ED25519
+public key in `C:\\ProgramData\\ssh\\administrators_authorized_keys`, with
+`restrict` and a local-LAN-only `from` boundary. Private key bytes live in
+Termux and must never be copied to source control, cloud docs or chat. Windows
+authorized_keys ACLs are SYSTEM+Administrators only.
+
+Android can invoke the pinned, typed, no-shell MCP client:
+
+```bash
+kai-master-pc status
+kai-master-pc apps
+kai-master-pc list --root kai --relative Bridge
+kai-master-pc launch notepad  # requires out-of-band owner approval
+kai-master-pc retry <same-request-id>
+```
+
+The launcher uses a local private config
+`~/.config/kai-master-bridge/pc-client.json` (0600), a private identity key
+(0600), strict known_hosts and BatchMode. The gateway stays separate from
+Windows SFTP 2222 (Restic backup transport).
+
+**Physical positive tests:** Galaxy->Windows JSON-RPC MCP returns
+`kai-pc-asier`; `host.status`, `fs.list`, `pc.agent.health`,
+`pc.agent.apps` completed; exact manifest replay returned the same persisted
+receipt. After operator recorded the user's authorization locally, an approved
+`pc.agent.launch` returned HTTP202 and one new Notepad process (PID10768
+versus baseline PID5552). Unapproved launch was denied; an arbitrary SSH
+remote command `whoami` returned exit126. The restricted key cannot be used
+for an interactive shell or forwarding.
+
+**What this does NOT prove:** ChatGPT cloud has no independently connected
+owned HTTPS/MCP connector to the PC, remote access over 5G is not configured,
+GUI click/keyboard and Android remote effect control are not integrated, boot
+and full disaster recovery are unverified. Desktop Commander and SentinelX
+remain recoverability/observability fallback, not the master action transport.
+The key is allowed only from the private home LAN for now.
+
+**Security debt:** The forced command currently runs under the Windows
+ASIER administrator identity, albeit with strict capability gates. Migrate to
+a true least-privilege account/broker before any internet exposure or broader
+actions. Existing SFTP launcher inherited write ACL concerns remain. Windows
+OpenSSH 9.5 also warns about non-PQ key exchange for the current client.
+Do not delete prior nodes, Restic backups, watchers or service manifests until
+full parity, isolated restore, reboot, WAN, emergency stop and receipts pass.
