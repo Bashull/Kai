@@ -82,6 +82,15 @@ class AdapterCases(unittest.TestCase):
             result=self.adapters.execute('android.adb.devices',{})
             self.assertEqual(result['authorized_devices'],1)
             self.assertNotIn('123',str(result))
+    def test_adb_device_list_space_delimited_real_android(self):
+        self.cfg['android']['adb_executable']=str(self.root/'fake-adb.exe')
+        with mock.patch('pathlib.Path.is_file',return_value=True),mock.patch('subprocess.run') as run:
+            run.return_value=mock.Mock(returncode=0,stdout=(
+                b'List of devices attached\n127.0.0.1:35525        device product:e3q\n'
+                b'unpaired        unauthorized\n'))
+            result=self.adapters.execute('android.adb.devices',{})
+            self.assertEqual(result['authorized_devices'],1)
+            self.assertNotIn('127.0.0.1:35525',str(result))
     def test_adb_launch_typed_argv_mock(self):
         self.cfg['android']['adb_executable']=str(self.root/'fake-adb.exe')
         with mock.patch('pathlib.Path.is_file',return_value=True),mock.patch('subprocess.run') as run:
