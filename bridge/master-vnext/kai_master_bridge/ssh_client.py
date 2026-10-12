@@ -86,10 +86,21 @@ def send(config, action, *, runner=subprocess.run):
         rec = json.loads(txt)
         if rec.get("schema") != "kai.master.receipt/1":
             raise ValueError()
-        if rec.get("request_id") != action["request_id"]:
-            # Policy rejection can occur before request_id is recorded.
-            if rec.get("request_id") is not None or rec.get("status") != "DENIED":
+        status = rec.get("status")
+        if status not in ("COMPLETED", "FAILED", "DENIED", "PENDING_LOCAL_APPROVAL"):
+            raise ValueError()
+        if status == "DENIED" and rec.get("request_id") is None:
+            # Rejection before manifest parsing has no request identity.
+            if not isinstance(rec.get("error"), str):
                 raise ValueError()
+            return rec
+        if rec.get("request_id") != checked.request_id:
+            raise ValueError()
+        if (rec.get("node_id") != checked.node_id
+                or rec.get("capability") != checked.capability
+                or rec.get("digest") != checked.digest()
+                or not isinstance(rec.get("result"), dict)):
+            raise ValueError()
         return rec
     except (ValueError, TypeError, KeyError, IndexError, AttributeError):
         raise ClientError("MCP_RESPONSE_INVALID") from None
