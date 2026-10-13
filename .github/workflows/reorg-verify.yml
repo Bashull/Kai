@@ -1,0 +1,35 @@
+name: Reorg Verification
+
+on:
+  push:
+    branches:
+      - reorg/kai-cleanup-20260818
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  frontend-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Build active Vite frontend
+        run: npm run build
+
+      - name: Run tests when present
+        run: npm test --if-present
