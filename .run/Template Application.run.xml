@@ -1,0 +1,12 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="true" type="Application" factoryName="Application">
+    <option name="ALTERNATIVE_JRE_PATH" value="$USER_HOME$/AppData/Local/Android/Sdk" />
+    <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
+    <module name="Kai" />
+    <option name="PROGRAM_PARAMETERS" value="$MODULE_WORKING_DIR$" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/../../Visual Studio 18" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
