@@ -3,6 +3,7 @@ name: Test Loop Factory
 on:
   pull_request:
     paths:
+      - 'core/__init__.py'
       - 'core/loop_factory/**'
       - 'tests/loop_factory/**'
       - 'docs/loop_factory/**'
@@ -11,8 +12,9 @@ on:
       - '.github/workflows/test-loop-factory.yml'
       - '.gitignore'
   push:
-    branches: ['feat/loop-factory-cell-000']
+    branches: ['feat/loop-factory-cell-000', 'feat/kai-one-mind/**']
     paths:
+      - 'core/__init__.py'
       - 'core/loop_factory/**'
       - 'tests/loop_factory/**'
       - '.github/workflows/test-loop-factory.yml'
