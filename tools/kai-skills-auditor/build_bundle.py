@@ -16,6 +16,7 @@ import zipfile
 
 import yaml
 from bundle_io import sha, verify_bundle, safe_path
+from portable_metadata import normalize_metadata
 
 
 def write_json(path, data):
@@ -94,6 +95,7 @@ def build(workspace, output):
     manifest_aux = []
     missing = []
     syntax = []
+    metadata_repairs = []
     originals_dir = output / 'originals'
     providers_dir = output / 'providers'
     roots = {}
@@ -116,6 +118,12 @@ def build(workspace, output):
         if sha(data) != r['original_sha256'] or data != (archived / 'skills' / namespace / name / 'SKILL.md').read_bytes():
             raise ValueError(f'Cross-archive mismatch at {number}')
         candidate = portable.read_bytes()
+        inherited_portable_sha = sha(candidate)
+        candidate, metadata_receipt = normalize_metadata(candidate)
+        if metadata_receipt:
+            metadata_repairs.append({'id': number, 'uri': r['uri'],
+                                     'inherited_portable_sha256': inherited_portable_sha,
+                                     'normalized_sha256': sha(candidate), **metadata_receipt})
         fm = frontmatter(candidate.decode())
         if fm['name'] != name or not isinstance(fm.get('description'), str) or not 1 <= len(fm['description']) <= 1024:
             raise ValueError(f'Invalid staged frontmatter at {number}')
@@ -132,6 +140,8 @@ def build(workspace, output):
         rec = dict(r)
         rec.update(namespace=namespace, original_path=str(original_dest.relative_to(output)),
                    staged_root=str(staged_root.relative_to(output)), portable_sha256=sha(candidate),
+                   inherited_portable_sha256=inherited_portable_sha,
+                   metadata_normalized=metadata_receipt is not None,
                    source_match=mapping[number]['match'], source_candidates=mapping[number]['candidates'],
                    aux_expected=len(declared), aux_recovered=recovered_count, aux_missing=unavailable,
                    syntax_validation='FRONTMATTER_AND_FOLDER_NAME_PASS',
@@ -141,7 +151,7 @@ def build(workspace, output):
                    state='RESOURCE_ENRICHED_PRIVATE_CANDIDATE')
         catalog.append(rec)
         repaired += bool(r['candidate_repaired'])
-        portable_changes += candidate != data
+        portable_changes += portable.read_bytes() != data
         raw_rows.append({'index': number, 'uri': r['uri'], 'description': r['description'],
                          'provenance': 'RECONSTRUCTED_FROM_VERIFIED_ARCHIVE_BYTES_NOT_ORIGINAL_CAPTURE_LOG',
                          'resources': [{'uri': r['uri'], 'content': data.decode()}]})
@@ -162,6 +172,7 @@ def build(workspace, output):
                  '## Cambio de empaquetado y recuperación', '',
                  f'Carpeta corregida a `{name}` dentro del ámbito de `{namespace}`. El cuerpo operativo se hereda de la candidata portable recibida; esta intervención no lo presenta como una nueva versión del proveedor.',
                  'Original, candidata y procedencia se conservan por separado. Los auxiliares se copian como datos; ningún script donante se ha ejecutado.', '',
+                 ('Se normalizó metadata al mapa de cadenas exigido por el estándar. Los valores tipados se conservan como JSON y en evidence/METADATA_NORMALIZATION.json; cuerpo operativo idéntico.' if metadata_receipt else 'Metadata no necesitó normalización adicional.'), '',
                  '## Fallos, límites y reanudación', '',
                  *(['- Recurso aún no accesible: `' + u + '`.' for u in unavailable] or ['- No quedan huecos del inventario de auxiliares declarado para esta entrada. Esto no demuestra cierre transitivo de dependencias.']),
                  '- Si faltan comandos, ficheros, permisos o conector: registrar el fallo concreto y detener esa ruta; no inventar resultados ni reinstalar en bucle.',
@@ -210,13 +221,14 @@ def build(workspace, output):
              'cross_archive_originals_identical': 847, 'old_manifest_hashes_verified': 1694,
              'portable_hashes_verified': 847, 'governed_hashes_verified': 847,
              'inherited_yaml_repairs': repaired, 'inherited_portable_main_changes': portable_changes,
+             'new_metadata_normalizations': len(metadata_repairs),
              'corrected_folder_name_layout': 847, 'aux_expected_reconciled': expected_aux,
              'aux_recovered': len(manifest_aux), 'aux_missing': len(missing),
              'extra_full_filename_recoveries': len(extras),
              'github_auxiliary_recoveries': len(github_aux),
              'public_provider_main_drift_detected': [714],
              'python_ast': dict(collections.Counter(x['status'] for x in syntax)),
-             'tool_regression_tests': 20, 'tool_regression_tests_status': 'PASS',
+             'tool_regression_tests': 22, 'tool_regression_tests_status': 'PASS',
              'provider_runtime_tests': 0, 'deep_manual_reviews_of_847': False,
              'latest_upstream_versions_verified_for_847': False, 'installed': False,
              'scope': 'VERIFIED_SCOPE_847_ARCHIVE_AND_DECLARED_AUXILIARIES_NOT_FULL_ECOSYSTEM'}
@@ -228,6 +240,7 @@ def build(workspace, output):
     write_json(output / 'evidence/AUX_MISSING.json', missing)
     write_json(output / 'evidence/AUX_FILENAME_CORRECTIONS.json', extras)
     write_json(output / 'evidence/PYTHON_SYNTAX.json', syntax)
+    write_json(output / 'evidence/METADATA_NORMALIZATION.json', metadata_repairs)
     write_json(output / 'evidence/GITHUB_PROVIDER_RECEIPTS.json', github_receipts)
     for optional in ('github_aux_static_validation.json', 'VALIDATION_LIVE_RECEIPTS.json', 'CODE_SOURCE_GITHUB.json'):
         source_evidence = workspace / optional
@@ -272,9 +285,11 @@ El auditor v0.3 se ejecutó sobre los 90 JSON reales de Termux: 1161 registros, 
 
 La v0.4 también se ejecutó sobre los mismos 90 JSON reales del móvil: 1161 registros, 847 índices, 0 conflictos, sin errores de entrada, CRC PASS. ZIP SHA-256 343982a351ea9f9589257d753e07e270eff417bf503a28dd9b6b76d0db5467c8. La pasada local sobre 847 cuerpos reconstruidos desde los archivos verificados también pasó, separada de las capturas reales.
 
-La v0.3 devolvía éxito ante cuerpos vacíos, conflictos y registros fuera de rango. La v0.4 rechaza esos casos antes de producir un paquete, exige la URI raíz exacta, preserva bytes NUL sin borrado silencioso y bloquea salidas existentes. Suite de herramientas: 20/20 PASS; no son 847 pruebas funcionales.
+La v0.3 devolvía éxito ante cuerpos vacíos, conflictos y registros fuera de rango. La v0.4 rechaza esos casos antes de producir un paquete, exige la URI raíz exacta, preserva bytes NUL sin borrado silencioso y bloquea salidas existentes. Suite de herramientas: 22/22 PASS; no son 847 pruebas funcionales.
 
 Se conservan las 15 reparaciones YAML y la variante portable heredadas. No se presenta el añadido de anexos como actualización funcional. No se ha efectuado revisión manual profunda de cada línea de las 847 ni verificación upstream por proveedor. Las fichas individuales indican exactamente lo automático y lo pendiente.
+
+Corrección adicional de portabilidad: {len(metadata_repairs)} cabeceras con metadata anidado o tipado se normalizaron al mapa string-to-string del estándar. Los valores originales se preservan en una evidencia estructurada y como JSON reversible; las pruebas y la comparación del constructor verifican que los cuerpos operativos no cambian. Es una variante de intercambio, no una garantía de compatibilidad con cargadores propietarios.
 
 Se cerró la recuperación de los diez auxiliares mediante el repositorio oficial de aictrl.dev, con comprobación de sus hashes Git. La revisión pública de create-workflow difiere del original: se conserva como DONOR separado y no se mezcla silenciosamente. Su compatibilidad con las tres plantillas recuperadas sigue pendiente. La raíz recording-product-demo del proveedor coincide exactamente.
 
