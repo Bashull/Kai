@@ -1,0 +1,79 @@
+--- /dev/null
++++ b/LICENSE
+@@ -0,0 +1,21 @@
++MIT License
++
++Copyright (c) 2026 aictrl.dev
++
++Permission is hereby granted, free of charge, to any person obtaining a copy
++of this software and associated documentation files (the "Software"), to deal
++in the Software without restriction, including without limitation the rights
++to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++copies of the Software, and to permit persons to whom the Software is
++furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice shall be included in all
++copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
++SOFTWARE.
+--- a/SKILL.md
++++ b/SKILL.md
+@@ -10,12 +10,15 @@
+ ## Input
+ An HTML file path, a pasted HTML snippet, or a screenshot. If none provided, ask for one.
+ 
++Record the evidence scope before reviewing: static HTML, rendered page, screenshot, or interactive flow. For HTML, inspect linked styles and, when an authorized isolated preview/browser is available, confirm they load and render at relevant mobile/desktop viewports before making rendered-layout claims. Do not install a browser or run supplied scripts merely to complete a critique. Without rendering, label computed-style, target-size, responsive and interaction checks as **not assessed**. A screenshot supports only the visible state: it does not establish keyboard operation, focus behavior, zoom/reflow or an exact CSS-pixel size. Record a measured ratio/count with its source and method; label estimates as estimates. This is a scoped design review, not a WCAG conformance certification.
++
+ ## Process
+ 1. **Read the UI and classify the surface.** Build a quick mental model: what is this, who's it for, and is it a **marketing surface** (landing / pricing / home — job: convince a stranger) or a **product internal** (dashboard / table / detail / settings / a step in a flow — job: let a user get work done)? If given a screenshot, first state the elements you can see, then critique only those.
+ 2. **Evaluate against `reference/rubric.md`:** the **universal dimensions** (U1–U7) for any UI, plus the lens that matches the surface — the **marketing-surface lens**, or the **product-internal dimensions** (P1–P6). For EACH dimension you assess output:
+-   - **Verdict:** solid / weak / broken
++   - **Verdict:** solid / weak / broken for an assessed dimension. Use **n/a** with a reason for an inapplicable dimension; use **not assessed** with the missing evidence/check when the input cannot establish it. Do not convert missing evidence into a pass or an invented defect.
+    - **What's wrong (located):** name the exact element/section.
+    - **Fix (actionable):** the concrete change to make.
++   - **Evidence:** the visible element, source/CSS measurement, or interaction actually checked; distinguish observation from hypothesis.
+    Skip flattery. If a dimension is genuinely good, say so in one line and move on.
+ 3. **If the input covers more than one screen** (a clickable prototype, several screenshots, a flow), also apply the **cross-screen lens** (X1–X4): build the concept inventory first, include it as a table, then assess naming, one place per job, state and action vocabulary, and the density numbers per screen.
+ 4. Only critique what is actually present. Never invent elements.
+--- a/reference/rubric.md
++++ b/reference/rubric.md
+@@ -7,7 +7,7 @@
+ 
+ **Then check the scope:** if the input covers **more than one screen** (a clickable prototype, several screenshots, a set of pages, a flow), also apply the **Cross-screen lens** at the end. Most information-architecture problems only show up across screens.
+ 
+-For every dimension you assess: a one-word **Verdict** (`solid` / `weak` / `broken`), then — only if not solid — the **located** problem and the **actionable** fix. Never invent elements.
++For every dimension you can assess: a **Verdict** (`solid` / `weak` / `broken`), then — only if not solid — the **located** problem and the **actionable** fix. Record the evidence used. Mark an inapplicable dimension **n/a**, or an unsupported check **not assessed**, with the reason. Never invent elements or treat unavailable evidence as a pass.
+ 
+ ---
+ 
+@@ -41,9 +41,14 @@
+ - *Marketing:* trust signals present (proof, logos, numbers); forms short; plain language.
+ - *Product:* minimal steps/clicks for the main task; sensible defaults; not overwhelming; jargon-free labels.
+ 
+-### U7. Craft & accessibility (folds into the most relevant dimension)
+-- Contrast: body text ≥ WCAG AA 4.5:1 (`#aaa` on white ≈ 2.3:1 — fails; use ≥ `#595959`).
+-- Click/tap targets ≥ 44×44px; body type ≥ 16px; visible focus states; responsive sanity (does a flex row wrap on mobile?).
++### U7. Craft & accessibility
++Assess this dimension explicitly; it may reference the same element as another dimension without counting the defect twice.
++- **Text contrast:** WCAG AA SC 1.4.3 uses 4.5:1 for normal text and 3:1 for large text (18pt, or 14pt bold), subject to its exemptions. Obtain foreground/background colors and size/weight from reliable source or rendered styles; do not certify a ratio from appearance alone, round a failing ratio up, or prescribe one gray for every background.
++- **Pointer targets:** WCAG 2.2 AA SC 2.5.8 uses 24×24 **CSS pixels**, or one of its spacing/equivalent/inline/user-agent/essential exceptions. SC 2.5.5 is the stricter AAA 44×44 CSS-pixel criterion with its own exceptions; 44×44 is also a useful usability aim for important touch controls. A control below 44×44 is not automatically an AA failure. Inspect the actual hit area and applicable exception before judging.
++- **Text size:** 16px body text is a marketing-readability heuristic, not a WCAG AA minimum and not a universal rule for dense app screens. Judge legibility in context. SC 1.4.4 concerns text enlargement to 200% without loss of content/functionality, with its stated exceptions; test enlargement when an interactive page is available.
++- **Focus and responsive behavior:** inspect visible focus states, keyboard use and relevant viewport/zoom states when available. If only static evidence is supplied, mark those checks not assessed and name the follow-up needed. A single screenshot does not establish their behavior.
++
++Primary references (consulted 2026-10-15): [SC 1.4.3](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html), [SC 1.4.4](https://www.w3.org/WAI/WCAG22/Understanding/resize-text.html), [SC 2.5.8](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html), [SC 2.5.5](https://www.w3.org/WAI/WCAG22/Understanding/target-size-enhanced.html). These criteria inform this review; a full conformance assessment has a wider scope.
+ 
+ ---
+ 
+@@ -86,5 +91,5 @@
+ Status labels, list groups, board columns and progress indicators use the same set of states; the same action uses the same verb on every surface. **Broken:** four parallel ways to say where an item is; six verbs for starting the same action. **Fix:** one state set and one verb per action, mapped from the current labels.
+ 
+ ### X4. Density budget
+-Count, for each main screen: visible controls, words, and badges or pills. Report the numbers so "simpler" can be measured and compared after changes. **Weak:** a list row carrying several badges, or a screen whose controls outnumber the decisions it supports. **Fix:** the specific elements to merge, move behind disclosure, or remove, with the expected new counts.
++Count, for each main screen: visible controls, words, and badges or pills. Report the numbers so "simpler" can be measured and compared after changes. State the covered viewport/screen region and counting method; distinguish measured counts from screenshot/OCR estimates, and do not count hidden states as observed. **Weak:** a list row carrying several badges, or a screen whose controls outnumber the decisions it supports. **Fix:** the specific elements to merge, move behind disclosure, or remove, with the expected new counts.
+ 
