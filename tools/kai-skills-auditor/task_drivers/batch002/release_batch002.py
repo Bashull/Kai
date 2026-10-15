@@ -26,8 +26,13 @@ EVOLVED = [713,714,715,718,719,721]
 
 def dump(path, data):
     path.parent.mkdir(parents=True, exist_ok=True)
+    text = json.dumps(data, ensure_ascii=False, indent=2)+'\n'
+    if path.exists():
+        if path.read_text(encoding='utf-8') != text:
+            raise ValueError('Existing evidence differs; preserve and inspect before resuming')
+        return
     with path.open('x', encoding='utf-8') as f:
-        f.write(json.dumps(data, ensure_ascii=False, indent=2)+'\n')
+        f.write(text)
 
 
 def copy(source, destination):
@@ -122,8 +127,16 @@ def write_zip(path, payload, bundle_catalog=None):
     if bundle_catalog is not None:
         manifest = inc._manifest(payload, bundle_catalog)
         name = 'MANIFEST_SHA256.json'
+    expected = {**payload,name:inc.json_bytes(manifest)}
+    if path.exists():
+        # Resume only when every intended byte already matches. Never overwrite
+        # an existing artifact or silently accept a partial packaging attempt.
+        with zipfile.ZipFile(path) as z:
+            if set(z.namelist()) != set(expected) or any(z.read(n)!=d for n,d in expected.items()):
+                raise ValueError('Existing package differs from current input')
+        return inspect(path)
     with zipfile.ZipFile(path, 'x', zipfile.ZIP_DEFLATED, compresslevel=7) as z:
-        for n,d in sorted({**payload,name:inc.json_bytes(manifest)}.items()):
+        for n,d in sorted(expected.items()):
             info = zipfile.ZipInfo(n, date_time=(2026,10,15,0,0,0))
             info.compress_type=zipfile.ZIP_DEFLATED
             info.external_attr=(stat.S_IFREG|0o644)<<16
@@ -137,8 +150,7 @@ def files(path):
 
 def inspect(path):
     extract = OUT/'clean_extract'/path.stem
-    if extract.exists():
-        raise ValueError('Clean extraction must be new')
+    existing = extract.exists()
     with zipfile.ZipFile(path) as z:
         b._validate_paths(z.namelist())
         if z.testzip() is not None:
@@ -154,12 +166,17 @@ def inspect(path):
             data = z.read(n)
             if inc.record(data)!=record:
                 raise ValueError('SHA/size mismatch')
-        extract.mkdir(parents=True)
-        for n in z.namelist():
-            p = extract/b.safe_path(n)
-            p.parent.mkdir(parents=True,exist_ok=True)
-            with p.open('xb') as f:
-                f.write(z.read(n))
+        if existing:
+            if set(files(extract)) != set(z.namelist()) or any(
+                    (extract/n).is_symlink() or (extract/n).read_bytes()!=z.read(n) for n in z.namelist()):
+                raise ValueError('Existing extraction differs from verified archive')
+        else:
+            extract.mkdir(parents=True)
+            for n in z.namelist():
+                p = extract/b.safe_path(n)
+                p.parent.mkdir(parents=True,exist_ok=True)
+                with p.open('xb') as f:
+                    f.write(z.read(n))
         for n,record in manifest['files'].items():
             if inc.record((extract/n).read_bytes()) != record:
                 raise ValueError('Extracted bytes mismatch')
@@ -207,7 +224,9 @@ def components():
         improved.update({'patches/'+n:d for n,d in files(ROOT/'toolkit_vnext/patches/batch002').items()})
         records.append(write_zip(OUT/'03_IMPROVED_SKILLS_BATCH002_20261015.zip',improved,selected))
     tools=files(ROOT/'toolkit_vnext')
-    tools={n:d for n,d in tools.items() if '__pycache__' not in Path(n).parts}
+    tools={n if '/' in n or n.endswith('.py') or n=='README.md'
+           else 'HISTORICAL/batch001_toolkit/'+n:d
+           for n,d in tools.items() if '__pycache__' not in Path(n).parts}
     tools.update({'task_drivers/'+n:(ROOT/n).read_bytes() for n in ('prepare_batch002.py','release_batch002.py')})
     tools['evidence/TOOLKIT_TEST_RECEIPT.json']=(ROOT/'TOOLKIT_BATCH002_TEST_RECEIPT_RELEASE.json').read_bytes()
     tools['evidence/GITHUB_READBACK.json']=(ROOT/'GITHUB_BATCH002_READBACK.json').read_bytes()
@@ -236,7 +255,8 @@ def components():
         'active_installation':False,'provider_execution':False}
     dump(OUT/'SELECTIVE_STAGING_AND_ROLLBACK.json',stage_receipt)
     install=files(ROOT/'reused_workflow_toolchain')
-    install={n:d for n,d in install.items() if '__pycache__' not in Path(n).parts}
+    install={n if '/' in n else 'HISTORICAL/batch001_package05/'+n:d
+             for n,d in install.items() if '__pycache__' not in Path(n).parts}
     install.update({'tools/bundle_io.py':(ROOT/'toolkit_vnext/bundle_io.py').read_bytes(),
         'tools/README.md':(ROOT/'toolkit_vnext/README.md').read_bytes(),
         'SELECTIVE_STAGING_AND_ROLLBACK.json':inc.json_bytes(stage_receipt),
