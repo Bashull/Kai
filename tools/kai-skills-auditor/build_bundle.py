@@ -17,6 +17,7 @@ import zipfile
 import yaml
 from bundle_io import sha, verify_bundle, safe_path
 from portable_metadata import normalize_metadata
+from run_tool_checks import tool_test_evidence
 
 
 def write_json(path, data):
@@ -39,7 +40,8 @@ def file_record(path):
     return {'sha256': sha(data), 'bytes': len(data)}
 
 
-def build(workspace, output):
+def build(workspace, output, tool_test_receipt=None):
+    tool_stats, test_receipt = tool_test_evidence(tool_test_receipt, Path(__file__).parent)
     workspace = workspace.resolve()
     output = output.resolve()
     if output.exists():
@@ -91,6 +93,8 @@ def build(workspace, output):
     if len(all_aux) != expected_aux or len({r['uri'] for r in all_aux}) != expected_aux:
         raise ValueError('Auxiliary identity mismatch')
     output.mkdir(parents=True, exist_ok=False)
+    if test_receipt is not None:
+        write_json(output / 'evidence/TOOL_TEST_RECEIPT.json', test_receipt)
     catalog = []
     manifest_aux = []
     missing = []
@@ -228,7 +232,7 @@ def build(workspace, output):
              'github_auxiliary_recoveries': len(github_aux),
              'public_provider_main_drift_detected': [714],
              'python_ast': dict(collections.Counter(x['status'] for x in syntax)),
-             'tool_regression_tests': 22, 'tool_regression_tests_status': 'PASS',
+             **tool_stats,
              'provider_runtime_tests': 0, 'deep_manual_reviews_of_847': False,
              'latest_upstream_versions_verified_for_847': False, 'installed': False,
              'scope': 'VERIFIED_SCOPE_847_ARCHIVE_AND_DECLARED_AUXILIARIES_NOT_FULL_ECOSYSTEM'}
@@ -285,7 +289,9 @@ El auditor v0.3 se ejecutó sobre los 90 JSON reales de Termux: 1161 registros, 
 
 La v0.4 también se ejecutó sobre los mismos 90 JSON reales del móvil: 1161 registros, 847 índices, 0 conflictos, sin errores de entrada, CRC PASS. ZIP SHA-256 343982a351ea9f9589257d753e07e270eff417bf503a28dd9b6b76d0db5467c8. La pasada local sobre 847 cuerpos reconstruidos desde los archivos verificados también pasó, separada de las capturas reales.
 
-La v0.3 devolvía éxito ante cuerpos vacíos, conflictos y registros fuera de rango. La v0.4 rechaza esos casos antes de producir un paquete, exige la URI raíz exacta, preserva bytes NUL sin borrado silencioso y bloquea salidas existentes. Suite de herramientas: 22/22 PASS; no son 847 pruebas funcionales.
+La v0.3 devolvía éxito ante cuerpos vacíos, conflictos y registros fuera de rango. La v0.4 rechaza esos casos antes de producir un paquete, exige la URI raíz exacta, preserva bytes NUL sin borrado silencioso y bloquea salidas existentes. HISTORICAL_AS_OF 2026-10-15 (archivo v0.4.1 heredado): suite de herramientas 22/22 PASS. Esa cifra no certifica el código de este build.
+
+Pruebas de herramientas de este build: {tool_stats['tool_regression_tests_status']}; casos registrados {tool_stats['tool_regression_tests']}, superados {tool_stats['tool_regression_tests_passed']}, omitidos {tool_stats['tool_regression_tests_skipped']}. PASS sólo se admite con recibo válido y hashes de todas las fuentes Python actuales; sin recibo figura 0 / NOT_RUN. No son pruebas funcionales de 847 proveedores.
 
 Se conservan las 15 reparaciones YAML y la variante portable heredadas. No se presenta el añadido de anexos como actualización funcional. No se ha efectuado revisión manual profunda de cada línea de las 847 ni verificación upstream por proveedor. Las fichas individuales indican exactamente lo automático y lo pendiente.
 
@@ -346,5 +352,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--workspace', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--tool-test-receipt', type=Path)
     args = parser.parse_args()
-    build(args.workspace, args.output)
+    build(args.workspace, args.output, args.tool_test_receipt)

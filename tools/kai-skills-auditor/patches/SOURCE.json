@@ -1,0 +1,11 @@
+{
+  "donor": "https://github.com/aictrl-dev/skills",
+  "commit": "d4b42bf96f550e427a16a5ac7b5f40117cb26963",
+  "scope": "patch only; coherent donor tree required; apply inside skill root using patch -p1",
+  "modified_skill_id": 714,
+  "candidate_skill_sha256": "4a8e0e37e2b77c556a5e505d296af3e1bf874af2c41cf0f45e56f3f5043231a4",
+  "candidate_validator_sha256": "9790f021c53606a6de32696b7634aacb40c9cb08e1bf5bf605a7fae90430afdc",
+  "tests": "25 CLI on Work Linux and 25 on Termux ARM64; no provider workflow execution",
+  "not_installed": true,
+  "license": "MIT; retained in AICtrl-MIT-LICENSE.txt"
+}

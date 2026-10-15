@@ -1,0 +1,12 @@
+{
+  "name": "kai-skills-forge-workflow-validation-lab",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Isolated validation only; no connected workflow execution",
+  "dependencies": {
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
+    "js-yaml": "4.3.2"
+  }
+}

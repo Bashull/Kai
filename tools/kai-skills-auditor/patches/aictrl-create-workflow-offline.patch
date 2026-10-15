@@ -1,0 +1,80 @@
+--- upstream/LICENSE
++++ candidate/LICENSE
+@@ -0,0 +1,21 @@
++MIT License
++
++Copyright (c) 2026 aictrl.dev
++
++Permission is hereby granted, free of charge, to any person obtaining a copy
++of this software and associated documentation files (the "Software"), to deal
++in the Software without restriction, including without limitation the rights
++to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++copies of the Software, and to permit persons to whom the Software is
++furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice shall be included in all
++copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
++SOFTWARE.
+--- upstream/SKILL.md
++++ candidate/SKILL.md
+@@ -71,11 +71,11 @@
+ 7. Run the bundled validator until schema and static DAG checks pass:
+ 
+    ```bash
+-   npm i -D ajv ajv-formats js-yaml
++   npm i -D --ignore-scripts --save-exact ajv@8.20.0 ajv-formats@3.0.1 js-yaml@4.3.2
+    node path/to/create-workflow/validate.mjs .aictrl/workflows/<name>.yaml
+    ```
+ 
+-8. Inspect unresolved external references and CEL conditions. Local validation proves structure and DAG soundness; organization-scoped references and runtime expressions remain authoritative only at remote preflight or apply time.
++8. Inspect unresolved external references and CEL conditions. Local validation proves structure and DAG soundness; organization-scoped references and runtime expressions remain authoritative only at remote preflight or apply time. Keep the validation environment and lockfile isolated from production dependencies. This KAI candidate corrects the offline loop-depth boundary to permit three levels and requires all three validator dependencies; these are offline checks, not evidence of remote workflow execution.
+ 9. Show the created path, inputs, stages, side effects, approvals, limits, unresolved references, and exact validation result. Say how the file goes live: aictrl syncs `.aictrl/workflows/` automatically about 20 s after a push to the repository's default branch. There is no manual sync step; do not ask the user to run one. A file on any other branch has no effect.
+ 10. If the request was authoring only, stop with a reviewable YAML file. Do not apply, start, commit, push, merge, or deploy unless the user separately authorizes that action.
+ 
+--- upstream/validate.mjs
++++ candidate/validate.mjs
+@@ -44,7 +44,7 @@
+ try {
+   AjvMod = hostRequire('ajv/dist/2020.js'); // Draft 2020-12
+   yaml = hostRequire('js-yaml');
+-  try { addFormatsMod = hostRequire('ajv-formats'); } catch { addFormatsMod = null; }
++  addFormatsMod = hostRequire('ajv-formats');
+ } catch {
+   console.error('Missing validator dependencies (dev-only; not bundled with the skill).');
+   console.error('Install them in this repo, then re-run from the repo root:');
+@@ -76,7 +76,8 @@
+ if (addFormats) addFormats(ajv);
+ ajv.addSchema(v1Schema);
+ const validate = ajv.compile(schema);
+-if (!validate(doc)) {
++const schemaValid = validate(doc);
++if (!schemaValid) {
+   for (const e of validate.errors) {
+     const params = e.params && Object.keys(e.params).length ? '  ' + JSON.stringify(e.params) : '';
+     errors.push(`schema  ${e.instancePath || '/'}  ${e.message}${params}`);
+@@ -122,7 +123,7 @@
+   let worst = 1;
+   for (const n of nodes) {
+     if (n?.type !== 'loop') continue;
+-    if (depth >= 3 && n.body) errors.push(`dag     loop "${n.id ?? '?'}"  nesting depth exceeds the max of 3`);
++    if (depth > 3 && n.body) errors.push(`dag     loop "${n.id ?? '?'}"  nesting depth exceeds the max of 3`);
+     const childProduct = checkGraph(n.body?.nodes, n.body?.edges, depth + 1, `loop "${n.id ?? '?'}".body`);
+     const factor = (typeof n.maxIterations === 'number' ? n.maxIterations : 1) * childProduct;
+     if (factor > 1000) errors.push(`dag     loop "${n.id ?? '?'}"  product of nested maxIterations (${factor}) exceeds 1000`);
+@@ -130,7 +131,8 @@
+   }
+   return worst;
+ }
+-if (doc && typeof doc === 'object') checkGraph(doc.nodes, doc.edges);
++// Malformed collections are schema errors, never inputs to graph traversal.
++if (schemaValid) checkGraph(doc.nodes, doc.edges);
+ 
+ // ---- Report ------------------------------------------------------------------
+ if (errors.length === 0) {
