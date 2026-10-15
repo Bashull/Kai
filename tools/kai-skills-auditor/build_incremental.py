@@ -118,6 +118,10 @@ class PayloadReader:
 
 def _manifest(payload, catalog):
     return {'format': 'kai.skills.bundle/1', 'skills': len(catalog),
+            'auxiliary_source_roots': sorted({
+                '/'.join(b.safe_path(e['path']).parts[:4])
+                for row in catalog for e in row.get('provider_resource_files', [])
+                if b.safe_path(e['path']).parts[2] == 'skills'}),
             'aux_recovered': sum(r['aux_recovered'] for r in catalog),
             'aux_missing': sum(len(r['aux_missing']) for r in catalog),
             'functional_tests': 'NOT_VERIFIED_BY_BUILDER',
@@ -151,7 +155,8 @@ def _candidate_header(data, expected_name):
 
 
 def build_incremental(base_bundle, candidates, evidence, output, stop_file=None,
-                      base_sha256=None, tools_dir=None, expected_skills=None, batch_id='001'):
+                      base_sha256=None, tools_dir=None, expected_skills=None, batch_id='001',
+                      provider_resources=None, resource_bindings=None):
     """Create only new paths; return observed integrity and selective dry-run results.
 
     ``expected_skills`` is an optional input assertion, not a success counter.
@@ -211,6 +216,45 @@ def build_incremental(base_bundle, candidates, evidence, output, stop_file=None,
     candidate_files = snapshot_directory(roots[0], stop_file)
     evidence_files = snapshot_directory(roots[1], stop_file)
     tools_files = snapshot_directory(roots[2], stop_file, tools_only=True)
+    if (provider_resources is None) != (resource_bindings is None):
+        raise ValueError('Provider resources and explicit resource bindings must be supplied together')
+    provider_files, bindings, bound_files = {}, {}, {}
+    if provider_resources is not None:
+        resource_root = _directory(provider_resources)
+        if output.is_relative_to(resource_root):
+            raise ValueError('Output must be outside the provider resource input')
+        provider_files = snapshot_directory(resource_root, stop_file)
+        binding_document = b.read_json(_regular_bytes(resource_bindings, stop_file))
+        if (not isinstance(binding_document, dict)
+                or binding_document.get('format') != 'kai.skills.provider-bindings/1'
+                or not isinstance(binding_document.get('bindings'), list)):
+            raise ValueError('Unsupported provider resource bindings')
+        consumed = set()
+        known_skill_roots = {row['staged_root'] for row in by_id.values()}
+        for binding in binding_document['bindings']:
+            if (not isinstance(binding, dict) or type(binding.get('id')) is not int
+                    or binding['id'] not in by_id or binding['id'] in bindings
+                    or not isinstance(binding.get('files'), list) or not binding['files']):
+                raise ValueError('Each resource binding requires a unique known ID and nonempty files')
+            paths = binding['files']
+            b._validate_paths(paths)
+            for name in paths:
+                namespace = by_id[binding['id']]['namespace']
+                if name in provider_files:
+                    b._provider_resource_path(name, namespace)
+                    bound_files[name] = provider_files[name]
+                    consumed.add(name)
+                else:
+                    # Only existing verified sibling auxiliaries may supplement the
+                    # new common pack; never inject or modify another skill tree.
+                    b._provider_resource_path(name, namespace, known_skill_roots)
+                    parts = b.safe_path(name).parts
+                    if parts[2] != 'skills' or name not in original_payload:
+                        raise ValueError('Bound sibling auxiliary is absent from the verified base')
+                    bound_files[name] = original_payload[name]
+            bindings[binding['id']] = sorted(paths)
+        if not provider_files or consumed != set(provider_files):
+            raise ValueError('Every provider resource must have an explicit binding')
     by_root = {r['staged_root']: r for r in by_id.values()}
     selected = {}
     for name, data in candidate_files.items():
@@ -271,6 +315,22 @@ def build_incremental(base_bundle, candidates, evidence, output, stop_file=None,
         lineage = sorted(set(lineage + prior_change_batches.get(row['id'], [])))
         if lineage:
             row['candidate_change_batches'] = lineage
+    provider_changes = []
+    for name, data in sorted(provider_files.items()):
+        before = original_payload.get(name)
+        if before is not None and before != data:
+            preserve_and_remove(name, history + name)
+        payload[name] = data
+        provider_changes.append({'path': name, 'before': record(before) if before is not None else None,
+                                 'after': record(data),
+                                 'state': 'ADDED' if before is None else 'UNCHANGED' if before == data else 'CHANGED'})
+    for skill_id, paths in bindings.items():
+        row = catalog_by_id[skill_id]
+        prior = {entry['path']: entry for entry in row.get('provider_resource_files', [])}
+        prior.update({name: {'path': name, **record(bound_files[name])} for name in paths})
+        row['provider_resource_files'] = [prior[name] for name in sorted(prior)]
+        row['provider_resource_batches'] = sorted(set(row.get('provider_resource_batches', []) + [batch_id]))
+        row['provider_resource_scope'] = 'EXPLICIT_FILES_NOT_TRANSITIVE_CLOSURE_OR_FUNCTIONAL_REVIEW'
     for root, new_files in selected.items():
         row = catalog_by_id[by_root[root]['id']]
         old_files = {n: data for n, data in original_payload.items() if n.startswith(root + '/')}
@@ -315,6 +375,9 @@ def build_incremental(base_bundle, candidates, evidence, output, stop_file=None,
     payload[b.CATALOG_PATH] = json_bytes(catalog)
     payload['catalog/847_ESTADO.csv'] = _csv(catalog)
     payload[batch_root + '/CHANGES.json'] = json_bytes(changes)
+    if provider_files:
+        payload[batch_root + '/PROVIDER_RESOURCE_CHANGES.json'] = json_bytes(provider_changes)
+        payload[batch_root + '/PROVIDER_RESOURCE_BINDINGS.json'] = json_bytes(binding_document)
     payload[batch_root + '/CANDIDATE_INPUT_MANIFEST.json'] = json_bytes(
         {name: record(data) for name, data in sorted(candidate_files.items())})
     payload[batch_root + '/PROVENANCE.json'] = json_bytes({
@@ -324,12 +387,13 @@ def build_incremental(base_bundle, candidates, evidence, output, stop_file=None,
         'base_sha256_pin': 'MATCHED' if base_sha256 else 'COMPUTED_NOT_EXTERNALLY_PINNED',
         'base_manifest_sha256': b.sha(base_manifest_bytes),
         'candidate_ids': ids, 'historical_prefix': history,
+        'provider_resource_files': len(provider_files), 'resource_bound_ids': sorted(bindings),
         'evidence_claims': 'COPIED_AS_EVIDENCE_NOT_PROMOTED_BY_BUILDER',
         'new_secret_preflight': 'HIGH_CONFIDENCE_PATTERNS_ONLY_NOT_CERTIFICATION',
         'provider_code_execution': False, 'active_installation': False})
     summary = ('# KAI Skills Forge — incremental candidate\n\n'
                'State: CANDIDATE_PARTIAL / NOT_INSTALLED / NOT_CANONICAL.\n\n'
-               'Originals retain their original bytes. Only explicitly supplied provider trees change. '
+               'Originals retain their original bytes. Only explicitly supplied skill trees and governed provider resources change. '
                'The base tools, reports, replaced trees and catalog remain historical evidence. '
                'support_files records remain historical capture metadata; candidate_resource_files '
                'and auxiliary counts describe packaged files, not transitive dependency closure.\n\n'
@@ -357,6 +421,7 @@ def build_incremental(base_bundle, candidates, evidence, output, stop_file=None,
                                                 if c['changed'] or c['added'] or c['removed']),
               'original_files_preserved': sum(n.startswith('originals/') for n in original_payload),
               'candidate_input_files': len(candidate_files), 'evidence_files_copied': len(evidence_files),
+              'provider_resource_files': len(provider_files), 'resource_bound_ids': sorted(bindings),
               'current_tool_files': len(tools_files), 'base_integrity': 'PASS',
               'manual_review': 'NOT_VERIFIED_BY_BUILDER', 'functional_tests': 'NOT_RUN_BY_BUILDER',
               'provider_execution': False, 'active_installation': False,
@@ -403,6 +468,7 @@ def build_incremental(base_bundle, candidates, evidence, output, stop_file=None,
                    'batch_id': batch_id,
                    'zip': str(destination), **zip_record, 'base_zip_sha256': base_digest,
                    'catalog_entries': len(catalog), 'candidate_ids': ids,
+                   'provider_resource_files': len(provider_files), 'resource_bound_ids': sorted(bindings),
                    'hashed_payload_files': len(verified['files']),
                    'archive_integrity': 'PASS', 'catalog_selective_dry_run': dry_run,
                    'provider_execution': False, 'active_installation': False,
@@ -428,10 +494,13 @@ def main():
     parser.add_argument('--stop-file', type=Path)
     parser.add_argument('--expected-skills', type=int, default=847)
     parser.add_argument('--batch-id', default='001', help='Unique three-digit incremental batch namespace')
+    parser.add_argument('--provider-resources', type=Path, help='Explicit provider support tree, never other skills')
+    parser.add_argument('--resource-bindings', type=Path, help='JSON mapping known IDs to supplied provider files')
     args = parser.parse_args()
     result = build_incremental(args.base_bundle, args.candidates, args.evidence,
                                args.output, args.stop_file, args.base_sha256,
-                               expected_skills=args.expected_skills, batch_id=args.batch_id)
+                               expected_skills=args.expected_skills, batch_id=args.batch_id,
+                               provider_resources=args.provider_resources, resource_bindings=args.resource_bindings)
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
 

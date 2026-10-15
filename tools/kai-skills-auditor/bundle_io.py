@@ -128,6 +128,20 @@ def _catalog_by_id(z, manifest):
         raise ValueError('Catalog length does not match the manifest skills count')
     by_id = {}
     roots = set()
+    known_skill_roots = {r.get('staged_root') for r in catalog if isinstance(r, dict)
+                         and isinstance(r.get('staged_root'), str)}
+    auxiliary_roots = manifest.get('auxiliary_source_roots', [])
+    if not isinstance(auxiliary_roots, list):
+        raise ValueError('Auxiliary source roots must be an explicit list')
+    _validate_paths(auxiliary_roots)
+    namespaces = {r.get('namespace') for r in catalog if isinstance(r, dict)
+                  and isinstance(r.get('namespace'), str)}
+    for auxiliary_root in auxiliary_roots:
+        parts = safe_path(auxiliary_root).parts
+        if (len(parts) != 4 or parts[0] != 'providers' or parts[2] != 'skills'
+                or parts[1] not in namespaces or not NAME_RE.fullmatch(parts[3])):
+            raise ValueError('Invalid auxiliary source root')
+    known_skill_roots.update(auxiliary_roots)
     for r in catalog:
         if not isinstance(r, dict) or type(r.get('id')) is not int or r['id'] < 1 or r['id'] in by_id:
             raise ValueError('Catalog IDs must be positive, unique integers')
@@ -160,12 +174,42 @@ def _catalog_by_id(z, manifest):
             if (r.get('original_path') != original or original not in manifest['files']
                     or r.get('original_sha256') != manifest['files'][original]['sha256']):
                 raise ValueError('Catalog original root/hash disagrees with the manifest')
+        resources = r.get('provider_resource_files', [])
+        if not isinstance(resources, list):
+            raise ValueError('Provider resources must be an explicit list')
+        resource_names = []
+        for entry in resources:
+            if not isinstance(entry, dict):
+                raise ValueError('Invalid provider resource record')
+            path = entry.get('path')
+            _provider_resource_path(path, namespace, known_skill_roots)
+            if (path not in manifest['files'] or
+                    {k: entry.get(k) for k in ('bytes', 'sha256')} != manifest['files'][path]):
+                raise ValueError('Provider resource is missing or disagrees with the manifest')
+            resource_names.append(path)
+        _validate_paths(resource_names)
         by_id[r['id']] = r
     for key, total in (('aux_recovered', sum(r['aux_recovered'] for r in catalog)),
                        ('aux_missing', sum(len(r['aux_missing']) for r in catalog))):
         if type(manifest.get(key)) is not int or manifest[key] != total:
             raise ValueError('Catalog auxiliary totals disagree with the manifest')
     return by_id
+
+
+def _provider_resource_path(path, namespace, known_skill_roots=None):
+    """Allow common files and explicitly referenced auxiliaries of known sibling skills.
+
+    SKILL.md is always excluded: copying an auxiliary does not select another skill.
+    """
+    parts = safe_path(path).parts
+    if (len(parts) < 3 or parts[:2] != ('providers', namespace)
+            or _path_key(parts[-1]) == 'skill.md'):
+        raise ValueError('Provider resource must stay in its own provider and exclude skill entrypoints')
+    if _path_key(parts[2]) == 'skills':
+        if (parts[2] != 'skills' or len(parts) < 5 or known_skill_roots is None
+                or '/'.join(parts[:4]) not in known_skill_roots):
+            raise ValueError('Sibling auxiliary requires an explicit known skill root')
+    return path
 
 
 def _write_new_file(path, data, target, created_files, created_dirs):
@@ -227,12 +271,22 @@ def stage_selected(path, ids, target, apply=False, stop_file=None):
         names = [r['name'] for r in selected]
         if len({_path_key(n) for n in names}) != len(names):
             raise ValueError('Selected skills have conflicting names; test separate provider scopes')
-        plan = []
+        provider_layout = any(r.get('provider_resource_files') for r in selected)
+        sources = set()
         for r in selected:
             if r['aux_missing']:
                 raise ValueError(f'Skill {r["id"]} still has missing declared resources')
             prefix = r['staged_root'] + '/'
-            plan += [(n, r['name'] + '/' + n[len(prefix):]) for n in manifest['files'] if n.startswith(prefix)]
+            sources.update(n for n in manifest['files'] if n.startswith(prefix))
+            sources.update(e['path'] for e in r.get('provider_resource_files', []))
+        if provider_layout:
+            plan = [(n, n) for n in sorted(sources)]
+        else:
+            plan = []
+            for r in selected:
+                prefix = r['staged_root'] + '/'
+                plan += [(n, r['name'] + '/' + n[len(prefix):])
+                         for n in sorted(sources) if n.startswith(prefix)]
         _validate_paths([relative for _, relative in plan])
         _check_stop(stop_file)
         if apply:
@@ -247,7 +301,12 @@ def stage_selected(path, ids, target, apply=False, stop_file=None):
                     _check_record(source, manifest['files'][source], data)
                     _write_new_file(target / relative, data, target, created_files, created_dirs)
                 _check_stop(stop_file)
-                receipt = {'format': 'kai.skills.stage/1', 'ids': ids,
+                receipt = {'format': 'kai.skills.stage/2' if provider_layout else 'kai.skills.stage/1', 'ids': ids,
+                           **({'layout': 'PROVIDER_SCOPED',
+                               'selected_roots': [r['staged_root'] for r in selected],
+                               'resource_paths': sorted({e['path'] for r in selected
+                                                         for e in r.get('provider_resource_files', [])})}
+                              if provider_layout else {}),
                            'bundle_manifest_sha256': sha(z.read('MANIFEST_SHA256.json')),
                            'files': [{'path': relative, 'source': source, **manifest['files'][source]}
                                      for source, relative in plan],
@@ -265,6 +324,7 @@ def stage_selected(path, ids, target, apply=False, stop_file=None):
                                        + ', '.join(failures)) from exc
                 raise
         return {'mode': 'ISOLATED_STAGE' if apply else 'DRY_RUN', 'ids': ids,
+                'layout': 'PROVIDER_SCOPED' if provider_layout else 'FLAT_SKILL_LEGACY',
                 'files': len(plan), 'target': str(target), 'executed_bundled_code': False,
                 'functional_validation': 'NOT_RUN', 'active_installation': False,
                 'receipt': str(target / RECEIPT_NAME) if apply else None}
@@ -295,7 +355,7 @@ def _rollback_plan(target, stop_file):
         raise ValueError('Completed staging receipt is required for rollback')
     receipt_data = (target / RECEIPT_NAME).read_bytes()
     receipt = read_json(receipt_data)
-    if (not isinstance(receipt, dict) or receipt.get('format') != 'kai.skills.stage/1'
+    if (not isinstance(receipt, dict) or receipt.get('format') not in {'kai.skills.stage/1', 'kai.skills.stage/2'}
             or receipt.get('active_installation') is not False
             or receipt.get('executed_bundled_code') is not False
             or not isinstance(receipt.get('bundle_manifest_sha256'), str)
@@ -308,16 +368,46 @@ def _rollback_plan(target, stop_file):
         raise ValueError('Invalid staging receipt selection or file records')
     paths = [e.get('path') for e in entries]
     _validate_paths(paths)
+    provider_layout = receipt['format'] == 'kai.skills.stage/2'
+    selected_roots = receipt.get('selected_roots', [])
+    resource_paths = receipt.get('resource_paths', [])
+    if provider_layout:
+        if (receipt.get('layout') != 'PROVIDER_SCOPED' or not isinstance(selected_roots, list)
+                or len(selected_roots) != len(ids) or not isinstance(resource_paths, list)):
+            raise ValueError('Invalid provider-scoped staging selection')
+        _validate_paths(selected_roots)
+        _validate_paths(resource_paths)
+        if not set(resource_paths).issubset(paths):
+            raise ValueError('Staging resource declaration names missing files')
+        for root in selected_roots:
+            parts = safe_path(root).parts
+            if (len(parts) != 4 or parts[0] != 'providers' or parts[2] != 'skills'
+                    or not NAME_RE.fullmatch(parts[3])):
+                raise ValueError('Invalid provider-scoped selected root')
     expected_dirs, roots = set(), set()
     plan = []
     for entry in entries:
         relative = safe_path(entry['path'])
         source = safe_path(entry.get('source'))
-        if (len(relative.parts) < 2 or not NAME_RE.fullmatch(relative.parts[0])
+        if provider_layout:
+            if source != relative or len(source.parts) < 3:
+                raise ValueError('Invalid provider-scoped receipt path')
+            containing = [root for root in selected_roots if entry['path'].startswith(root + '/')]
+            if containing:
+                roots.update(containing)
+            else:
+                namespaces = {safe_path(root).parts[1] for root in selected_roots}
+                if source.parts[1] not in namespaces:
+                    raise ValueError('Resource belongs to an unselected provider')
+                known_aux_roots = ({'/'.join(source.parts[:4])}
+                                   if entry['source'] in resource_paths else None)
+                _provider_resource_path(entry['source'], source.parts[1], known_aux_roots)
+        elif (len(relative.parts) < 2 or not NAME_RE.fullmatch(relative.parts[0])
                 or len(source.parts) < 5 or source.parts[0] != 'providers' or source.parts[2] != 'skills'
                 or source.parts[3:] != relative.parts):
             raise ValueError('Staging receipt contains an invalid scoped file path')
-        roots.add(relative.parts[0])
+        else:
+            roots.add(relative.parts[0])
         expected_dirs.update(str(p) for p in relative.parents if str(p) != '.')
         if entry['path'] not in actual_files:
             raise ValueError('Rollback payload file is missing')

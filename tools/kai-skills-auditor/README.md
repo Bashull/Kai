@@ -63,3 +63,50 @@ python federated_registry.py --original-root VERIFIED_EXTRACT --pc PC_CAPTURE.zi
 `quality_checks.py` ofrece contadores descriptivos para filas JSON suministradas, claves explícitas, frescura con reloj consciente de zona y proyección de cruces. Separa nulos, duplicados exactos, colisiones candidatas de normalización y fechas futuras. No repara datos ni inventa umbrales. Sus pruebas diferenciales usan SQLite con tipos de clave de texto y nulos; no prueban semántica de todos los motores de datos. El helper usa sólo stdlib; la federación requiere PyYAML disponible y revisado. No instala dependencias.
 
 El recibo actual identifica el código y separa PASS/SKIP. Las pruebas del helper en Windows/Android sólo acreditan ese componente con datos sintéticos, no servicios de proveedor ni las5229 capacidades. Los corpus privados y cualquier material con licencia propietaria se conservan fuera del código público.
+
+## Recursos comunes OMEGA004
+
+`build_incremental.py` acepta opcionalmente `--provider-resources DIRECTORIO` y
+`--resource-bindings ARCHIVO.json` juntos. El documento usa
+`{"format":"kai.skills.provider-bindings/1","bindings":[{"id":2,"files":["providers/p/shared/contract.md"]}]}`.
+Cada ID debe existir y cada recurso nuevo debe estar vinculado explícitamente.
+Los archivos nuevos sólo pueden pertenecer al mismo proveedor y quedar fuera de
+sus árboles de skills. Se pueden vincular auxiliares de skills hermanas ya
+presentes en el bundle base verificado; no se pueden introducir ni sustituir por
+esta vía, ni usar `SKILL.md` como auxiliar. Un cambio de recurso invalida los
+consumidores cuyo hash no se haya actualizado explícitamente. Los recursos
+sustituidos se conservan en el historial del lote.
+
+`provider_resource_files` registra rutas, bytes y hashes independientes de los
+contadores de archivos dentro de cada skill. `provider_resource_batches` no es
+una revisión manual ni una evolución de las instrucciones de esas skills.
+Una lista explícita no demuestra cierre transitivo: el runtime puede leer otros
+archivos al ejecutarse. Comprobarlo requiere pruebas del consumidor real.
+
+Cuando alguna selección tiene recursos comunes, `stage_selected` conserva
+`providers/<namespace>/...` para todas las skills seleccionadas y deduplica los
+recursos compartidos. El receipt `kai.skills.stage/2` declara raíces seleccionadas,
+rutas auxiliares y todos los archivos copiados. Los auxiliares de una hermana no
+incluyen su `SKILL.md` ni la seleccionan implícitamente. Sin recursos comunes se
+conserva el formato plano anterior. El rollback admite ambos receipts, verifica
+todo el inventario antes de borrar y mantiene los mismos límites de STOP e
+interrupción. Sigue siendo una copia de laboratorio, sin registro ni instalación.
+
+`task_drivers/omega004/test_dashboard_portability.mjs` ejecuta siete pruebas
+de integración offline contra un proveedor suministrado por
+`FORGE_PROVIDER_ROOT`. Comprueba runtime, preparación, evidencia suministrada,
+límites de Node y rechazo de alteraciones. No incluye código propietario ni
+instala dependencias. Sus resultados y hashes se registran por separado: el
+recibo Python raíz no cubre los drivers anidados. Una preparación, compilación
+o screenshot no certifica todos los conectores, accesibilidad o plataformas.
+
+El manifiesto puede declarar `auxiliary_source_roots` para los orígenes de esos
+auxiliares cuando una distribución contiene sólo parte del catálogo. Es un mapa
+de procedencia de archivos: no añade IDs seleccionados ni permite copiar otra
+entrada `SKILL.md`. Las rutas deben seguir perteneciendo al mismo proveedor.
+
+`task_drivers/omega004/test_stage_support_stdlib.py` aporta cuatro pruebas
+pequeñas para el mismo `bundle_io.py` en Linux, Windows y Termux: estructura,
+rollback, preservación de cambios/archivos externos y STOP. No depende de PyYAML,
+no ejecuta proveedores y conserva recibos separados por entorno. Estos cuatro
+casos no forman parte del contador de descubrimiento Python en la raíz.
