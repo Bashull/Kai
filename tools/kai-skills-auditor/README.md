@@ -110,3 +110,34 @@ pequeñas para el mismo `bundle_io.py` en Linux, Windows y Termux: estructura,
 rollback, preservación de cambios/archivos externos y STOP. No depende de PyYAML,
 no ejecuta proveedores y conserva recibos separados por entorno. Estos cuatro
 casos no forman parte del contador de descubrimiento Python en la raíz.
+
+## Informe y continuidad OMEGA005
+
+`task_drivers/omega005/evolve_reports005.py` recibe el ZIP privado004 y su SHA
+esperado, exige los dos cuerpos de entrada exactos y genera un overlay nuevo.
+Reutiliza los controles de rutas, escritura nueva, STOP, rollback y manifiestos
+existentes. Añade dos referencias propias: una guía portable común y una guía de
+afirmaciones, evidencia y revisión. Corrige la explicación de salida split en el
+informe y mueve el enlace portable del dashboard a la referencia común. No cambia
+el runtime protegido, las pruebas del proveedor ni sus licencias. El original y
+la referencia local anterior quedan conservados por el builder incremental.
+
+`test_evolution_boundaries.py` comprueba cuatro negativas con un ZIP suministrado
+en `FORGE_BASE_BUNDLE` y `FORGE_BASE_SHA256`: pin incorrecto, STOP, destino existente
+y ruta de instalación activa. `test_report_delivery.mjs` usa
+`FORGE_PROVIDER_ROOT` y `FORGE_REPORT_PROJECT` para seis comprobaciones del contrato
+de salida: bundle completo, HTML suelto, sidecar ausente o alterado, exportación
+offline con el snapshot íntegro y corte de evidencia estable entre zonas horarias.
+Los resultados de estos drivers se registran aparte del recibo Python de raíz.
+
+El recibo raíz004 sólo se hereda si sus fuentes siguen coincidiendo; no se
+presenta como una ejecución nueva005. Las pruebas upstream se conservan con sus
+fallos literales y su alcance real. Ninguna compilación, comparación de texto o
+prueba numérica acredita render, accesibilidad, conectores o instalación en un
+host. El escenario de informe utiliza datos ficticios y dos ediciones de una
+misma app, conserva su identidad y distingue fecha del corte de fecha de autoría.
+
+`release_omega005.py` adapta el empaquetador existente y su verificador a nueve
+candidatos. Requiere todos los inputs privados y evidencias locales; produce una
+salida nueva y prueba staging/rollback sólo en su laboratorio. Las distribuciones
+generales para destinos siguen retenidas hasta disponer de la evidencia adecuada.
