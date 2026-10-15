@@ -20,6 +20,8 @@ def main():
     p.add_argument('--output',type=Path,required=True)
     p.add_argument('--previous-release-driver',type=Path,required=True)
     p.add_argument('--stop-file',type=Path)
+    p.add_argument('--reuse-components-from',type=Path,
+                   help='Reuse only byte-identical components from a preserved partial run')
     a=p.parse_args(); w=a.workdir.resolve(); out=a.output.resolve()
     sys.path.insert(0,str(w/'toolkit_omega'))
     import bundle_io as b
@@ -43,6 +45,20 @@ def main():
         b._check_stop(a.stop_file)
         for n,d in payload.items():
             if not n.lower().endswith('.zip'):inc._secret_preflight(n,d)
+        old=a.reuse_components_from/name if a.reuse_components_from else None
+        if old and old.is_file():
+            # Reuse is conditional on the complete intended file set and bytes;
+            # changed evidence is rebuilt rather than silently accepted.
+            import zipfile
+            manifest=(inc._manifest(payload,catalog) if catalog is not None else
+                {'format':'kai.skills.release-component/1','release_state':'CANDIDATE_PARTIAL',
+                 'provider_E2E':False,'files':{n:inc.record(d) for n,d in sorted(payload.items())}})
+            marker='MANIFEST_SHA256.json' if catalog is not None else 'COMPONENT_MANIFEST_SHA256.json'
+            expected={**payload,marker:inc.json_bytes(manifest)}
+            with zipfile.ZipFile(old) as z:
+                identical=set(z.namelist())==set(expected) and all(z.read(n)==d for n,d in expected.items())
+            if identical:
+                with (out/name).open('xb') as f:f.write(old.read_bytes())
         return prior.write_zip(out/name,payload,catalog)
 
     build_path=w/'builds/KAI_SKILLS_FORGE_OMEGA003_CANDIDATE_20261015.zip'
@@ -83,7 +99,9 @@ def main():
         'Only local synthetic helper and inherited component evidence is available.\n'
         'No mass installation, provider execution, active deployment or relicensing.\n').encode()
     records.append(package('04_KAI_SKILLS_IMPROVED_OMEGA003_PRIVATE_CANDIDATES.zip',improved,selected))
-    toolkit=files(w/'toolkit_omega')
+    toolkit={n if '/' in n or n.endswith('.py') or n=='README.md'
+             else 'HISTORICAL/recovered_batch002_component/'+n:d
+             for n,d in files(w/'toolkit_omega').items()}
     toolkit['evidence/TOOL_TEST_RECEIPT_WORK.json']=(w/'evidence_omega/tests/TOOL_TEST_RECEIPT_WORK.json').read_bytes()
     records.append(package('05_KAI_SKILLS_FORGE_TOOLKIT_OMEGA003.zip',toolkit))
     archive=out/'04_KAI_SKILLS_IMPROVED_OMEGA003_PRIVATE_CANDIDATES.zip'
