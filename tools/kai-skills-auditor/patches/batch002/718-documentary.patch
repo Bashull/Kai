@@ -1,0 +1,130 @@
+--- /dev/null
++++ b/LICENSE
+@@ -0,0 +1,21 @@
++MIT License
++
++Copyright (c) 2026 aictrl.dev
++
++Permission is hereby granted, free of charge, to any person obtaining a copy
++of this software and associated documentation files (the "Software"), to deal
++in the Software without restriction, including without limitation the rights
++to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++copies of the Software, and to permit persons to whom the Software is
++furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice shall be included in all
++copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
++SOFTWARE.
+--- a/SKILL.md
++++ b/SKILL.md
+@@ -96,6 +96,8 @@
+ | **Granularity** | How often to compute (daily, weekly, per-event) |
+ | **Segments** | Breakdowns needed (by org, by user, by plan tier, by source) |
+ | **Data source** | Where the raw data comes from (your product-analytics tool / warehouse / billing system) |
++| **Unit and window** | Entity/attempt/user counted, eligibility, UTC cohort boundaries, outcome horizon and data-maturity/watermark rule |
++| **Identity and quality** | Stable keys, deduplication, exclusions/cancellations, late/conflicting events, zero-denominator and missing-instrumentation policy |
+ 
+ Format as a table:
+ 
+@@ -104,9 +106,9 @@
+ 
+ | ID | Metric | Definition | Answers | Type | Source |
+ |----|--------|-----------|---------|------|--------|
+-| M1 | Feature adoption rate | Users who used feature / Total active users (7d) | Q1, Q3 | rate | product analytics |
++| M1 | Feature adoption rate | Distinct eligible users with a core-action start / Eligible active users (7d, using the existing active-user definition) | Q1, Q3 | rate | product analytics |
+ | M2 | Time to first use | Median days from account creation to first feature use | Q3 | duration | warehouse |
+-| M3 | Completion rate | Successful completions / Total attempts | Q1 | rate | warehouse |
++| M3 | Completion rate | Distinct eligible started attempts with in-horizon success / Distinct eligible started attempts in the same mature start cohort (see attempt contract) | Q1 | rate | authoritative lifecycle source / warehouse |
+ | M4 | Revenue per user (guard rail) | MRR / Active users, pre vs post launch | Q5 | ratio | billing system + product analytics |
+ ```
+ 
+@@ -115,6 +117,8 @@
+ - Every metric links to at least one question
+ - No orphan metrics (metrics without a question are waste)
+ - Guard-rail metrics are included
++- Numerator and denominator use the same unit, eligibility and cohort. Deduplication, cancellations, maturity and `N = 0` are defined.
++- An unavailable or uninstrumented source is `not instrumented` / `unknown coverage`, never an invented zero. For attempt-based M3, adapt [the worked lifecycle contract](reference/attempt-metric-contract.md); a page view or displayed error is not an attempt. The example tables are a starting point, not a complete implementation or a closed GQM plan for every listed question.
+ 
+ ### Phase 4: Implementation Plan
+ 
+@@ -135,9 +139,11 @@
+ 
+ | Event Name | Trigger | Properties | Metric |
+ |------------|---------|------------|--------|
+-| `feature_viewed` | User opens the feature page | `org_id`, `user_id`, `source` (sidebar/link/search) | M1, M3 |
+-| `feature_action_completed` | User completes the core action | `org_id`, `user_id`, `duration_ms`, `result` | M3 |
+-| `feature_error_shown` | Error state displayed | `org_id`, `error_type`, `step` | M3 |
++| `feature_viewed` | User opens the feature page | `org_id`, `user_id`, `source` (sidebar/link/search) | Discovery context for Q3; not M3 attempts or M1 use |
++| `feature_action_started` | Core action accepted at the defined start boundary | `event_id`, `org_id`, `attempt_id`, `event_at`, `version`; `user_id` for M1 | M1, M3 |
++| `feature_action_completed` | Attempt reaches authoritative success | Same lifecycle keys; permitted segments | M3 |
++| `feature_action_failed` / `feature_action_cancelled` | Attempt reaches terminal failure / user cancellation | Same lifecycle keys; non-sensitive reason code | M3 outcome breakdown |
++| `feature_error_shown` | Error state displayed | `org_id`, `error_type`, `step`; `attempt_id` only when known | Diagnostic context; not a distinct M3 attempt |
+ ```
+ 
+ Naming convention: `snake_case`, `object_action` pattern. Follow your tool's own conventions for past vs. present tense.
+@@ -165,7 +171,7 @@
+ 
+ #### New table (if needed)
+ - Table: `{domain}_lifecycle` (name it by domain, not by tool or team)
+-- Schema: define alongside your event pipeline setup
++- Schema: define alongside your event pipeline setup; for M3 retain stable attempt/event keys, occurrence time and terminal status from the worked contract.
+ ```
+ 
+ Link each change to the metric it supports.
+@@ -179,7 +185,7 @@
+ 
+ | Event Type | Stream/Topic | New/Existing | Fields | Metric |
+ |------------|-------------|-------------|--------|--------|
+-| `execution.retried` | execution-lifecycle | New event type on existing stream | `retry_count`, `retry_reason` | M3 |
++| `feature_action_started` + terminal lifecycle outcomes | Existing authoritative feature/domain stream when available | Reuse first; add missing lifecycle records only | `event_id`, `org_id`, `attempt_id`, `event_at`, `version`, outcome | M3 |
+ ```
+ 
+ For new streams or topics, follow your pipeline tool's setup process (e.g. create a Kafka topic + consumer, a Pub/Sub subscription, or a Segment source).
+@@ -239,6 +245,8 @@
+ - [ ] Product analytics: events visible in your tool's live-event stream within 24h of deploy
+ - [ ] Warehouse: verify rows land in your fact table within 24h (query your table for recent rows)
+ - [ ] Dashboard: metrics rendering correctly in your reporting tool
++- [ ] Reconcile a synthetic attempt cohort against the declared numerator/denominator, cancellation, timeout, duplicate and late-event rules.
++- [ ] Zero eligible attempts, unknown instrumentation and immature data remain distinguishable; no success rate is fabricated from missing events.
+ 
+ ### Review cadence
+ - Week 1 post-launch: verify data flowing, fix instrumentation gaps
+--- /dev/null
++++ b/reference/attempt-metric-contract.md
+@@ -0,0 +1,29 @@
++# Attempt-based completion: worked measurement contract
++
++This is an illustrative M3 policy to adapt with the feature owner, not a universal analytics-tool default. Preserve Goal → Question → Metric → collection traceability. Reuse an existing reliable lifecycle source before adding events; a page view or displayed error is not evidence of a distinct attempt.
++
++## Unit, events and identity
++
++- Unit: one accepted core-action attempt, keyed by `(org_id, attempt_id)`. Define the exact accepted-start boundary for the feature. Generate the ID once there and retain it through technical retries; an explicit new attempt after a terminal outcome gets a new ID.
++- `feature_action_started` records that boundary. `feature_action_completed`, `feature_action_failed` and `feature_action_cancelled` record terminal success, failure and user cancellation. Choose one authoritative producer for lifecycle outcomes; do not add frontend copies of an existing server event.
++- Every lifecycle record has `event_id`, `org_id`, `attempt_id`, `event_at` (UTC occurrence time), `version` and the permitted segment fields. `user_id` is needed only for an explicitly user-based metric such as M1. Collect identifiers without copying action payloads or sensitive content.
++- Deduplicate identical re-deliveries by `event_id`. Conflicting payloads under the same ID are data-quality errors. Count one start and at most one outcome per attempt; a conflicting later terminal outcome is a contract violation, not another completion. Late delivery does not change the event's occurrence time.
++
++## Cohort and calculation
++
++Example policy: starts during `[2026-10-01T00:00:00Z, 2026-10-02T00:00:00Z)`; success must occur from the start through **24 hours** after that start, inclusive. Report at or after `2026-10-03T00:00:00Z`, with the ingestion watermark past the required horizon. Set the real period, horizon, timezone and lateness allowance for each feature.
++
++Denominator `N`: distinct eligible started attempts in that cohort. Numerator `S`: those same attempts with a valid success within their horizon. **M3 = S / N**. Count cancellations and failures in `N` and not `S`; report their counts separately. A started attempt with no terminal event by its mature deadline is a timeout/abandonment in this policy. A later completion remains outside this numerator. Do not remove cancellations or failures to improve the rate; an alternative policy requires a separate definition and comparison.
++
++State the eligibility/exclusion rules before collection (for example synthetic/test traffic) and apply them to numerator and denominator together. Starts exactly at the period end belong to the next cohort. Orphan outcomes, invalid timestamps, missing IDs, success before start, conflicting outcomes and missing coverage must be surfaced; do not silently manufacture starts or treat missing telemetry as failures.
++
++## Availability and validation
++
++- `N = 0` with verified coverage: value **null / no eligible attempts**, not 0%.
++- Required sources not instrumented, unavailable or unverified: value **null / not instrumented or unknown coverage**, not zero usage.
++- Cohort or watermark not mature: mark provisional; do not present an incomplete rate as a final result.
++- Contradictory identity/state records: flag data-quality failure before publishing a definitive rate.
++
++Test with synthetic starts, successes, failures, cancellation, timeout, duplicate delivery, late success, zero attempts, unavailable instrumentation and an immature cohort. Verify every Q has an M, every M has a collection/query contract, and every event has a purpose. Inspect exact query/tool units: a user-based funnel is not this attempt-based rate.
++
++Primary background (consulted 2026-10-15): [Basili, Caldiera and Rombach, GQM](https://www.cs.umd.edu/~basili/publications/technical/T89.pdf); [accessible author-paper copy](https://www.cs.toronto.edu/~sme/CSC444F/handouts/GQM-paper.pdf); [Amplitude's documented funnel units/windows](https://amplitude.com/docs/analytics/charts/funnel-analysis/funnel-analysis-how-amplitude-computes-conversions). The exact attempt policy above is a local worked example, not a rule attributed to those sources.
