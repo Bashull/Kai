@@ -1,4 +1,4 @@
-# KAI Skills Auditor v0.4
+# KAI Skills Auditor v0.4 / Archive v0.4.1
 
 Offline inspection and reconciliation tools for an explicitly scoped collection of skill instruction documents. Donor scripts are read as data, never executed by the auditor. Provider services, credentials and functional validation are outside the archive's integrity claims.
 
@@ -10,4 +10,4 @@ Run `python -m unittest -v` in this directory. Python 3.10+ is required. PyYAML 
 
 `build_bundle.py` is a task-specific reproducible builder consuming the six supplied archives and explicit local/cloud/provider recovery receipts. It is not a downloader or a universal upstream updater. Source archives, private catalogs and third-party resource collections are deliberately excluded from this Git repository.
 
-Validation records: 20 regression tests, actual 847-root capture reconciliation on Termux, and independent archive/hash/staging checks. These are tool and packaging checks, not functional tests of 847 provider skills.
+Validation records: 22 regression tests, actual 847-root capture reconciliation on Termux, and independent archive/hash/staging checks. These are tool and packaging checks, not functional tests of 847 provider skills.
