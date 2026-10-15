@@ -1,0 +1,171 @@
+--- /dev/null
++++ b/LICENSE
+@@ -0,0 +1,21 @@
++MIT License
++
++Copyright (c) 2026 aictrl.dev
++
++Permission is hereby granted, free of charge, to any person obtaining a copy
++of this software and associated documentation files (the "Software"), to deal
++in the Software without restriction, including without limitation the rights
++to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++copies of the Software, and to permit persons to whom the Software is
++furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice shall be included in all
++copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
++SOFTWARE.
+--- a/SKILL.md
++++ b/SKILL.md
+@@ -1,7 +1,8 @@
+ ---
+ name: recording-product-demo
+ description: End-to-end pipeline for producing a narrated product demo video from any repo with a web UI — the agent discovers and boots the app locally, preps demo data and auth, writes the narration and a scripted browser journey, records a time-locked Playwright take synced to an ElevenLabs voiceover, assembles a 1080p MP4 with branded title/agenda/end cards, and builds a publish kit (faststart MP4, 720p, poster, SRT captions, embed snippet, optional GCS/S3/YouTube upload). Use when the user says 'record a demo video', 'make a product demo', 'demo video for this app/repo', or wants to re-record an existing demo after UI changes.
+-version: "1.0.0"
++metadata:
++  kai_original_nonstandard_fields: '{"version": "1.0.0"}'
+ ---
+ 
+ # Recording Product Demo
+@@ -121,6 +122,8 @@
+ # → out/main.mp4, out/final.mp4, out/frames/grid.png
+ ```
+ 
++The assembler validates metadata before both `--dry-run` planning and media commands: `t0Seconds` must be finite and non-negative; `narrationEnd` must be finite and positive. The non-empty timeline starts at zero, contains contiguous positive-duration scenes, and ends at `narrationEnd`; recorded `boundaries`, when present, must agree. The recorder preserves its viewport/output dimensions in `take-meta.json`; explicit dimensions are positive integers and output dimensions are even for `yuv420p`. Legacy metadata without dimensions retains the documented defaults. A dry-run verifies this input contract and command synthesis; it does not validate media contents or prove that a recording renders correctly.
++
+ 5. Verify: eyeball `out/frames/grid.png` (every scene on the right page), play the head and tail. **Don't chase a glitch at the very start of playback** — VLC/GNOME Videos stutter the first ~0.5s on file-open; if it's clean after seeking to 0, the file is fine (confirm with `ffmpeg -t 6 -i final.mp4 -af astats -f null -` — flat factor 0 means no dropouts).
+ 
+ ## Phase 6 — Publish
+@@ -130,6 +133,8 @@
+ ```
+ 
+ Builds `out/publish/`: faststart `demo.mp4` (upload this to YouTube), `demo-720p.mp4` (self-hosting / LinkedIn native upload), `poster.jpg`, **`captions.srt`** (from the STT timestamps — social feeds autoplay muted, captions are non-negotiable), `embed.html`, and `PUBLISH.md` with channel-specific guidance (incl.: post LinkedIn video natively, never as a YouTube link). If `publish.upload` is configured (`gcs` / `s3` / `youtube` — see PUBLISH.md for the one-time OAuth provisioning), it uploads too.
++
++Keep `out/main.mp4` alongside `out/final.mp4` when building captions. Only the title/agenda lead-in offsets the main narration; the fixed 5.5-second end card does not. These captions cover the main narration's STT words, not the cards' own voiceovers.
+ 
+ ## Pre-flight Checklist
+ 
+--- a/scripts/assemble.cjs
++++ b/scripts/assemble.cjs
+@@ -32,11 +32,73 @@
+ const SKIP_GRID = process.argv.includes('--skip-grid');
+ const DRY_RUN = process.argv.includes('--dry-run');
+ 
++function invalid(message) {
++  console.error(`[asm] ERROR: ${message}`);
++  process.exit(1);
++}
++function readJson(file, label) {
++  try { return JSON.parse(fs.readFileSync(file, 'utf8')); }
++  catch (e) { invalid(`cannot read ${label}: ${e.message}`); }
++}
++function finiteTime(value, label, positive = false) {
++  if (typeof value !== 'number' || !Number.isFinite(value) ||
++      (positive ? value <= 0 : value < 0)) {
++    invalid(`${label} must be a finite ${positive ? 'positive' : 'non-negative'} number`);
++  }
++}
++function dimensions(value, label, even = false) {
++  if (!Array.isArray(value) || value.length !== 2 ||
++      value.some((n) => !Number.isSafeInteger(n) || n <= 0 || (even && n % 2 !== 0))) {
++    invalid(`${label} must contain exactly two positive ${even ? 'even ' : ''}integer dimensions`);
++  }
++}
++function validateInputs(meta, timeline) {
++  if (!meta || typeof meta !== 'object' || Array.isArray(meta)) invalid('take metadata must be an object');
++  if (typeof meta.webm !== 'string' || !meta.webm.trim() || meta.webm.includes('\0')) {
++    invalid('take metadata webm must be a non-empty path string');
++  }
++  finiteTime(meta.t0Seconds, 't0Seconds');
++  finiteTime(meta.narrationEnd, 'narrationEnd', true);
++  if (meta.viewport !== undefined) dimensions(meta.viewport, 'viewport');
++  if (meta.output !== undefined) dimensions(meta.output, 'output', true); // yuv420p
++  if (!Array.isArray(timeline) || !timeline.length) invalid('timeline must be a non-empty array');
++  const epsilon = 1e-6;
++  let previousEnd = 0;
++  for (let i = 0; i < timeline.length; i++) {
++    const scene = timeline[i];
++    if (!scene || typeof scene !== 'object' || Array.isArray(scene)) invalid(`timeline[${i}] must be an object`);
++    finiteTime(scene.start, `timeline[${i}].start`);
++    finiteTime(scene.end, `timeline[${i}].end`, true);
++    if (scene.end <= scene.start) invalid(`timeline[${i}] must end after it starts`);
++    if (Math.abs(scene.start - previousEnd) > epsilon) {
++      invalid(`timeline[${i}].start must equal ${i ? 'the previous scene end' : 'zero'}`);
++    }
++    previousEnd = scene.end;
++  }
++  if (Math.abs(previousEnd - meta.narrationEnd) > epsilon) {
++    invalid('timeline end must match narrationEnd');
++  }
++  if (meta.boundaries !== undefined) {
++    const expected = [...timeline.map((scene) => scene.start), previousEnd];
++    if (!Array.isArray(meta.boundaries) || meta.boundaries.length !== expected.length) {
++      invalid('take boundaries must match the timeline boundary count');
++    }
++    meta.boundaries.forEach((value, i) => {
++      finiteTime(value, `boundaries[${i}]`);
++      if (Math.abs(value - expected[i]) > epsilon) invalid(`boundaries[${i}] must match the timeline`);
++    });
++  }
++}
++
++// Validate the same contract before planning OR invoking any media process.
++const meta0 = readJson(path.join(BUILD, 'out/take-meta.json'), 'take metadata');
++const timeline0 = readJson(path.join(BUILD, 'out/voice/timeline.json'), 'timeline');
++validateInputs(meta0, timeline0);
++
+ // Must match the recorder's viewport / upscale convention (record small,
+ // upscale here — Playwright letterboxes instead of upscaling).
+-const meta0 = JSON.parse(fs.readFileSync(path.join(BUILD, 'out/take-meta.json'), 'utf8'));
+-const [vw, vh] = meta0.viewport || [1536, 864];
+-const [ow, oh] = meta0.output || [1920, 1080];
++const [vw, vh] = meta0.viewport === undefined ? [1536, 864] : meta0.viewport;
++const [ow, oh] = meta0.output === undefined ? [1920, 1080] : meta0.output;
+ const CROP = `crop=${vw}:${vh}:0:0`;
+ const UPSCALE = `scale=${ow}:${oh}:flags=lanczos,unsharp=5:5:0.4`;
+ const AFMT = 'aformat=sample_fmts=fltp:channel_layouts=mono:sample_rates=44100';
+@@ -67,7 +129,7 @@
+ // ---- inputs ----
+ const meta = meta0;
+ const narration = need('out/voice/narration-full.mp3');
+-const timeline = JSON.parse(fs.readFileSync(need('out/voice/timeline.json'), 'utf8'));
++const timeline = timeline0;
+ const T0 = meta.t0Seconds;
+ const END = meta.narrationEnd;
+ const mainOut = path.join(BUILD, 'out/main.mp4');
+--- a/scripts/publish.cjs
++++ b/scripts/publish.cjs
+@@ -65,11 +65,13 @@
+ // ---- 2. captions.srt from STT word timestamps ----
+ // The narration audio in final.mp4 starts AFTER the title/agenda cards; the
+ // cards' own VO isn't in the stt.json, so we caption the main narration and
+-// offset it by the card lead-in (probe: final duration - main duration).
++// offset it by the card lead-in. The duration difference also includes the
++// trailing end card, which does not precede narration and must be excluded.
+ if (fs.existsSync(STT)) {
+   const probe = (f) => Number(run('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', f]).trim());
+   const mainPath = path.join(BUILD, 'out/main.mp4');
+-  const offset = fs.existsSync(mainPath) ? probe(FINAL) - probe(mainPath) : 0;
++  const endCardDuration = 5.5; // fixed end-card contract in assemble.cjs
++  const offset = fs.existsSync(mainPath) ? Math.max(0, probe(FINAL) - probe(mainPath) - endCardDuration) : 0;
+   const audioDelay = 0.2; // assemble.cjs adelay=200 on the narration
+   const words = JSON.parse(fs.readFileSync(STT, 'utf8')).words.filter((w) => w.type === 'word');
+   const cues = [];
+--- a/scripts/record-demo.cjs
++++ b/scripts/record-demo.cjs
+@@ -265,6 +265,8 @@
+     t0Seconds: Number(((t0 - recStart) / 1000).toFixed(2)),
+     narrationEnd: B[B.length - 1],
+     boundaries: B,
++    viewport: [vw, vh],
++    output: [ow, oh],
+     recordedAt: new Date().toISOString(),
+   };
+   fs.writeFileSync(path.join(OUT_DIR, 'take-meta.json'), JSON.stringify(meta, null, 2));
