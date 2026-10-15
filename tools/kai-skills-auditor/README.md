@@ -47,3 +47,19 @@ La variante Batch002 reutiliza el toolkit del commit cb018c2e14618721de7bf48fa1a
 La genealogía `candidate_change_batches` se reconstruye para todo el catálogo desde los `batch_NNN/CHANGES.json` ya verificados, incluidas filas heredadas que no se seleccionan de nuevo. Esto sólo recupera metadatos históricos; no atribuye modificaciones actuales a las filas no seleccionadas.
 
 `audit_records.py` combina un catálogo previamente verificado, una matriz de dimensiones de evidencia y fichas manuales explícitas para generar21 campos por entrada. Las entradas sin revisión manual mantienen `NO_COMPROBADO` en comprensión, contratos, investigación y pruebas funcionales. Cobertura de fichas no equivale a auditoría profunda. El generador rechaza omisiones, identidades sin proveedor, overlays incompletos y promoción automática a `VERIFIED`.
+
+## Federación OMEGA003
+
+`capture_skills.py` recupera los cuerpos de un censo histórico fijo y conserva sus ocurrencias, rutas, índices, hashes y metadatos acotados. No ejecuta contenido capturado ni copia patrones de credenciales reconocidos. Usa únicamente un directorio de salida nuevo; `--stop-file` conserva las fuentes y puede dejar una captura parcial identificable. El censo de entrada debe tener un contador positivo. El escáner de patrones no demuestra ausencia de todos los secretos posibles.
+
+`federated_registry.py` compone los847 originales de un bundle ya verificado con capturas PC/Termux fijadas por SHA. Verifica el manifiesto completo y los índices históricos antes de asignar alias ORI/PC/TMX; conserva los identificadores de ocurrencia anteriores. Reutiliza `bundle_io` para nombres, manifiestos y STOP. Rechaza bytes alterados, rutas peligrosas, cambios ocultos de censo, duplicación de colecciones y resultados preexistentes. Publica sólo en una carpeta nueva; una interrupción puede dejar salida parcial, nunca autoriza sobrescribirla.
+
+El registro describe ocurrencias de documentos. Un grupo SHA demuestra bytes iguales; los grupos de texto normalizado sólo cambian finales de línea/espacios finales. Los nombres semejantes son candidatos para revisar. Ninguno demuestra equivalencia funcional, autoridad CURRENT, licencia transferible o compatibilidad. Los niveles L1 de esta captura no sustituyen fichas manuales anteriores: deben consultarse junto a su overlay y evidencia fechada. No se afirma inventario global de dispositivos fuera de las rutas del censo.
+
+```sh
+python federated_registry.py --original-root VERIFIED_EXTRACT --pc PC_CAPTURE.zip --pc-sha256 PIN_PC --termux TERMUX_CAPTURE.zip --termux-sha256 PIN_TMX --output NEW_REGISTRY --stop-file STOP
+```
+
+`quality_checks.py` ofrece contadores descriptivos para filas JSON suministradas, claves explícitas, frescura con reloj consciente de zona y proyección de cruces. Separa nulos, duplicados exactos, colisiones candidatas de normalización y fechas futuras. No repara datos ni inventa umbrales. Sus pruebas diferenciales usan SQLite con tipos de clave de texto y nulos; no prueban semántica de todos los motores de datos. El helper usa sólo stdlib; la federación requiere PyYAML disponible y revisado. No instala dependencias.
+
+El recibo actual identifica el código y separa PASS/SKIP. Las pruebas del helper en Windows/Android sólo acreditan ese componente con datos sintéticos, no servicios de proveedor ni las5229 capacidades. Los corpus privados y cualquier material con licencia propietaria se conservan fuera del código público.
