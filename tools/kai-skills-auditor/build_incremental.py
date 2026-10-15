@@ -151,7 +151,7 @@ def _candidate_header(data, expected_name):
 
 
 def build_incremental(base_bundle, candidates, evidence, output, stop_file=None,
-                      base_sha256=None, tools_dir=None, expected_skills=None):
+                      base_sha256=None, tools_dir=None, expected_skills=None, batch_id='001'):
     """Create only new paths; return observed integrity and selective dry-run results.
 
     ``expected_skills`` is an optional input assertion, not a success counter.
@@ -159,6 +159,13 @@ def build_incremental(base_bundle, candidates, evidence, output, stop_file=None,
     may use smaller synthetic catalogs for isolated regression tests.
     """
     b._check_stop(stop_file)
+    if not isinstance(batch_id, str) or not re.fullmatch(r'[0-9]{3}', batch_id) or batch_id == '000':
+        raise ValueError('Batch ID must be an explicit three-digit value from 001 to 999')
+    batch_root = 'batch_' + batch_id
+    # The first historical prefix is retained for compatibility with v0.4.1.
+    # Every later batch gets its own namespace instead of overwriting ancestry.
+    history = HISTORY if batch_id == '001' else f'HISTORICAL/before_batch_{batch_id}/'
+    report_history = 'reports/HISTORICAL/' + history.split('/', 1)[1]
     output = Path(output).expanduser().absolute()
     for part in (output, *output.parents):
         if part.is_symlink() or getattr(part, 'is_junction', lambda: False)():
@@ -199,6 +206,8 @@ def build_incremental(base_bundle, candidates, evidence, output, stop_file=None,
         for name in base_manifest['files']:
             b._check_stop(stop_file)
             original_payload[name] = source.read(name)
+    if any(name.startswith(batch_root + '/') or name.startswith(history) for name in original_payload):
+        raise ValueError('Batch namespace already exists; select a new explicit batch ID')
     candidate_files = snapshot_directory(roots[0], stop_file)
     evidence_files = snapshot_directory(roots[1], stop_file)
     tools_files = snapshot_directory(roots[2], stop_file, tools_only=True)
@@ -229,22 +238,44 @@ def build_incremental(base_bundle, candidates, evidence, output, stop_file=None,
     # Old test reports are evidence of their own run, never the current result.
     for name in list(payload):
         if name.startswith('reports/'):
-            target = ('reports/INHERITED_V041_RESULT.json' if name == 'reports/RESULT.json'
-                      else 'reports/HISTORICAL/inherited_v041/' + name[len('reports/'):])
+            target = ('reports/INHERITED_V041_RESULT.json'
+                      if batch_id == '001' and name == 'reports/RESULT.json'
+                      else report_history + name[len('reports/'):])
             preserve_and_remove(name, target)
         elif name.startswith('tools/'):
-            preserve_and_remove(name, HISTORY + name)
+            preserve_and_remove(name, history + name)
     for name in (b.CATALOG_PATH, 'catalog/847_ESTADO.csv', 'catalog/847_UNA_A_UNA.md',
                  'README.md', 'INFORME_Y_CONTINUIDAD.md'):
-        preserve_and_remove(name, HISTORY + name)
-    payload[HISTORY + 'MANIFEST_SHA256.json'] = base_manifest_bytes
+        preserve_and_remove(name, history + name)
+    payload[history + 'MANIFEST_SHA256.json'] = base_manifest_bytes
     catalog = [dict(row) for row in by_id.values()]
     catalog_by_id = {row['id']: row for row in catalog}
+    prior_change_batches = {}
+    for name, data in original_payload.items():
+        prior = re.fullmatch(r'batch_([0-9]{3})/CHANGES.json', name)
+        if prior:
+            records = b.read_json(data)
+            if not isinstance(records, list) or any(not isinstance(r, dict) or type(r.get('id')) is not int for r in records):
+                raise ValueError('Prior change records cannot establish batch genealogy')
+            for prior_record in records:
+                if prior_record['id'] not in catalog_by_id:
+                    raise ValueError('Prior change record refers to an unknown original ID')
+                prior_change_batches.setdefault(prior_record['id'], []).append(prior.group(1))
+    # Backfill all legacy rows, including unchanged selections. The immutable
+    # CHANGES records establish genealogy without pretending a new modification.
+    for row in catalog:
+        lineage = row.get('candidate_change_batches', [])
+        if (not isinstance(lineage, list)
+                or any(not isinstance(v, str) or not re.fullmatch(r'[0-9]{3}', v) for v in lineage)):
+            raise ValueError('Invalid prior candidate batch genealogy')
+        lineage = sorted(set(lineage + prior_change_batches.get(row['id'], [])))
+        if lineage:
+            row['candidate_change_batches'] = lineage
     for root, new_files in selected.items():
         row = catalog_by_id[by_root[root]['id']]
         old_files = {n: data for n, data in original_payload.items() if n.startswith(root + '/')}
         for name in old_files:
-            preserve_and_remove(name, HISTORY + name)
+            preserve_and_remove(name, history + name)
         payload.update(new_files)
         resources = [{'path': n[len(root) + 1:], **record(data)}
                      for n, data in sorted(new_files.items()) if n != root + '/SKILL.md']
@@ -260,6 +291,7 @@ def build_incremental(base_bundle, candidates, evidence, output, stop_file=None,
                    candidate_semantic_review='NOT_VERIFIED_BY_BUILDER',
                    functional_tests='NOT_VERIFIED_BY_BUILDER', deployment='NOT_INSTALLED',
                    packaged_auxiliary_scope='ACTUAL_TREE_FILES_NOT_TRANSITIVE_DEPENDENCY_CLOSURE')
+        row['candidate_change_batches'] = row.get('candidate_change_batches', []) + [batch_id]
         changes.append({'id': row['id'], 'namespace': row['namespace'], 'name': row['name'],
                         'original_sha256': row['original_sha256'],
                         'base_portable_sha256': row['incremental_base_portable_sha256'],
@@ -276,21 +308,22 @@ def build_incremental(base_bundle, candidates, evidence, output, stop_file=None,
     for name, data in tools_files.items():
         payload['tools/' + name] = data
     for name, data in evidence_files.items():
-        destination_name = 'batch_001/evidence/' + name
+        destination_name = batch_root + '/evidence/' + name
         if destination_name in payload:
             raise ValueError('Batch evidence destination already exists')
         payload[destination_name] = data
     payload[b.CATALOG_PATH] = json_bytes(catalog)
     payload['catalog/847_ESTADO.csv'] = _csv(catalog)
-    payload['batch_001/CHANGES.json'] = json_bytes(changes)
-    payload['batch_001/CANDIDATE_INPUT_MANIFEST.json'] = json_bytes(
+    payload[batch_root + '/CHANGES.json'] = json_bytes(changes)
+    payload[batch_root + '/CANDIDATE_INPUT_MANIFEST.json'] = json_bytes(
         {name: record(data) for name, data in sorted(candidate_files.items())})
-    payload['batch_001/PROVENANCE.json'] = json_bytes({
+    payload[batch_root + '/PROVENANCE.json'] = json_bytes({
         'format': 'kai.skills.incremental/1', 'state': 'CANDIDATE_PARTIAL',
+        'batch_id': batch_id,
         'base_zip_sha256': base_digest,
         'base_sha256_pin': 'MATCHED' if base_sha256 else 'COMPUTED_NOT_EXTERNALLY_PINNED',
         'base_manifest_sha256': b.sha(base_manifest_bytes),
-        'candidate_ids': ids, 'historical_prefix': HISTORY,
+        'candidate_ids': ids, 'historical_prefix': history,
         'evidence_claims': 'COPIED_AS_EVIDENCE_NOT_PROMOTED_BY_BUILDER',
         'new_secret_preflight': 'HIGH_CONFIDENCE_PATTERNS_ONLY_NOT_CERTIFICATION',
         'provider_code_execution': False, 'active_installation': False})
@@ -300,8 +333,8 @@ def build_incremental(base_bundle, candidates, evidence, output, stop_file=None,
                'The base tools, reports, replaced trees and catalog remain historical evidence. '
                'support_files records remain historical capture metadata; candidate_resource_files '
                'and auxiliary counts describe packaged files, not transitive dependency closure.\n\n'
-               'Read batch_001/CHANGES.json, batch_001/PROVENANCE.json, the current catalog and '
-               'batch_001/evidence/. Copied audit/test receipts retain their original scope. '
+               f'Read {batch_root}/CHANGES.json, {batch_root}/PROVENANCE.json, the current catalog and '
+               f'{batch_root}/evidence/. Copied audit/test receipts retain their original scope. '
                'The builder does not infer manual understanding, upstream currency or provider behavior.\n\n'
                'Run python tools/bundle_io.py ARCHIVE.zip to check payload integrity. '
                'Use --id ID --target NEW_LAB for selective dry-run; --apply is a separate lab copy. '
@@ -315,6 +348,7 @@ def build_incremental(base_bundle, candidates, evidence, output, stop_file=None,
         '\n'.join(f'- {r["id"]:04d}: {r["namespace"]}/{r["name"]} — {r["state"]}'
                   for r in catalog) + '\n').encode('utf-8')
     result = {'format': 'kai.skills.incremental.result/1', 'state': 'CANDIDATE_PARTIAL',
+              'batch_id': batch_id,
               'created_utc': dt.datetime.now(dt.timezone.utc).isoformat(),
               'observed_catalog_entries': len(catalog), 'candidate_tree_ids': ids,
               'main_changed_ids': sorted(c['id'] for c in changes
@@ -366,6 +400,7 @@ def build_incremental(base_bundle, candidates, evidence, output, stop_file=None,
         zip_record = record(_regular_bytes(destination, stop_file))
         write(checksum, (zip_record['sha256'] + '  ' + destination.name + '\n').encode(), output.parent)
         receipt = {'format': 'kai.skills.incremental.build/1', 'state': 'CANDIDATE_PARTIAL',
+                   'batch_id': batch_id,
                    'zip': str(destination), **zip_record, 'base_zip_sha256': base_digest,
                    'catalog_entries': len(catalog), 'candidate_ids': ids,
                    'hashed_payload_files': len(verified['files']),
@@ -392,10 +427,11 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--stop-file', type=Path)
     parser.add_argument('--expected-skills', type=int, default=847)
+    parser.add_argument('--batch-id', default='001', help='Unique three-digit incremental batch namespace')
     args = parser.parse_args()
     result = build_incremental(args.base_bundle, args.candidates, args.evidence,
                                args.output, args.stop_file, args.base_sha256,
-                               expected_skills=args.expected_skills)
+                               expected_skills=args.expected_skills, batch_id=args.batch_id)
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
 
