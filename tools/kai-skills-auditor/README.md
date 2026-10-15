@@ -141,3 +141,32 @@ misma app, conserva su identidad y distingue fecha del corte de fecha de autorí
 candidatos. Requiere todos los inputs privados y evidencias locales; produce una
 salida nueva y prueba staging/rollback sólo en su laboratorio. Las distribuciones
 generales para destinos siguen retenidas hasta disponer de la evidencia adecuada.
+
+## Conversión a documento OMEGA006
+
+`task_drivers/omega006/evolve_document006.py` adapta únicamente la entrada privada
+exacta0004 de un ZIP005 fijado y genera una salida nueva. Añade una referencia
+propia de exportación y un helper de lectura. Reutiliza los527 recursos comunes y
+auxiliares de0003; no incluye ni instala el runtime Documents del host.
+
+`verify-local-export.mjs` reutiliza el verificador split existente y compara su
+snapshot compilado con el fingerprint de `src/data.json`. Bloquea una edición
+distinta o un bundle incompleto sin reconstruir la app. El CLI recibe
+`--project-dir`; dentro de la skill resuelve el soporte relativo al proveedor.
+La API importable admite un `providerRoot` verificado por el consumidor.
+El resultado acredita coherencia de bytes en ese momento: no resuelve
+presentación, exactitud de afirmaciones, render ni calidad del documento. Una
+serialización JSON distinta se rechaza conservadoramente. No cubre otros layouts
+ni promete protección atómica frente a cambios concurrentes.
+
+`test_document_source.mjs` ejecuta siete casos con `FORGE_PROVIDER_ROOT` y
+`FORGE_REPORT_PROJECT` ya verificados. Las cuatro negativas del generador usan
+`FORGE_BASE_BUNDLE` y `FORGE_BASE_SHA256`. Sus recibos son independientes de la
+suite raíz004 heredada; los drivers anidados siguen fuera de ese contador.
+
+La conversión real sigue la skill Documents canónica disponible, con su runtime,
+autoría, renderer y lectura de páginas. El preset o destino debe existir de
+verdad. La inspección OOXML/accesibilidad estructural y el render del DOCX no son
+certificación de tecnología asistiva ni pruebas de la app en navegador. La
+entrega local no acredita entrega nativa Google Docs. El driver de release006
+reutiliza el verificador existente para diez candidatos y laboratorio aislado.
