@@ -120,10 +120,11 @@ class ValidatorTests(unittest.TestCase):
         self.assertEqual(r.returncode,2);self.assertIn('Missing validator dependencies',r.stderr)
     def test_malformed_json(self):
         r=self.invoke(raw='{invalid');self.assertEqual(r.returncode,2);self.assertIn('Could not read/parse',r.stderr)
-    def test_retry_remains_explicit_server_limit(self):
-        # The donor schema allows maxRetries > 0. Its guide says apply rejects
-        # it. Preserve that boundary; an offline PASS must not imply publishability.
-        node=task();node['retry']={'maxRetries':1,'backoffMs':0};self.accept(workflow([node]))
+    def test_retry_server_limit_is_rejected_by_stricter_local_preflight(self):
+        # The schema still allows retries. The new KAI static policy check
+        # follows the guide's explicit server limit before any apply can occur.
+        node=task();node['retry']={'maxRetries':1,'backoffMs':0}
+        self.reject(workflow([node]), 'retry.maxRetries')
 
 
 if __name__ == '__main__':
