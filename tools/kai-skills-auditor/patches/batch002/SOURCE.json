@@ -1,0 +1,38 @@
+{
+  "scope": "Four isolated candidate patches, never the private847 corpus",
+  "upstream_repo": "aictrl-dev/skills",
+  "upstream_commit": "d4b42bf96f550e427a16a5ac7b5f40117cb26963",
+  "upstream_tree": "052be2bf350aa7b53c09d6becdd1b3fe6a13caf6",
+  "base001_commit": "cb018c2e14618721de7bf48fa1a46839f0ae3814",
+  "yaml_repo": "nodeca/js-yaml",
+  "yaml_commit": "79ca68d90f333fbe6d9e42827527e62636200191",
+  "yaml_version": "4.3.2",
+  "date_utc": "2026-10-15",
+  "licenses": "MIT retained; no ownership transfer",
+  "state": "CANDIDATE_PARTIAL_NOT_INSTALLED",
+  "patches": {
+    "718-documentary.patch": "fe885146ab0eaa213623aaeed58e51bcb4bbbc506bbb16ec43ebae31ed44d2e7",
+    "715-documentary.patch": "3ba0b0093ab4e2c78df84562e8f85c938f4c4ce7e0f3183847d9184be7459494",
+    "719-recording-product-demo.patch": "a1fb2bf8319c2c609fbba9f43645b27c0bde0bd60305a0d4d672f2349f2790ca",
+    "714-create-workflow.patch": "562e79f6fa13faaa33021e1e871ce4e798cd70cad35ad7a03e33692234d24cc6"
+  },
+  "patch_application": "Each patch uses a/ and b/ paths relative to its individual upstream skill directory; git apply -p1 from that unit, fixed commit only.",
+  "units": {
+    "714": {
+      "upstream_directory": "skills/create-workflow",
+      "candidate_SKILL_sha256": "8e5e7df82dd297bd07d2f3a689f464cab3cbae4552c24d52d7e030b818fbaffb"
+    },
+    "715": {
+      "upstream_directory": "skills/design-review",
+      "candidate_SKILL_sha256": "ee3815b040beb9e9b065e6f361bc3937ef5046862bf3e270eb815561071e33f2"
+    },
+    "718": {
+      "upstream_directory": "skills/measurement-plan",
+      "candidate_SKILL_sha256": "5f1bcd437cbe1b81d3d73c9ed1b1d9ede1f5ad3098c3e0ebb8acecacf5254360"
+    },
+    "719": {
+      "upstream_directory": "skills/recording-product-demo",
+      "candidate_SKILL_sha256": "73cd4ef2865833307154b62aeed9ac174d02b9bac331b7626915dca35e46bfcc"
+    }
+  }
+}
