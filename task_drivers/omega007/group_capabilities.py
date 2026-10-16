@@ -96,10 +96,10 @@ def build_groups(registry, audit, spec, expected=None):
             'whole_capabilities_verified': 0, 'originals_modified': False, 'active_installation': False}
 
 
-def markdown(result, registry):
+def markdown(result, registry, batch_id="007", notes=None):
     by_id = {r['historical_id']: r for r in registry['records']}
     s = result['summary']
-    text = '# Agrupación de skills · OMEGA007\n\n'
+    text = '# Agrupación de skills · OMEGA' + batch_id + '\n\n'
     text += ('Vista del registro federado existente. Conserva cada original, su ID y su ubicación; no mueve, borra, '
              'fusiona ni instala archivos. Una familia expresa relación de trabajo, no funciones intercambiables.\n\n')
     text += (f"**{s['occurrences']:,} ocurrencias históricas**, {s['document_byte_groups']:,} grupos de bytes, "
@@ -123,6 +123,8 @@ def markdown(result, registry):
              'nombre declarado y bytes. Su fuente preservada está en '
              '`batch_003/evidence/federation/FEDERATED_REGISTRY.json` del payload acumulado. '
              'Las métricas de la rama UNION requieren reconciliación separada.\n\n')
+    for note in notes or []:
+        text += note + '\n\n'
     text += '| Proveedor original (metadata) | Entradas ORI |\n| --- | ---: |\n'
     for name, members in result['original_provider_groups'].items():
         text += f'| `{name}` | {len(members)} |\n'
@@ -131,6 +133,7 @@ def markdown(result, registry):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument('--batch-id', default='007')
     p.add_argument('--registry', type=Path, required=True)
     p.add_argument('--registry-sha256', required=True)
     p.add_argument('--audit', type=Path, required=True)
@@ -138,6 +141,8 @@ def main():
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--stop-file', type=Path)
     a = p.parse_args(); b._check_stop(a.stop_file)
+    if not re.fullmatch(r'[0-9]{3}', a.batch_id):
+        raise ValueError('Batch ID must have exactly three ASCII digits')
     out = a.output.absolute()
     if out.exists() or any(x.is_symlink() for x in [out, *out.parents]):
         raise ValueError('Grouping output must be a new isolated directory')
@@ -148,11 +153,17 @@ def main():
         raise ValueError('Registry SHA mismatch')
     registry = b.read_json(raw)
     audit_raw, families_raw = inc._regular_bytes(a.audit, a.stop_file), inc._regular_bytes(a.families, a.stop_file)
-    result = build_groups(registry, b.read_json(audit_raw), b.read_json(families_raw))
+    family_spec = b.read_json(families_raw)
+    notes = family_spec.get('notes', [])
+    if not isinstance(notes, list) or any(not isinstance(n, str) or not n.strip() for n in notes):
+        raise ValueError('Grouping notes must be nonempty text entries')
+    result = build_groups(registry, b.read_json(audit_raw), family_spec)
+    if notes:
+        result['narrative_notes'] = notes
     result['inputs'] = {'registry': inc.record(raw), 'audit': inc.record(audit_raw), 'families': inc.record(families_raw)}
     b._check_stop(a.stop_file); out.mkdir(parents=True)
-    for name, data in [('AGRUPACION_SKILLS_OMEGA007.json', inc.json_bytes(result)),
-                       ('AGRUPACION_SKILLS_OMEGA007.md', markdown(result, registry).encode())]:
+    for name, data in [('AGRUPACION_SKILLS_OMEGA' + a.batch_id + '.json', inc.json_bytes(result)),
+                       ('AGRUPACION_SKILLS_OMEGA' + a.batch_id + '.md', markdown(result, registry, a.batch_id, notes).encode())]:
         b._check_stop(a.stop_file)
         with (out / name).open('xb') as f:
             f.write(data)

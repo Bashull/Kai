@@ -1,0 +1,74 @@
+{
+  "format": "kai.skills.reviewed-families/1",
+  "candidate_ids": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    713,
+    714,
+    715,
+    718,
+    719,
+    721
+  ],
+  "families": [
+    {
+      "id": "calidad-de-datos",
+      "title": "Calidad de datos",
+      "members": [
+        "ORI-0001"
+      ],
+      "basis": "Auditoría individual de investigación de calidad, evidencia y alcance."
+    },
+    {
+      "id": "contexto-de-analitica",
+      "title": "Contexto y definiciones de analítica",
+      "members": [
+        "ORI-0006"
+      ],
+      "basis": "Auditoría individual de contexto reutilizable: audiencia, autoridad de fuentes, definición/estilo y empaquetado. Relación con calidad e informes; no función intercambiable."
+    },
+    {
+      "id": "informes-y-exportacion",
+      "title": "Dashboards, informes y exportación",
+      "members": [
+        "ORI-0002",
+        "ORI-0003",
+        "ORI-0004",
+        "ORI-0005"
+      ],
+      "basis": "Auditorías individuales de construcción y conversión; preservación de la misma edición y sus datos."
+    },
+    {
+      "id": "revision-de-software",
+      "title": "Revisión de software y diseño",
+      "members": [
+        "ORI-0711",
+        "ORI-0715",
+        "ORI-0717",
+        "ORI-0720",
+        "ORI-0721"
+      ],
+      "basis": "Auditorías individuales de revisión, juicio, respuesta y aceptación; no equivalencia de funciones."
+    },
+    {
+      "id": "planificacion-y-entrega",
+      "title": "Planificación, cambios y entrega",
+      "members": [
+        "ORI-0712",
+        "ORI-0713",
+        "ORI-0714",
+        "ORI-0716",
+        "ORI-0718",
+        "ORI-0719"
+      ],
+      "basis": "Auditorías individuales de incidencias, implementación, workflows, medición y demo."
+    }
+  ],
+  "notes": [
+    "ORI-0006 aporta contexto reutilizable para calidad, análisis e informes: conserva definiciones y audiencia, y distingue los formatos de paquete. Esta relación de uso no fusiona las familias ni propaga su auditoría a clones. La selección0006 contiene instrucciones y referencias; no instala un motor nuevo ni un proveedor de datos."
+  ]
+}

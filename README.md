@@ -183,3 +183,12 @@ python task_drivers/omega007/group_capabilities.py --registry <payload>/batch_00
 ```
 
 Nine grouping behavior checks, four generator refusal cases and seven source-coherence cases have separate receipts. Existing root004121PASS/25SKIP is inherited by unchanged source binding, and upstream00513PASS/1FAIL remains historical. The presentation forward scenario is separate from these code cases; its canonical runtime/finalizer/slide inspection and limitations must be read from the actual assessment. No Google Slides, PowerPoint UI or universal target certification is inferred. Shared scratch cleanup persistence is observed separately from immediate exact-receipt rollback.
+
+
+## OMEGA008: reusable context and package formats
+
+ORI-0006 keeps its definitions/audience workflow and adds the current portable Agent Plugins route while preserving approved Codex packages. The generator pins the complete007 baseline and writes a new five-file instruction/reference overlay. No runtime helper, installer, server or active skill is added.
+
+`task_drivers/omega008/inspect_context_package.py` reuses the existing JSON/path/frontmatter checks for directed read-only ZIP inspection and explicit OpenAI metadata precedence. It is not a general JSON Schema validator or native client/installer test. Run it against the actual scenario archives; keep semantic review and source-byte comparisons separate. No dependencies are acquired.
+
+The existing grouping driver now accepts `--batch-id` (default007). Default007 reproduces the preserved view byte for byte.008 extends the explicit reviewed-family spec after individual review, with no ID reassignment or review propagation to clones. Older toolkit sources remain versioned in their prior Git commit and delivered007 package.
