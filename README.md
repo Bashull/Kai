@@ -192,3 +192,8 @@ ORI-0006 keeps its definitions/audience workflow and adds the current portable A
 `task_drivers/omega008/inspect_context_package.py` reuses the existing JSON/path/frontmatter checks for directed read-only ZIP inspection and explicit OpenAI metadata precedence. It is not a general JSON Schema validator or native client/installer test. Run it against the actual scenario archives; keep semantic review and source-byte comparisons separate. No dependencies are acquired.
 
 The existing grouping driver now accepts `--batch-id` (default007). Default007 reproduces the preserved view byte for byte.008 extends the explicit reviewed-family spec after individual review, with no ID reassignment or review propagation to clones. Older toolkit sources remain versioned in their prior Git commit and delivered007 package.
+
+
+## OMEGA009 · KPI contracts
+
+The omega009 driver adapts only the pinned private design-kpis main, adds a concise metric-contract reference and binds the existing conditional Desktop sources guide. Shared resources are reused byte-exact. No provider runtime helper, native installation or source-system write is added. Grouping continues through the existing omega007 engine with --batch-id009. See task_drivers/omega009 and batch009 audit evidence for exact scope.
