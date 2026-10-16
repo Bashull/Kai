@@ -62,5 +62,14 @@ class ContextManifestExamples(unittest.TestCase):
             r=m.inspect(p);self.assertEqual(r['status'],'DIRECTED_CHECKS_PASS');self.assertEqual(len(r['skills']),1)
             self.assertEqual([x.name for x in Path(d).iterdir()],['good.zip'])
 
+    def test_null_portable_root_is_not_treated_as_absent(self):
+        with tempfile.TemporaryDirectory(prefix='kai-context008-') as d:
+            p=Path(d)/'null-root.zip'
+            with zipfile.ZipFile(p,'w') as z:
+                z.writestr('plugin.json','null')
+                z.writestr('.codex-plugin/plugin.json',json.dumps({'name':'context-example','skills':'./skills/'}))
+                z.writestr('skills/context-example/SKILL.md','---\nname: context-example\ndescription: Use for fictional product analysis.\n---\n\nUse the supplied fictional definitions.\n')
+            with self.assertRaisesRegex(ValueError,'Portable root'):m.inspect(p)
+
 
 if __name__=='__main__':unittest.main(verbosity=2)
