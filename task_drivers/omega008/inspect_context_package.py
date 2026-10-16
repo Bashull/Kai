@@ -80,6 +80,8 @@ def inspect(archive):
         if sum(x.file_size for x in files.values())>100*1024*1024:raise ValueError('Context payload exceeds the directed check budget')
         payload={n:z.read(info) for n,info in files.items()}
         portable=b.read_json(payload['plugin.json']) if 'plugin.json' in payload else None
+        if 'plugin.json' in payload and not isinstance(portable,dict):
+            raise ValueError('Portable root must be an object, not an absent manifest')
         compatibility=b.read_json(payload['.codex-plugin/plugin.json']) if '.codex-plugin/plugin.json' in payload else None
         result=resolve_manifests(portable,compatibility)
         skills=[]
