@@ -1,0 +1,7 @@
+{
+  "schema_version":"kai.director.plan/0.4-candidate", "project_id":"HYBRID-PILOT-001", "mode":"hybrid", "gear":"G3",
+  "assets":[{"id":"ENV-A","kind":"3d_environment","canon_ref":"canon://HYBRID-PILOT-001/ENV-A@v1","state_version":"v1","license":"ORIGINAL","rights_evidence":"fixture://demo"}],
+  "shots":[{"id":"S01","scene_id":"C01","story_order":1,"edit_order":1,"production_order":1,"asset_refs":[{"asset_id":"ENV-A","state_version":"v1"}],"camera":{"axis_id":"A01"}}],
+  "gameplay":[{"id":"G01","engine":"Godot","asset_refs":["ENV-A"]}],
+  "provider_jobs":[{"id":"J01","status":"SUBMIT_UNKNOWN"}], "repair_cycles":[]
+}

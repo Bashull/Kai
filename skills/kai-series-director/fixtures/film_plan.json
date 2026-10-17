@@ -1,0 +1,15 @@
+{
+  "schema_version": "kai.director.plan/0.4-candidate",
+  "project_id": "KAI-PILOT-3SHOTS", "mode": "film", "gear": "G2",
+  "assets": [
+    {"id":"CHAR-A", "kind":"character", "canon_ref":"canon://KAI-PILOT-3SHOTS/CHAR-A@v1", "state_version":"v1", "license":"ORIGINAL", "rights_evidence":"rights://fictional-test-only"},
+    {"id":"SET-A", "kind":"set", "canon_ref":"canon://KAI-PILOT-3SHOTS/SET-A@v1", "state_version":"v1", "license":"CC0_TEST_FIXTURE", "rights_evidence":"fixture://metadata-not-legal-clearance"}
+  ],
+  "shots": [
+    {"id":"SH01","scene_id":"SC01","story_order":1,"edit_order":1,"production_order":2,"asset_refs":[{"asset_id":"CHAR-A","state_version":"v1"},{"asset_id":"SET-A","state_version":"v1"}],"camera":{"axis_id":"AX01"}},
+    {"id":"SH02","scene_id":"SC01","story_order":2,"edit_order":3,"production_order":1,"asset_refs":[{"asset_id":"CHAR-A","state_version":"v1"}],"camera":{"axis_id":"AX01"}},
+    {"id":"SH03","scene_id":"SC01","story_order":3,"edit_order":2,"production_order":3,"asset_refs":[{"asset_id":"SET-A","state_version":"v1"}],"camera":{"axis_id":"AX01","exception":{"type":"deliberate","reason":"motivated subjective reversal","evidence":"storyboard://fictional-003"}}}
+  ],
+  "gameplay":[], "provider_jobs": [{"id":"JOB-FICT-001","status":"NOT_SUBMITTED"}],
+  "repair_cycles": [{"target":"SH02:hand-left","attempts":1,"max_attempts":3}]
+}

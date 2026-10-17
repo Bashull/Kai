@@ -1,0 +1,36 @@
+{
+  "name": "kai-series-director",
+  "version": "0.4.1-MULTIHOST-CANDIDATE",
+  "release_date": "2026-10-17",
+  "source_status": "WORK_ORIGINAL_RECOVERY_PENDING",
+  "work_source_reported_commit": "ec3256ee4764c6549248a9739b6aceb71c75f793",
+  "installed_source_kind": "COMPATIBLE_PORT_NOT_MERGE",
+  "test_count_new": 17,
+  "historical_tests_not_rerun": 99,
+  "coverage": "STATIC_CONTRACTS_ONLY",
+  "files_sha256": {
+    "README.md": "80e8e2ff091d6cc5afbbd8ac46a968e81afd1980fb41da5f5c545efc7e7143fe",
+    "SKILL.md": "81bb46c9f288d2c3ef8518652a3a0c948cab241a223469c496d555fe8263efb7",
+    "fixtures/film_plan.json": "2822fb25f854b90fcdb941d2e46851db5ea633f449fa390effbbfcf6f8d08d81",
+    "fixtures/hybrid_plan.json": "4740f9b8eff143ca997d6e9965678e60ea0cf73ceafc3e7802abd32847af698b",
+    "references/01-story-canon-continuity.md": "98543dcb16af59fc047d9e67b4a5a7dc6889a7bac92bd31d78a6b0d420713139",
+    "references/02-visual-animation-and-virtual-production.md": "9337aa60ca48c087ad683c6166b3aad9c3f2b1ba8a94fe03dcdfcef400740533",
+    "references/03-pipeline-and-interchange.md": "c61f2d16450e16cb90dbcf324eb3f3f30f01ac87b0c42f679f65e4d2d8297098",
+    "references/04-post-sound-and-delivery.md": "35a5e6fc903b127ecb958de0d7e8f9d0144c02a7e55e81ba9b97be10555cac0b",
+    "references/05-gameplay-and-interactive-cinematics.md": "3ea981de96982862dc845f2433f289d623ed9a8f99e76a23752d79ca8e621236",
+    "references/06-qa-loops-and-benchmarks.md": "82a28d1dcef90c75c07e926a51cc9bbf20e1b779428f5f443661caccc91839dd",
+    "references/07-donors-licenses-and-provenance.md": "cc13b7e227fee63ec601e6012f96ee31529c2af22816c7858ef1327784ecf3a1",
+    "references/08-installation-recovery.md": "280dd1453cdb4bc1beacf17b55e63c82102c6f94e0aa767e66e298fed060bae6",
+    "references/09-existing-skill-routing.md": "1f7e51aa72fbf7035504015442b5bc941bf46bf02e2b35ee6d759dccd68d60d5",
+    "scripts/director_gate.py": "d04ad6894d4affb2c991bf5bc2568bb5700a7cccc7154d554ff07fede804342f",
+    "tests/test_director_gate.py": "5f4ec6b796cc6f826c18b572fb9138fd9c6bbff5d72a7f33a64fbd1eee75d9e3",
+    "tools/install_pc.ps1": "b61eb0de15f3396da4d442abcd89e6d3c40fe590ef895db9d4fd194e0cbfa0d4"
+  },
+  "dependencies_optional": [
+    "kai-image-forge-unified",
+    "independent-generative-qa-gates",
+    "multimedia-provider-benchmark",
+    "model-license-boundary-governance",
+    "repository-donor-extraction"
+  ]
+}
