@@ -18,6 +18,7 @@ import re
 import shutil
 import sqlite3
 import subprocess
+import sys
 import tempfile
 import time
 import warnings
@@ -82,15 +83,42 @@ def unwrap(obj):
 
 class MeshyCLI:
     def __init__(self, executable=None, timeout=180):
-        self.executable = str(Path(executable).expanduser()) if executable else os.environ.get('KAI_MESHY_CLI', 'meshy')
+        configured = executable or os.environ.get('KAI_MESHY_CLI', 'meshy')
+        self.executable = str(Path(configured).expanduser())
         self.timeout = timeout
+
+    def _argv(self):
+        # Codex's MCP environment does not inherit Termux LD_PRELOAD. A Node
+        # shebang using /usr/bin/env then fails ENOENT on Android, even though
+        # the CLI file exists. Invoke the detected Node entry point through its
+        # installed interpreter directly; no shell or environment expansion.
+        located = self.executable if Path(self.executable).is_absolute() or os.sep in self.executable else shutil.which(self.executable)
+        if not located:
+            return [self.executable]
+        entry = Path(located).resolve(strict=True)
+        with entry.open('rb') as f:
+            first_line = f.readline(256)
+        if re.match(rb'^#![^\n]*\bnode(?:\s|$)', first_line):
+            configured_node = os.environ.get('KAI_MESHY_NODE')
+            if configured_node:
+                node_name = str(Path(configured_node).expanduser())
+                node = node_name if Path(node_name).is_absolute() or os.sep in node_name else shutil.which(node_name)
+            else:
+                node = shutil.which('node')
+                adjacent = Path(sys.executable).resolve().parent / 'node'
+                if not node and adjacent.is_file():
+                    node = str(adjacent)
+            if not node:
+                raise ForgeError('NODE_RUNTIME_NOT_FOUND')
+            return [str(Path(node).resolve(strict=True)), str(entry)]
+        return [self.executable]
 
     def run(self, *args, timeout=None):
         try:
-            p = subprocess.run([self.executable, *args, '--format', 'json', '--no-update-check'],
+            p = subprocess.run([*self._argv(), *args, '--format', 'json', '--no-update-check'],
                                capture_output=True, text=True, timeout=timeout or self.timeout, check=False)
         except (OSError, subprocess.TimeoutExpired) as exc:
-            raise ForgeError('CLI_UNAVAILABLE_OR_TIMED_OUT:' + type(exc).__name__) from None
+            raise ForgeError('CLI_UNAVAILABLE_OR_TIMED_OUT:' + type(exc).__name__.upper()) from None
         if p.returncode:
             raise ForgeError('CLI_ERROR_EXIT_' + str(p.returncode))
         try:

@@ -3,19 +3,31 @@ import argparse
 import inspect
 import json
 import os
+import stat
 from pathlib import Path
 from .core import Forge, ForgeError, MeshyCLI, public_json
 
 
 def make_forge():
-    root = Path(os.environ.get('KAI_MESHY_WORKSPACE', '~/KAI_VISUAL_STUDIO/KAI_MESHY_FORGE_OMEGA')).expanduser()
-    refs = json.loads(os.environ.get('KAI_MESHY_REFERENCE_ROOTS', '[]'))
+    config_path = Path.home() / '.config/kai-meshy-forge/runtime.json'
+    config = {}
+    if config_path.exists() or config_path.is_symlink():
+        if config_path.is_symlink() or stat.S_IMODE(config_path.stat().st_mode) & 0o077:
+            raise ForgeError('RUNTIME_CONFIGURATION_MUST_BE_PRIVATE')
+        config = json.loads(config_path.read_text(encoding='utf-8'))
+        if not isinstance(config, dict) or set(config) - {'schema', 'workspace', 'cli', 'reference_roots'}:
+            raise ForgeError('INVALID_RUNTIME_CONFIGURATION_FIELDS')
+        if config.get('schema') != 'kai.meshy.runtime/v1':
+            raise ForgeError('INVALID_RUNTIME_CONFIGURATION_SCHEMA')
+    root = Path(os.environ.get('KAI_MESHY_WORKSPACE', config.get('workspace', '~/KAI_VISUAL_STUDIO/KAI_MESHY_FORGE_OMEGA'))).expanduser()
+    refs = json.loads(os.environ['KAI_MESHY_REFERENCE_ROOTS']) if 'KAI_MESHY_REFERENCE_ROOTS' in os.environ else config.get('reference_roots', [])
     if not isinstance(refs, list) or any(not isinstance(x, str) for x in refs):
         raise ForgeError('INVALID_REFERENCE_ROOT_CONFIGURATION')
     kwargs = {'reference_roots': refs or None, 'spending_enabled': os.environ.get('KAI_MESHY_ALLOW_SPEND') == '1'}
     if 'spending_job_ids' in inspect.signature(Forge).parameters:
         kwargs['spending_job_ids'] = set(json.loads(os.environ.get('KAI_MESHY_SPEND_JOB_IDS', '[]')))
-    return Forge(root, cli=MeshyCLI(), max_credits=500, **kwargs)
+    runner = os.environ.get('KAI_MESHY_CLI') or config.get('cli')
+    return Forge(root, cli=MeshyCLI(runner), max_credits=500, **kwargs)
 
 
 def main():

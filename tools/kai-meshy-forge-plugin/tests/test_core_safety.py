@@ -3,6 +3,7 @@ import concurrent.futures
 import hashlib
 import io
 import json
+import os
 from pathlib import Path
 import sqlite3
 import struct
@@ -12,7 +13,7 @@ import time
 import unittest
 from unittest.mock import patch
 
-from kai_meshy.core import Forge, ForgeError, digest, public_json, safe_asset_url, unwrap
+from kai_meshy.core import Forge, ForgeError, MeshyCLI, digest, public_json, safe_asset_url, unwrap
 from kai_meshy.assets import inspect_model
 from kai_meshy.pipeline import cycle
 from PIL import Image
@@ -451,6 +452,37 @@ class TestStructureBoundaries(unittest.TestCase):
         p = self.root / 'bad.obj'; p.write_text('v 0 0 0\nf 1 2 3\n')
         with self.assertRaisesRegex(ForgeError, 'INDEX_OUT_OF_BOUNDS'):
             inspect_model(p)
+
+
+class TestCLIProcessBoundary(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(); self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+
+    def test_node_shebang_bypasses_android_missing_usr_bin_env(self):
+        entry = self.root / 'meshy.js'; entry.write_text('#!/usr/bin/env node\n')
+        node = self.root / 'node'; node.write_bytes(b'FAKE_NODE_NOT_EXECUTED')
+        cli = MeshyCLI(entry)
+        process = type('Process', (), {'returncode': 0, 'stdout': '{"balance":3079}'})()
+        with patch.dict(os.environ, {'KAI_MESHY_NODE': str(node)}, clear=True), \
+                patch('kai_meshy.core.subprocess.run', return_value=process) as run:
+            self.assertEqual(cli.run('balance'), {'balance': 3079})
+        self.assertEqual(run.call_args.args[0][:2], [str(node), str(entry)])
+
+    def test_missing_cli_error_is_machine_code_without_private_exception_text(self):
+        cli = MeshyCLI(self.root / 'missing')
+        with self.assertRaises(ForgeError) as error:
+            cli.run('balance')
+        self.assertEqual(str(error.exception), 'CLI_UNAVAILABLE_OR_TIMED_OUT:FILENOTFOUNDERROR')
+        self.assertNotIn(str(self.root), str(error.exception))
+
+    def test_sdk_preserves_cli_machine_error_without_private_path(self):
+        from kai_meshy.sdk_server import _call
+        cli = MeshyCLI(self.root / 'missing')
+        result = _call(cli.balance).structured_content
+        self.assertFalse(result['ok'])
+        self.assertEqual(result['error'], 'CLI_UNAVAILABLE_OR_TIMED_OUT:FILENOTFOUNDERROR')
+        self.assertNotIn(str(self.root), json.dumps(result))
 
 
 if __name__ == '__main__':
