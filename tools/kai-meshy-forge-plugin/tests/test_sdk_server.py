@@ -25,6 +25,8 @@ READ_NAMES = {
     "kai_meshy_connection_status", "kai_meshy_auth_status", "kai_meshy_balance",
     "kai_meshy_budget", "kai_meshy_list_jobs", "kai_meshy_get_job",
     "kai_meshy_list_assets", "kai_meshy_get_asset", "kai_meshy_inspect_reference", "kai_meshy_inspect_model",
+    "kai_meshy_capabilities", "kai_meshy_describe_capability", "kai_meshy_validate_request", "kai_meshy_quote",
+    "kai_meshy_list_remote_tasks", "kai_meshy_get_remote_task", "kai_meshy_list_operations", "kai_meshy_get_operation",
 }
 
 

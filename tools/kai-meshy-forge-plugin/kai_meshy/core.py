@@ -148,6 +148,71 @@ class MeshyCLI:
         finally:
             Path(name).unlink(missing_ok=True)
 
+    def request(self, contract, action, *, task_id=None, payload=None, query=None, timeout=None):
+        """Internal catalogue-bound REST adapter; never exposed as a raw MCP tool."""
+        if action not in {'create', 'get', 'list', 'cancel'} or not isinstance(contract, dict):
+            raise ForgeError('CATALOGUE_ACTION_NOT_ALLOWED')
+        if timeout is not None and (isinstance(timeout, bool) or not isinstance(timeout, (int, float)) or not math.isfinite(timeout) or not 0 < timeout <= 180):
+            raise ForgeError('CATALOGUE_REQUEST_TIMEOUT_INVALID')
+        version = contract.get('api_version')
+        if version not in {'v1', 'v2', 'creative-lab'}:
+            raise ForgeError('CATALOGUE_API_VERSION_INVALID')
+        route = contract.get('routes', {}).get(action)
+        method = contract.get('route_methods', {}).get(action)
+        if isinstance(route, dict):
+            method = route.get('method', method); route = route.get('path')
+        if method is None:
+            method = {'create': 'POST', 'get': 'GET', 'list': 'GET', 'cancel': 'DELETE'}[action]
+        if method != {'create': 'POST', 'get': 'GET', 'list': 'GET', 'cancel': 'DELETE'}[action]:
+            raise ForgeError('CATALOGUE_ACTION_METHOD_MISMATCH')
+        if not isinstance(route, str) or not re.fullmatch(r'/[A-Za-z0-9_/{}/.-]+', route) or '..' in route:
+            raise ForgeError('CATALOGUE_ROUTE_INVALID')
+        if '{task_id}' in route or '{id}' in route:
+            if not isinstance(task_id, str) or not TASK_ID.fullmatch(task_id):
+                raise ForgeError('INVALID_REMOTE_TASK_IDENTITY')
+            route = route.replace('{task_id}', task_id).replace('{id}', task_id)
+        elif task_id is not None:
+            raise ForgeError('CATALOGUE_ROUTE_HAS_NO_TASK_ID')
+        if '{' in route or '}' in route:
+            raise ForgeError('CATALOGUE_ROUTE_PLACEHOLDER_UNSUPPORTED')
+        prefix = '/openapi/' + version
+        if route == prefix:
+            raise ForgeError('CATALOGUE_ROUTE_RESOURCE_MISSING')
+        if route.startswith('/openapi/'):
+            if not route.startswith(prefix + '/'):
+                raise ForgeError('CATALOGUE_ROUTE_API_VERSION_MISMATCH')
+            route = route[len(prefix):]
+        if query is not None:
+            allowed = contract.get('list_query_schema', {}).get('properties', {})
+            if action != 'list' or not isinstance(query, dict) or set(query) - set(allowed):
+                raise ForgeError('CATALOGUE_QUERY_NOT_ALLOWED')
+            if any(not isinstance(v, (str, int, float, bool)) or isinstance(v, str) and len(v) > 512 for v in query.values()):
+                raise ForgeError('CATALOGUE_QUERY_VALUE_INVALID')
+            for key, value in query.items():
+                schema = allowed[key]
+                if schema.get('type') == 'integer' and (isinstance(value,bool) or not isinstance(value,int)):
+                    raise ForgeError('CATALOGUE_QUERY_TYPE_INVALID')
+                if schema.get('type') == 'string' and not isinstance(value,str):
+                    raise ForgeError('CATALOGUE_QUERY_TYPE_INVALID')
+                if isinstance(value,(int,float)) and not isinstance(value,bool) and (not math.isfinite(value) or value < schema.get('minimum',-math.inf) or value > schema.get('maximum',math.inf)):
+                    raise ForgeError('CATALOGUE_QUERY_BOUND_INVALID')
+                if 'enum' in schema and value not in schema['enum']:
+                    raise ForgeError('CATALOGUE_QUERY_ENUM_INVALID')
+        if payload is not None and action != 'create':
+            raise ForgeError('CATALOGUE_PAYLOAD_NOT_ALLOWED')
+        args = ['api', method, route, '--' + version, '--output-schema', 'v1']
+        if query:
+            args += ['--params', json.dumps(query, separators=(',', ':'))]
+        if payload is None:
+            return self.run(*args, timeout=timeout)
+        fd, name = tempfile.mkstemp(prefix='kai_meshy_operation_', suffix='.json')
+        try:
+            with os.fdopen(fd, 'w', encoding='utf8') as f:
+                json.dump(payload, f)
+            return self.run(*args, '--data', '@' + name, timeout=timeout)
+        finally:
+            Path(name).unlink(missing_ok=True)
+
 
 def safe_asset_url(url):
     try:

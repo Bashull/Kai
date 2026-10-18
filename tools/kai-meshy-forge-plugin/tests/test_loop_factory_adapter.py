@@ -31,6 +31,32 @@ class ProjectionTests(unittest.TestCase):
     def test_invalid_state_or_credit_never_becomes_observation(self):
         snapshot=fixture();snapshot['stages'][0]['actual']=float('nan')
         with self.assertRaises(ForgeError):observation_projection(snapshot)
+
+    def test_generic_stage_uses_schema2_without_paths_request_or_capability_values(self):
+        snapshot=fixture();snapshot['stages']=[{'stage':'op:main','status':'PLANNED','task_id':None,
+              'reservation':0,'actual':None,'request_json':'private','manifest_path':'/private',
+              'capability_id':'untrusted value https://private','contract_sha':'untrusted'}]
+        value=observation_projection(snapshot)
+        self.assertEqual(value['schema'],'kai.meshy.loop-observation/2')
+        self.assertEqual(value['stages'][0]['stage'],'op:main')
+        self.assertNotIn('private',json.dumps(value));self.assertNotIn('untrusted',json.dumps(value))
+
+    def test_legacy_projection_keeps_exact_schema1_contract(self):
+        value=observation_projection(fixture())
+        self.assertEqual(value['schema'],'kai.meshy.loop-observation/1')
+        self.assertEqual(set(value['stages'][0]),{'stage','status','task_id','reserved_meshy_credits','actual_meshy_credits'})
+
+    def test_generic_namespace_planned_facts_and_total_stages_are_bounded(self):
+        for name in ('op:../private','op:','op:'+('x'*71),'op:main/other'):
+            snapshot=fixture();snapshot['stages']=[{'stage':name,'status':'PLANNED'}]
+            with self.assertRaises(ForgeError):observation_projection(snapshot)
+        for bad in ({'task_id':'00000000-0000-0000-0000-000000000001'},{'reservation':1},{'actual':1}):
+            snapshot=fixture();snapshot['stages']=[{'stage':'op:main','status':'PLANNED',**bad}]
+            with self.assertRaises(ForgeError):observation_projection(snapshot)
+        snapshot=fixture();snapshot['stages']=[{'stage':'op:step_'+str(i),'status':'PLANNED'} for i in range(64)]
+        self.assertEqual(len(observation_projection(snapshot)['stages']),64)
+        snapshot['stages'].append({'stage':'op:step_64','status':'PLANNED'})
+        with self.assertRaises(ForgeError):observation_projection(snapshot)
         snapshot=fixture();snapshot['stages'].append(copy.deepcopy(snapshot['stages'][0]))
         with self.assertRaises(ForgeError):observation_projection(snapshot)
 

@@ -10,6 +10,10 @@ def cycle(forge, job_id, timeout=60):
         return {'next_action': 'REJECTED_REQUIRES_NEW_REFERENCE', 'job_id': job_id}
     if state['job']['local_cancelled']:
         return {'next_action': 'LOCALLY_CANCELLED_REMOTE_UNCHANGED', 'job_id': job_id}
+    if (state['job'].get('workflow_kind', 'brick') != 'brick'
+            or any(s['stage'].startswith('op:') for s in state['stages'])):
+        return {'next_action': 'USE_CAPABILITY_OPERATION_LOOP', 'job_id': job_id,
+                'paid_submission_performed': False}
     stages = {s['stage']: s for s in state['stages']}
     if 'prototype' not in stages:
         return {'next_action': 'SUBMIT_PROTOTYPE', 'estimated_credits': 6, 'paid_submission_performed': False}

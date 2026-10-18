@@ -1,0 +1,5991 @@
+{
+  "schema": "kai.meshy.capability-catalogue/v1",
+  "contract_version": "2026-10-18.1",
+  "as_of": "2026-10-18",
+  "state": "STAGING_DOCUMENTARY_CONTRACTS_NOT_LIVE_VENDOR_E2E",
+  "implementation_license": "KAI_OWN_STRUCTURAL_CONTRACT_CODE; no vendor implementation code copied",
+  "operations": {
+    "text_to_3d.preview": {
+      "id": "text_to_3d.preview",
+      "contract_version": "2026-10-18.1",
+      "auth_family": "v2",
+      "api_version": "v2",
+      "auth_group": "standard",
+      "routes": {
+        "create": "/openapi/v2/text-to-3d",
+        "get": "/openapi/v2/text-to-3d/{task_id}",
+        "cancel": "/openapi/v2/text-to-3d/{task_id}",
+        "list": "/openapi/v2/text-to-3d",
+        "stream": "/openapi/v2/text-to-3d/{task_id}/stream"
+      },
+      "route_methods": {
+        "create": "POST",
+        "get": "GET",
+        "cancel": "DELETE",
+        "list": "GET",
+        "stream": "GET"
+      },
+      "request_schema": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "const": "preview",
+            "type": "string",
+            "minLength": 1
+          },
+          "prompt": {
+            "type": "string",
+            "maxLength": 800,
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1
+          },
+          "art_style": {
+            "type": "string",
+            "enum": [
+              "realistic"
+            ]
+          },
+          "ai_model": {
+            "type": "string",
+            "enum": [
+              "meshy-6",
+              "meshy-6-lite",
+              "meshy-7",
+              "meshy-7.1",
+              "latest",
+              "meshy-t2",
+              "meshy-t2.5"
+            ],
+            "default": "latest"
+          },
+          "model_type": {
+            "type": "string",
+            "enum": [
+              "standard",
+              "lowpoly",
+              "smart-topology"
+            ],
+            "default": "standard"
+          },
+          "topology": {
+            "type": "string",
+            "enum": [
+              "quad",
+              "triangle"
+            ],
+            "default": "triangle"
+          },
+          "target_polycount": {
+            "type": "integer",
+            "minimum": 100,
+            "maximum": 300000
+          },
+          "should_remesh": {
+            "type": "boolean"
+          },
+          "moderation": {
+            "type": "boolean",
+            "default": false
+          },
+          "pose_mode": {
+            "type": "string",
+            "enum": [
+              "",
+              "a-pose",
+              "t-pose"
+            ]
+          },
+          "symmetry_mode": {
+            "type": "string",
+            "enum": [
+              "off",
+              "auto",
+              "on"
+            ]
+          },
+          "is_a_t_pose": {
+            "type": "boolean"
+          },
+          "origin_at": {
+            "type": "string",
+            "enum": [
+              "bottom",
+              "center"
+            ]
+          },
+          "decimation_mode": {
+            "type": "integer",
+            "enum": [
+              1,
+              2,
+              3,
+              4
+            ]
+          },
+          "target_formats": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "glb",
+                "obj",
+                "fbx",
+                "stl",
+                "usdz",
+                "3mf"
+              ]
+            }
+          },
+          "ultra_mode": {
+            "type": "boolean"
+          },
+          "geometry_resolution": {
+            "type": "string",
+            "enum": [
+              "standard",
+              "2k",
+              "4k"
+            ],
+            "default": "standard"
+          },
+          "auto_size": {
+            "type": "boolean",
+            "default": false
+          },
+          "alpha_thumbnail": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "required": [
+          "mode",
+          "prompt"
+        ],
+        "additionalProperties": false,
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "list_query_schema": {
+        "type": "object",
+        "properties": {
+          "page_num": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 10
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "+created_at",
+              "-created_at"
+            ],
+            "default": "-created_at"
+          }
+        },
+        "additionalProperties": false
+      },
+      "input_fields": {},
+      "price": {
+        "rule": "generation_mesh",
+        "parameters": {},
+        "status": "EXACT_WHEN_RULE_AND_CONFIGURATION_RESOLVE",
+        "source": "meshy-pricing.md",
+        "source_checked_date_utc": "2026-10-18",
+        "maximum_age_days": 7
+      },
+      "paid": true,
+      "conditions": [
+        "mode=preview,prompt required",
+        "smart-topology T2/T2.5 only; T2.5 default since2026-10-15",
+        "lowpoly retires2026-10-30",
+        "geometry_resolution requires7.1; target_polycount native for smart and remesh-only for standard"
+      ],
+      "parent_constraints": {},
+      "source": {
+        "page": "meshy-text-to-3d.md",
+        "openapi": "meshy-openapi.json"
+      },
+      "schema_policy": "KAI_RESTRICTED_DOCUMENTED_SUBSET; unknown fields/null values rejected locally, not a claim of vendor-wide rejection",
+      "lifecycle": {
+        "terminal": [
+          "SUCCEEDED",
+          "FAILED",
+          "CANCELED"
+        ],
+        "asset_retention_days_non_enterprise": 3,
+        "unknown_post": "RECONCILE_NEVER_AUTORETRY",
+        "cancel_in_progress": "409_REMOTE_TASK_CONTINUES"
+      },
+      "pagination": {
+        "request": "page_num/page_size",
+        "documented_response": "ARRAY",
+        "completion": "SHORT_OR_EMPTY_PAGE_WITH_BOUNDS_AND_REPEAT_DETECTION",
+        "maximum_pages_is_engine_policy": true
+      },
+      "preflight_requirements": []
+    },
+    "text_to_3d.refine": {
+      "id": "text_to_3d.refine",
+      "contract_version": "2026-10-18.1",
+      "auth_family": "v2",
+      "api_version": "v2",
+      "auth_group": "standard",
+      "routes": {
+        "create": "/openapi/v2/text-to-3d",
+        "get": "/openapi/v2/text-to-3d/{task_id}",
+        "cancel": "/openapi/v2/text-to-3d/{task_id}",
+        "list": "/openapi/v2/text-to-3d",
+        "stream": "/openapi/v2/text-to-3d/{task_id}/stream"
+      },
+      "route_methods": {
+        "create": "POST",
+        "get": "GET",
+        "cancel": "DELETE",
+        "list": "GET",
+        "stream": "GET"
+      },
+      "request_schema": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "const": "refine",
+            "type": "string",
+            "minLength": 1
+          },
+          "texture_prompt": {
+            "type": "string",
+            "maxLength": 800,
+            "minLength": 1
+          },
+          "texture_image_url": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1
+          },
+          "preview_task_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "ai_model": {
+            "type": "string",
+            "enum": [
+              "meshy-6-lite",
+              "meshy-6",
+              "meshy-7",
+              "meshy-7.1",
+              "latest"
+            ]
+          },
+          "enable_pbr": {
+            "type": "boolean",
+            "default": false
+          },
+          "moderation": {
+            "type": "boolean",
+            "default": false
+          },
+          "origin_at": {
+            "type": "string",
+            "enum": [
+              "bottom",
+              "center"
+            ]
+          },
+          "target_formats": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "glb",
+                "obj",
+                "fbx",
+                "stl",
+                "usdz",
+                "3mf"
+              ]
+            }
+          },
+          "texture_resolution": {
+            "type": "string",
+            "enum": [
+              "2k",
+              "4k",
+              "8k"
+            ]
+          },
+          "hd_texture": {
+            "type": "boolean"
+          },
+          "remove_lighting": {
+            "type": "boolean"
+          },
+          "auto_size": {
+            "type": "boolean",
+            "default": false
+          },
+          "alpha_thumbnail": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "required": [
+          "mode",
+          "preview_task_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "list_query_schema": {
+        "type": "object",
+        "properties": {
+          "page_num": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 10
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "+created_at",
+              "-created_at"
+            ],
+            "default": "-created_at"
+          }
+        },
+        "additionalProperties": false
+      },
+      "input_fields": {
+        "texture_image_url": {
+          "kind": "image",
+          "many": false,
+          "data_uri_max_bytes": 20000000,
+          "public_url_max_bytes": 20000000,
+          "data_uri_mime_types": [
+            "image/png",
+            "image/jpeg",
+            "image/webp"
+          ]
+        },
+        "preview_task_id": {
+          "kind": "task_id",
+          "many": false,
+          "allowed_parent_capabilities": [
+            "text_to_3d.preview"
+          ],
+          "required_parent_status": "SUCCEEDED",
+          "same_api_account": true,
+          "unexpired_assets": true
+        }
+      },
+      "price": {
+        "rule": "texture",
+        "parameters": {},
+        "status": "EXACT_WHEN_RULE_AND_CONFIGURATION_RESOLVE",
+        "source": "meshy-pricing.md",
+        "source_checked_date_utc": "2026-10-18",
+        "maximum_age_days": 7
+      },
+      "paid": true,
+      "conditions": [
+        "mode=refine,preview_task_id required",
+        "inherits preview model when ai_model omitted; texture_resolution compatibility requires parent model"
+      ],
+      "parent_constraints": {},
+      "source": {
+        "page": "meshy-text-to-3d.md",
+        "openapi": "meshy-openapi.json"
+      },
+      "schema_policy": "KAI_RESTRICTED_DOCUMENTED_SUBSET; unknown fields/null values rejected locally, not a claim of vendor-wide rejection",
+      "lifecycle": {
+        "terminal": [
+          "SUCCEEDED",
+          "FAILED",
+          "CANCELED"
+        ],
+        "asset_retention_days_non_enterprise": 3,
+        "unknown_post": "RECONCILE_NEVER_AUTORETRY",
+        "cancel_in_progress": "409_REMOTE_TASK_CONTINUES"
+      },
+      "pagination": {
+        "request": "page_num/page_size",
+        "documented_response": "ARRAY",
+        "completion": "SHORT_OR_EMPTY_PAGE_WITH_BOUNDS_AND_REPEAT_DETECTION",
+        "maximum_pages_is_engine_policy": true
+      },
+      "preflight_requirements": []
+    },
+    "image_to_3d.generate": {
+      "id": "image_to_3d.generate",
+      "contract_version": "2026-10-18.1",
+      "auth_family": "v1",
+      "api_version": "v1",
+      "auth_group": "standard",
+      "routes": {
+        "create": "/openapi/v1/image-to-3d",
+        "get": "/openapi/v1/image-to-3d/{task_id}",
+        "cancel": "/openapi/v1/image-to-3d/{task_id}",
+        "list": "/openapi/v1/image-to-3d",
+        "stream": "/openapi/v1/image-to-3d/{task_id}/stream"
+      },
+      "route_methods": {
+        "create": "POST",
+        "get": "GET",
+        "cancel": "DELETE",
+        "list": "GET",
+        "stream": "GET"
+      },
+      "request_schema": {
+        "type": "object",
+        "properties": {
+          "image_url": {
+            "type": "string",
+            "minLength": 1
+          },
+          "input_task_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1
+          },
+          "ai_model": {
+            "type": "string",
+            "enum": [
+              "meshy-6",
+              "meshy-6-lite",
+              "meshy-7",
+              "meshy-7.1",
+              "latest",
+              "meshy-t2",
+              "meshy-t2.5"
+            ],
+            "default": "latest"
+          },
+          "model_type": {
+            "type": "string",
+            "enum": [
+              "standard",
+              "lowpoly",
+              "smart-topology"
+            ]
+          },
+          "topology": {
+            "type": "string",
+            "enum": [
+              "quad",
+              "triangle"
+            ],
+            "default": "triangle"
+          },
+          "target_polycount": {
+            "type": "integer",
+            "minimum": 100,
+            "maximum": 300000
+          },
+          "should_remesh": {
+            "type": "boolean"
+          },
+          "should_texture": {
+            "type": "boolean",
+            "default": true
+          },
+          "enable_pbr": {
+            "type": "boolean",
+            "default": false
+          },
+          "ultra_mode": {
+            "type": "boolean"
+          },
+          "geometry_resolution": {
+            "type": "string",
+            "enum": [
+              "standard",
+              "2k",
+              "4k"
+            ],
+            "default": "standard"
+          },
+          "texture_prompt": {
+            "type": "string",
+            "maxLength": 800,
+            "minLength": 1
+          },
+          "texture_image_url": {
+            "type": "string",
+            "minLength": 1
+          },
+          "image_enhancement": {
+            "type": "boolean"
+          },
+          "remove_lighting": {
+            "type": "boolean"
+          },
+          "moderation": {
+            "type": "boolean",
+            "default": false
+          },
+          "pose_mode": {
+            "type": "string",
+            "enum": [
+              "",
+              "a-pose",
+              "t-pose"
+            ]
+          },
+          "surface_mode": {
+            "type": "string",
+            "enum": [
+              "organic",
+              "hard"
+            ]
+          },
+          "symmetry_mode": {
+            "type": "string",
+            "enum": [
+              "off",
+              "auto",
+              "on"
+            ]
+          },
+          "is_a_t_pose": {
+            "type": "boolean"
+          },
+          "save_pre_remeshed_model": {
+            "type": "boolean",
+            "default": false
+          },
+          "auto_size": {
+            "type": "boolean",
+            "default": false
+          },
+          "origin_at": {
+            "type": "string",
+            "enum": [
+              "bottom",
+              "center"
+            ]
+          },
+          "decimation_mode": {
+            "type": "integer",
+            "enum": [
+              1,
+              2,
+              3,
+              4
+            ]
+          },
+          "target_formats": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "glb",
+                "obj",
+                "fbx",
+                "stl",
+                "usdz",
+                "3mf"
+              ]
+            }
+          },
+          "texture_resolution": {
+            "type": "string",
+            "enum": [
+              "2k",
+              "4k",
+              "8k"
+            ]
+          },
+          "hd_texture": {
+            "type": "boolean"
+          },
+          "multi_view_thumbnails": {
+            "type": "boolean",
+            "default": false
+          },
+          "alpha_thumbnail": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "list_query_schema": {
+        "type": "object",
+        "properties": {
+          "page_num": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 10
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "+created_at",
+              "-created_at"
+            ],
+            "default": "-created_at"
+          }
+        },
+        "additionalProperties": false
+      },
+      "input_fields": {
+        "image_url": {
+          "kind": "image",
+          "many": false,
+          "data_uri_max_bytes": 20000000,
+          "public_url_max_bytes": 20000000,
+          "data_uri_mime_types": [
+            "image/png",
+            "image/jpeg",
+            "image/webp"
+          ]
+        },
+        "input_task_id": {
+          "kind": "task_id",
+          "many": false,
+          "allowed_parent_capabilities": [
+            "text_to_image.generate",
+            "image_to_image.generate"
+          ],
+          "required_parent_status": "SUCCEEDED",
+          "same_api_account": true,
+          "unexpired_assets": true
+        },
+        "texture_image_url": {
+          "kind": "image",
+          "many": false,
+          "data_uri_max_bytes": 20000000,
+          "public_url_max_bytes": 20000000,
+          "data_uri_mime_types": [
+            "image/png",
+            "image/jpeg",
+            "image/webp"
+          ]
+        }
+      },
+      "price": {
+        "rule": "generation_textured",
+        "parameters": {},
+        "status": "EXACT_WHEN_RULE_AND_CONFIGURATION_RESOLVE",
+        "source": "meshy-pricing.md",
+        "source_checked_date_utc": "2026-10-18",
+        "maximum_age_days": 7
+      },
+      "paid": true,
+      "conditions": [
+        "exactly one image_url/input_task_id (KAI denies ambiguous precedence)",
+        "T2max15000/T2.5max30000,triangle only",
+        "image_enhancement/remove_lighting unsupported for6-lite or smart"
+      ],
+      "parent_constraints": {},
+      "source": {
+        "page": "meshy-image-to-3d.md",
+        "openapi": "meshy-openapi.json"
+      },
+      "schema_policy": "KAI_RESTRICTED_DOCUMENTED_SUBSET; unknown fields/null values rejected locally, not a claim of vendor-wide rejection",
+      "lifecycle": {
+        "terminal": [
+          "SUCCEEDED",
+          "FAILED",
+          "CANCELED"
+        ],
+        "asset_retention_days_non_enterprise": 3,
+        "unknown_post": "RECONCILE_NEVER_AUTORETRY",
+        "cancel_in_progress": "409_REMOTE_TASK_CONTINUES"
+      },
+      "pagination": {
+        "request": "page_num/page_size",
+        "documented_response": "ARRAY",
+        "completion": "SHORT_OR_EMPTY_PAGE_WITH_BOUNDS_AND_REPEAT_DETECTION",
+        "maximum_pages_is_engine_policy": true
+      },
+      "preflight_requirements": [
+        "input_task_id parent must produce exactly one image"
+      ]
+    },
+    "multi_image_to_3d.generate": {
+      "id": "multi_image_to_3d.generate",
+      "contract_version": "2026-10-18.1",
+      "auth_family": "v1",
+      "api_version": "v1",
+      "auth_group": "standard",
+      "routes": {
+        "create": "/openapi/v1/multi-image-to-3d",
+        "get": "/openapi/v1/multi-image-to-3d/{task_id}",
+        "cancel": "/openapi/v1/multi-image-to-3d/{task_id}",
+        "list": "/openapi/v1/multi-image-to-3d",
+        "stream": "/openapi/v1/multi-image-to-3d/{task_id}/stream"
+      },
+      "route_methods": {
+        "create": "POST",
+        "get": "GET",
+        "cancel": "DELETE",
+        "list": "GET",
+        "stream": "GET"
+      },
+      "request_schema": {
+        "type": "object",
+        "properties": {
+          "image_urls": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 4,
+            "items": {
+              "type": "string"
+            }
+          },
+          "input_task_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1
+          },
+          "ai_model": {
+            "type": "string",
+            "enum": [
+              "meshy-6",
+              "meshy-6-lite",
+              "meshy-7",
+              "meshy-7.1",
+              "latest"
+            ],
+            "default": "latest"
+          },
+          "ultra_mode": {
+            "type": "boolean"
+          },
+          "geometry_resolution": {
+            "type": "string",
+            "enum": [
+              "standard",
+              "2k"
+            ],
+            "default": "standard"
+          },
+          "topology": {
+            "type": "string",
+            "enum": [
+              "quad",
+              "triangle"
+            ],
+            "default": "triangle"
+          },
+          "target_polycount": {
+            "type": "integer",
+            "minimum": 100,
+            "maximum": 300000,
+            "default": 30000
+          },
+          "should_remesh": {
+            "type": "boolean"
+          },
+          "should_texture": {
+            "type": "boolean",
+            "default": true
+          },
+          "enable_pbr": {
+            "type": "boolean",
+            "default": false
+          },
+          "texture_prompt": {
+            "type": "string",
+            "maxLength": 800,
+            "minLength": 1
+          },
+          "texture_image_url": {
+            "type": "string",
+            "minLength": 1
+          },
+          "texture_image_urls": {
+            "type": "array",
+            "maxItems": 4,
+            "items": {
+              "type": "string"
+            }
+          },
+          "image_enhancement": {
+            "type": "boolean"
+          },
+          "remove_lighting": {
+            "type": "boolean"
+          },
+          "moderation": {
+            "type": "boolean",
+            "default": false
+          },
+          "pose_mode": {
+            "type": "string",
+            "enum": [
+              "",
+              "a-pose",
+              "t-pose"
+            ]
+          },
+          "symmetry_mode": {
+            "type": "string",
+            "enum": [
+              "off",
+              "auto",
+              "on"
+            ]
+          },
+          "is_a_t_pose": {
+            "type": "boolean"
+          },
+          "save_pre_remeshed_model": {
+            "type": "boolean",
+            "default": false
+          },
+          "auto_size": {
+            "type": "boolean",
+            "default": false
+          },
+          "origin_at": {
+            "type": "string",
+            "enum": [
+              "bottom",
+              "center"
+            ]
+          },
+          "decimation_mode": {
+            "type": "integer",
+            "enum": [
+              1,
+              2,
+              3,
+              4
+            ]
+          },
+          "target_formats": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "glb",
+                "obj",
+                "fbx",
+                "stl",
+                "usdz",
+                "3mf"
+              ]
+            }
+          },
+          "texture_resolution": {
+            "type": "string",
+            "enum": [
+              "2k",
+              "4k",
+              "8k"
+            ]
+          },
+          "hd_texture": {
+            "type": "boolean"
+          },
+          "multi_view_thumbnails": {
+            "type": "boolean",
+            "default": false
+          },
+          "alpha_thumbnail": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "list_query_schema": {
+        "type": "object",
+        "properties": {
+          "page_num": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 10
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "+created_at",
+              "-created_at"
+            ],
+            "default": "-created_at"
+          }
+        },
+        "additionalProperties": false
+      },
+      "input_fields": {
+        "image_urls": {
+          "kind": "image",
+          "many": true,
+          "data_uri_max_bytes": 20000000,
+          "public_url_max_bytes": 20000000,
+          "data_uri_mime_types": [
+            "image/png",
+            "image/jpeg",
+            "image/webp"
+          ]
+        },
+        "input_task_id": {
+          "kind": "task_id",
+          "many": false,
+          "allowed_parent_capabilities": [
+            "text_to_image.generate",
+            "image_to_image.generate"
+          ],
+          "required_parent_status": "SUCCEEDED",
+          "same_api_account": true,
+          "unexpired_assets": true
+        },
+        "texture_image_url": {
+          "kind": "image",
+          "many": false,
+          "data_uri_max_bytes": 20000000,
+          "public_url_max_bytes": 20000000,
+          "data_uri_mime_types": [
+            "image/png",
+            "image/jpeg",
+            "image/webp"
+          ]
+        },
+        "texture_image_urls": {
+          "kind": "image",
+          "many": true,
+          "data_uri_max_bytes": 20000000,
+          "public_url_max_bytes": 20000000,
+          "data_uri_mime_types": [
+            "image/png",
+            "image/jpeg",
+            "image/webp"
+          ]
+        }
+      },
+      "price": {
+        "rule": "generation_textured",
+        "parameters": {},
+        "status": "EXACT_WHEN_RULE_AND_CONFIGURATION_RESOLVE",
+        "source": "meshy-pricing.md",
+        "source_checked_date_utc": "2026-10-18",
+        "maximum_age_days": 7
+      },
+      "paid": true,
+      "conditions": [
+        "one image_urls/input_task_id,1–4 views",
+        "no SmartTopology or4kgeometry",
+        "texture_image_urls needs7.1"
+      ],
+      "parent_constraints": {},
+      "source": {
+        "page": "meshy-multi-image-to-3d.md",
+        "openapi": "meshy-openapi.json"
+      },
+      "schema_policy": "KAI_RESTRICTED_DOCUMENTED_SUBSET; unknown fields/null values rejected locally, not a claim of vendor-wide rejection",
+      "lifecycle": {
+        "terminal": [
+          "SUCCEEDED",
+          "FAILED",
+          "CANCELED"
+        ],
+        "asset_retention_days_non_enterprise": 3,
+        "unknown_post": "RECONCILE_NEVER_AUTORETRY",
+        "cancel_in_progress": "409_REMOTE_TASK_CONTINUES"
+      },
+      "pagination": {
+        "request": "page_num/page_size",
+        "documented_response": "ARRAY",
+        "completion": "SHORT_OR_EMPTY_PAGE_WITH_BOUNDS_AND_REPEAT_DETECTION",
+        "maximum_pages_is_engine_policy": true
+      },
+      "preflight_requirements": [
+        "input_task_id parent must produce1to4images of the same object"
+      ]
+    },
+    "remesh.create": {
+      "id": "remesh.create",
+      "contract_version": "2026-10-18.1",
+      "auth_family": "v1",
+      "api_version": "v1",
+      "auth_group": "standard",
+      "routes": {
+        "create": "/openapi/v1/remesh",
+        "get": "/openapi/v1/remesh/{task_id}",
+        "cancel": "/openapi/v1/remesh/{task_id}",
+        "list": "/openapi/v1/remesh",
+        "stream": "/openapi/v1/remesh/{task_id}/stream"
+      },
+      "route_methods": {
+        "create": "POST",
+        "get": "GET",
+        "cancel": "DELETE",
+        "list": "GET",
+        "stream": "GET"
+      },
+      "request_schema": {
+        "type": "object",
+        "properties": {
+          "input_task_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "model_url": {
+            "type": "string",
+            "minLength": 1
+          },
+          "target_formats": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "glb",
+                "obj",
+                "fbx",
+                "stl",
+                "usdz",
+                "blend",
+                "3mf"
+              ]
+            }
+          },
+          "topology": {
+            "type": "string",
+            "enum": [
+              "quad",
+              "triangle"
+            ],
+            "default": "triangle"
+          },
+          "target_polycount": {
+            "type": "integer",
+            "minimum": 100,
+            "maximum": 300000,
+            "default": 30000
+          },
+          "decimation_mode": {
+            "type": "integer",
+            "enum": [
+              1,
+              2,
+              3,
+              4
+            ]
+          },
+          "resize_height": {
+            "type": "number",
+            "format": "float"
+          },
+          "resize_longest_side": {
+            "type": "number",
+            "format": "float"
+          },
+          "auto_size": {
+            "type": "boolean",
+            "default": false
+          },
+          "origin_at": {
+            "type": "string",
+            "enum": [
+              "bottom",
+              "center"
+            ]
+          },
+          "convert_format_only": {
+            "type": "boolean",
+            "default": false
+          },
+          "alpha_thumbnail": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "list_query_schema": {
+        "type": "object",
+        "properties": {
+          "page_num": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 10
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "+created_at",
+              "-created_at"
+            ],
+            "default": "-created_at"
+          }
+        },
+        "additionalProperties": false
+      },
+      "input_fields": {
+        "input_task_id": {
+          "kind": "task_id",
+          "many": false,
+          "allowed_parent_capabilities": [
+            "text_to_3d.preview",
+            "text_to_3d.refine",
+            "image_to_3d.generate",
+            "retexture.create"
+          ],
+          "required_parent_status": "SUCCEEDED",
+          "same_api_account": true,
+          "unexpired_assets": true
+        },
+        "model_url": {
+          "kind": "model",
+          "many": false,
+          "data_uri_max_bytes": 100000000,
+          "public_url_max_bytes": 400000000,
+          "public_url_extensions": [
+            ".glb",
+            ".gltf",
+            ".obj",
+            ".fbx",
+            ".stl"
+          ],
+          "data_uri_mime_types": [
+            "application/octet-stream"
+          ],
+          "preferred_data_uri_mime": "application/octet-stream",
+          "over_100mb_triangle_limit": 10000000,
+          "over_100mb_header_constraints": [
+            "binaryFBX7.1ornewer",
+            "noDracoGLB/glTF"
+          ]
+        }
+      },
+      "price": {
+        "rule": "fixed",
+        "parameters": {
+          "credits": 5
+        },
+        "status": "EXACT_WHEN_RULE_AND_CONFIGURATION_RESOLVE",
+        "source": "meshy-pricing.md",
+        "source_checked_date_utc": "2026-10-18",
+        "maximum_age_days": 7
+      },
+      "paid": true,
+      "conditions": [],
+      "parent_constraints": {},
+      "source": {
+        "page": "meshy-remesh.md",
+        "openapi": "meshy-openapi.json"
+      },
+      "schema_policy": "KAI_RESTRICTED_DOCUMENTED_SUBSET; unknown fields/null values rejected locally, not a claim of vendor-wide rejection",
+      "lifecycle": {
+        "terminal": [
+          "SUCCEEDED",
+          "FAILED",
+          "CANCELED"
+        ],
+        "asset_retention_days_non_enterprise": 3,
+        "unknown_post": "RECONCILE_NEVER_AUTORETRY",
+        "cancel_in_progress": "409_REMOTE_TASK_CONTINUES"
+      },
+      "pagination": {
+        "request": "page_num/page_size",
+        "documented_response": "ARRAY",
+        "completion": "SHORT_OR_EMPTY_PAGE_WITH_BOUNDS_AND_REPEAT_DETECTION",
+        "maximum_pages_is_engine_policy": true
+      },
+      "preflight_requirements": []
+    },
+    "convert.create": {
+      "id": "convert.create",
+      "contract_version": "2026-10-18.1",
+      "auth_family": "v1",
+      "api_version": "v1",
+      "auth_group": "standard",
+      "routes": {
+        "create": "/openapi/v1/convert",
+        "get": "/openapi/v1/convert/{task_id}",
+        "cancel": "/openapi/v1/convert/{task_id}",
+        "list": "/openapi/v1/convert",
+        "stream": "/openapi/v1/convert/{task_id}/stream"
+      },
+      "route_methods": {
+        "create": "POST",
+        "get": "GET",
+        "cancel": "DELETE",
+        "list": "GET",
+        "stream": "GET"
+      },
+      "request_schema": {
+        "type": "object",
+        "properties": {
+          "input_task_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "model_url": {
+            "type": "string",
+            "minLength": 1
+          },
+          "target_formats": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "enum": [
+                "glb",
+                "obj",
+                "fbx",
+                "stl",
+                "usdz",
+                "blend",
+                "3mf"
+              ]
+            }
+          }
+        },
+        "required": [
+          "target_formats"
+        ],
+        "additionalProperties": false,
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "list_query_schema": {
+        "type": "object",
+        "properties": {
+          "page_num": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 10
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "+created_at",
+              "-created_at"
+            ],
+            "default": "-created_at"
+          }
+        },
+        "additionalProperties": false
+      },
+      "input_fields": {
+        "input_task_id": {
+          "kind": "task_id",
+          "many": false,
+          "required_parent_status": "SUCCEEDED",
+          "same_api_account": true,
+          "unexpired_assets": true
+        },
+        "model_url": {
+          "kind": "model",
+          "many": false,
+          "data_uri_max_bytes": 100000000,
+          "public_url_max_bytes": 400000000,
+          "public_url_extensions": [
+            ".glb",
+            ".gltf",
+            ".obj",
+            ".fbx",
+            ".stl"
+          ],
+          "data_uri_mime_types": [
+            "application/octet-stream"
+          ],
+          "preferred_data_uri_mime": "application/octet-stream",
+          "over_100mb_triangle_limit": 10000000,
+          "over_100mb_header_constraints": [
+            "binaryFBX7.1ornewer",
+            "noDracoGLB/glTF"
+          ]
+        }
+      },
+      "price": {
+        "rule": "fixed",
+        "parameters": {
+          "credits": 1
+        },
+        "status": "EXACT_WHEN_RULE_AND_CONFIGURATION_RESOLVE",
+        "source": "meshy-pricing.md",
+        "source_checked_date_utc": "2026-10-18",
+        "maximum_age_days": 7
+      },
+      "paid": true,
+      "conditions": [],
+      "parent_constraints": {},
+      "source": {
+        "page": "meshy-convert.md",
+        "openapi": "meshy-openapi.json"
+      },
+      "schema_policy": "KAI_RESTRICTED_DOCUMENTED_SUBSET; unknown fields/null values rejected locally, not a claim of vendor-wide rejection",
+      "lifecycle": {
+        "terminal": [
+          "SUCCEEDED",
+          "FAILED",
+          "CANCELED"
+        ],
+        "asset_retention_days_non_enterprise": 3,
+        "unknown_post": "RECONCILE_NEVER_AUTORETRY",
+        "cancel_in_progress": "409_REMOTE_TASK_CONTINUES"
+      },
+      "pagination": {
+        "request": "page_num/page_size",
+        "documented_response": "ARRAY",
+        "completion": "SHORT_OR_EMPTY_PAGE_WITH_BOUNDS_AND_REPEAT_DETECTION",
+        "maximum_pages_is_engine_policy": true
+      },
+      "preflight_requirements": []
+    },
+    "resize.create": {
+      "id": "resize.create",
+      "contract_version": "2026-10-18.1",
+      "auth_family": "v1",
+      "api_version": "v1",
+      "auth_group": "standard",
+      "routes": {
+        "create": "/openapi/v1/resize",
+        "get": "/openapi/v1/resize/{task_id}",
+        "cancel": "/openapi/v1/resize/{task_id}",
+        "list": "/openapi/v1/resize",
+        "stream": "/openapi/v1/resize/{task_id}/stream"
+      },
+      "route_methods": {
+        "create": "POST",
+        "get": "GET",
+        "cancel": "DELETE",
+        "list": "GET",
+        "stream": "GET"
+      },
+      "request_schema": {
+        "type": "object",
+        "properties": {
+          "input_task_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "model_url": {
+            "type": "string",
+            "minLength": 1
+          },
+          "resize_height": {
+            "type": "number",
+            "format": "float",
+            "minimum": 0
+          },
+          "resize_longest_side": {
+            "type": "number",
+            "format": "float",
+            "minimum": 0
+          },
+          "auto_size": {
+            "type": "boolean",
+            "default": false
+          },
+          "origin_at": {
+            "type": "string",
+            "enum": [
+              "bottom",
+              "center"
+            ],
+            "default": "bottom"
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "list_query_schema": {
+        "type": "object",
+        "properties": {
+          "page_num": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 10
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "+created_at",
+              "-created_at"
+            ],
+            "default": "-created_at"
+          }
+        },
+        "additionalProperties": false
+      },
+      "input_fields": {
+        "input_task_id": {
+          "kind": "task_id",
+          "many": false,
+          "required_parent_status": "SUCCEEDED",
+          "same_api_account": true,
+          "unexpired_assets": true
+        },
+        "model_url": {
+          "kind": "model",
+          "many": false,
+          "data_uri_max_bytes": 100000000,
+          "public_url_max_bytes": 400000000,
+          "public_url_extensions": [
+            ".glb",
+            ".gltf",
+            ".obj",
+            ".fbx",
+            ".stl"
+          ],
+          "data_uri_mime_types": [
+            "application/octet-stream"
+          ],
+          "preferred_data_uri_mime": "application/octet-stream",
+          "over_100mb_triangle_limit": 10000000,
+          "over_100mb_header_constraints": [
+            "binaryFBX7.1ornewer",
+            "noDracoGLB/glTF"
+          ]
+        }
+      },
+      "price": {
+        "rule": "fixed",
+        "parameters": {
+          "credits": 1
+        },
+        "status": "EXACT_WHEN_RULE_AND_CONFIGURATION_RESOLVE",
+        "source": "meshy-pricing.md",
+        "source_checked_date_utc": "2026-10-18",
+        "maximum_age_days": 7
+      },
+      "paid": true,
+      "conditions": [
+        "exactly one resize_height/resize_longest_side/auto_size:true"
+      ],
+      "parent_constraints": {},
+      "source": {
+        "page": "meshy-resize.md",
+        "openapi": "meshy-openapi.json"
+      },
+      "schema_policy": "KAI_RESTRICTED_DOCUMENTED_SUBSET; unknown fields/null values rejected locally, not a claim of vendor-wide rejection",
+      "lifecycle": {
+        "terminal": [
+          "SUCCEEDED",
+          "FAILED",
+          "CANCELED"
+        ],
+        "asset_retention_days_non_enterprise": 3,
+        "unknown_post": "RECONCILE_NEVER_AUTORETRY",
+        "cancel_in_progress": "409_REMOTE_TASK_CONTINUES"
+      },
+      "pagination": {
+        "request": "page_num/page_size",
+        "documented_response": "ARRAY",
+        "completion": "SHORT_OR_EMPTY_PAGE_WITH_BOUNDS_AND_REPEAT_DETECTION",
+        "maximum_pages_is_engine_policy": true
+      },
+      "preflight_requirements": []
+    },
+    "uv_unwrap.create": {
+      "id": "uv_unwrap.create",
+      "contract_version": "2026-10-18.1",
+      "auth_family": "v1",
+      "api_version": "v1",
+      "auth_group": "standard",
+      "routes": {
+        "create": "/openapi/v1/uv-unwrap",
+        "get": "/openapi/v1/uv-unwrap/{task_id}",
+        "cancel": "/openapi/v1/uv-unwrap/{task_id}",
+        "list": "/openapi/v1/uv-unwrap",
+        "stream": "/openapi/v1/uv-unwrap/{task_id}/stream"
+      },
+      "route_methods": {
+        "create": "POST",
+        "get": "GET",
+        "cancel": "DELETE",
+        "list": "GET",
+        "stream": "GET"
+      },
+      "request_schema": {
+        "type": "object",
+        "properties": {
+          "input_task_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "model_url": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "list_query_schema": {
+        "type": "object",
+        "properties": {
+          "page_num": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 10
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "+created_at",
+              "-created_at"
+            ],
+            "default": "-created_at"
+          }
+        },
+        "additionalProperties": false
+      },
+      "input_fields": {
+        "input_task_id": {
+          "kind": "task_id",
+          "many": false,
+          "required_parent_status": "SUCCEEDED",
+          "same_api_account": true,
+          "unexpired_assets": true
+        },
+        "model_url": {
+          "kind": "model",
+          "many": false,
+          "data_uri_max_bytes": 100000000,
+          "public_url_max_bytes": 400000000,
+          "public_url_extensions": [
+            ".glb"
+          ],
+          "data_uri_mime_types": [
+            "model/gltf-binary"
+          ],
+          "preferred_data_uri_mime": "model/gltf-binary",
+          "over_100mb_triangle_limit": 10000000,
+          "over_100mb_header_constraints": [
+            "binaryFBX7.1ornewer",
+            "noDracoGLB/glTF"
+          ]
+        }
+      },
+      "price": {
+        "rule": "fixed",
+        "parameters": {
+          "credits": 5
+        },
+        "status": "EXACT_WHEN_RULE_AND_CONFIGURATION_RESOLVE",
+        "source": "meshy-pricing.md",
+        "source_checked_date_utc": "2026-10-18",
+        "maximum_age_days": 7
+      },
+      "paid": true,
+      "conditions": [],
+      "parent_constraints": {},
+      "source": {
+        "page": "meshy-uv-unwrap.md",
+        "openapi": "meshy-openapi.json"
+      },
+      "schema_policy": "KAI_RESTRICTED_DOCUMENTED_SUBSET; unknown fields/null values rejected locally, not a claim of vendor-wide rejection",
+      "lifecycle": {
+        "terminal": [
+          "SUCCEEDED",
+          "FAILED",
+          "CANCELED"
+        ],
+        "asset_retention_days_non_enterprise": 3,
+        "unknown_post": "RECONCILE_NEVER_AUTORETRY",
+        "cancel_in_progress": "409_REMOTE_TASK_CONTINUES"
+      },
+      "pagination": {
+        "request": "page_num/page_size",
+        "documented_response": "ARRAY",
+        "completion": "SHORT_OR_EMPTY_PAGE_WITH_BOUNDS_AND_REPEAT_DETECTION",
+        "maximum_pages_is_engine_policy": true
+      },
+      "preflight_requirements": [
+        "GLB source not exceeding40000faces"
+      ]
+    },
+    "retexture.create": {
+      "id": "retexture.create",
+      "contract_version": "2026-10-18.1",
+      "auth_family": "v1",
+      "api_version": "v1",
+      "auth_group": "standard",
+      "routes": {
+        "create": "/openapi/v1/retexture",
+        "get": "/openapi/v1/retexture/{task_id}",
+        "cancel": "/openapi/v1/retexture/{task_id}",
+        "list": "/openapi/v1/retexture",
+        "stream": "/openapi/v1/retexture/{task_id}/stream"
+      },
+      "route_methods": {
+        "create": "POST",
+        "get": "GET",
+        "cancel": "DELETE",
+        "list": "GET",
+        "stream": "GET"
+      },
+      "request_schema": {
+        "type": "object",
+        "properties": {
+          "input_task_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "model_url": {
+            "type": "string",
+            "minLength": 1
+          },
+          "text_style_prompt": {
+            "type": "string",
+            "maxLength": 800,
+            "minLength": 1
+          },
+          "image_style_url": {
+            "type": "string",
+            "minLength": 1
+          },
+          "multiview_image_urls": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 4,
+            "items": {
+              "type": "string"
+            }
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "ai_model": {
+            "type": "string",
+            "enum": [
+              "meshy-6",
+              "meshy-6-lite",
+              "meshy-7",
+              "latest"
+            ],
+            "default": "latest"
+          },
+          "enable_original_uv": {
+            "type": "boolean",
+            "default": false
+          },
+          "enable_pbr": {
+            "type": "boolean",
+            "default": false
+          },
+          "remove_lighting": {
+            "type": "boolean"
+          },
+          "target_formats": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "glb",
+                "obj",
+                "fbx",
+                "stl",
+                "usdz",
+                "3mf"
+              ]
+            }
+          },
+          "texture_resolution": {
+            "type": "string",
+            "enum": [
+              "2k",
+              "4k",
+              "8k"
+            ]
+          },
+          "hd_texture": {
+            "type": "boolean"
+          },
+          "alpha_thumbnail": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "list_query_schema": {
+        "type": "object",
+        "properties": {
+          "page_num": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 10
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "+created_at",
+              "-created_at"
+            ],
+            "default": "-created_at"
+          }
+        },
+        "additionalProperties": false
+      },
+      "input_fields": {
+        "input_task_id": {
+          "kind": "task_id",
+          "many": false,
+          "allowed_parent_capabilities": [
+            "text_to_3d.preview",
+            "text_to_3d.refine",
+            "image_to_3d.generate",
+            "remesh.create"
+          ],
+          "required_parent_status": "SUCCEEDED",
+          "same_api_account": true,
+          "unexpired_assets": true
+        },
+        "model_url": {
+          "kind": "model",
+          "many": false,
+          "data_uri_max_bytes": 100000000,
+          "public_url_max_bytes": 400000000,
+          "public_url_extensions": [
+            ".glb",
+            ".gltf",
+            ".obj",
+            ".fbx",
+            ".stl"
+          ],
+          "data_uri_mime_types": [
+            "application/octet-stream"
+          ],
+          "preferred_data_uri_mime": "application/octet-stream",
+          "over_100mb_triangle_limit": 10000000,
+          "over_100mb_header_constraints": [
+            "binaryFBX7.1ornewer",
+            "noDracoGLB/glTF"
+          ]
+        },
+        "image_style_url": {
+          "kind": "image",
+          "many": false,
+          "data_uri_max_bytes": 20000000,
+          "public_url_max_bytes": 20000000,
+          "data_uri_mime_types": [
+            "image/png",
+            "image/jpeg",
+            "image/webp"
+          ]
+        },
+        "multiview_image_urls": {
+          "kind": "image",
+          "many": true,
+          "data_uri_max_bytes": 20000000,
+          "public_url_max_bytes": 20000000,
+          "data_uri_mime_types": [
+            "image/png",
+            "image/jpeg",
+            "image/webp"
+          ]
+        }
+      },
+      "price": {
+        "rule": "texture",
+        "parameters": {},
+        "status": "EXACT_WHEN_RULE_AND_CONFIGURATION_RESOLVE",
+        "source": "meshy-pricing.md",
+        "source_checked_date_utc": "2026-10-18",
+        "maximum_age_days": 7
+      },
+      "paid": true,
+      "conditions": [
+        "one model_url/input_task_id",
+        "one style; KAI rejects ignored text/image precedence",
+        "multiview needs explicit meshy-7",
+        "6-lite supports2k only; rejects remove_lighting"
+      ],
+      "parent_constraints": {},
+      "source": {
+        "page": "meshy-retexture.md",
+        "openapi": "meshy-openapi.json"
+      },
+      "schema_policy": "KAI_RESTRICTED_DOCUMENTED_SUBSET; unknown fields/null values rejected locally, not a claim of vendor-wide rejection",
+      "lifecycle": {
+        "terminal": [
+          "SUCCEEDED",
+          "FAILED",
+          "CANCELED"
+        ],
+        "asset_retention_days_non_enterprise": 3,
+        "unknown_post": "RECONCILE_NEVER_AUTORETRY",
+        "cancel_in_progress": "409_REMOTE_TASK_CONTINUES"
+      },
+      "pagination": {
+        "request": "page_num/page_size",
+        "documented_response": "ARRAY",
+        "completion": "SHORT_OR_EMPTY_PAGE_WITH_BOUNDS_AND_REPEAT_DETECTION",
+        "maximum_pages_is_engine_policy": true
+      },
+      "preflight_requirements": []
+    },
+    "rigging.create": {
+      "id": "rigging.create",
+      "contract_version": "2026-10-18.1",
+      "auth_family": "v1",
+      "api_version": "v1",
+      "auth_group": "standard",
+      "routes": {
+        "create": "/openapi/v1/rigging",
+        "get": "/openapi/v1/rigging/{task_id}",
+        "cancel": "/openapi/v1/rigging/{task_id}",
+        "list": "/openapi/v1/rigging",
+        "stream": "/openapi/v1/rigging/{task_id}/stream"
+      },
+      "route_methods": {
+        "create": "POST",
+        "get": "GET",
+        "cancel": "DELETE",
+        "list": "GET",
+        "stream": "GET"
+      },
+      "request_schema": {
+        "type": "object",
+        "properties": {
+          "input_task_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "model_url": {
+            "type": "string",
+            "minLength": 1
+          },
+          "texture_image_url": {
+            "type": "string",
+            "minLength": 1
+          },
+          "height_meters": {
+            "type": "number",
+            "format": "float",
+            "default": 1.7,
+            "exclusiveMinimum": 0
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "list_query_schema": {
+        "type": "object",
+        "properties": {
+          "page_num": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 10
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "+created_at",
+              "-created_at"
+            ],
+            "default": "-created_at"
+          }
+        },
+        "additionalProperties": false
+      },
+      "input_fields": {
+        "input_task_id": {
+          "kind": "task_id",
+          "many": false,
+          "required_parent_status": "SUCCEEDED",
+          "same_api_account": true,
+          "unexpired_assets": true
+        },
+        "model_url": {
+          "kind": "model",
+          "many": false,
+          "data_uri_max_bytes": 100000000,
+          "public_url_max_bytes": 400000000,
+          "public_url_extensions": [
+            ".glb"
+          ],
+          "data_uri_mime_types": [
+            "model/gltf-binary"
+          ],
+          "preferred_data_uri_mime": "model/gltf-binary",
+          "over_100mb_triangle_limit": 10000000,
+          "over_100mb_header_constraints": [
+            "binaryFBX7.1ornewer",
+            "noDracoGLB/glTF"
+          ]
+        },
+        "texture_image_url": {
+          "kind": "image",
+          "many": false,
+          "data_uri_max_bytes": 20000000,
+          "public_url_max_bytes": 20000000,
+          "data_uri_mime_types": [
+            "image/png"
+          ]
+        }
+      },
+      "price": {
+        "rule": "fixed",
+        "parameters": {
+          "credits": 5
+        },
+        "status": "EXACT_WHEN_RULE_AND_CONFIGURATION_RESOLVE",
+        "source": "meshy-pricing.md",
+        "source_checked_date_utc": "2026-10-18",
+        "maximum_age_days": 7
+      },
+      "paid": true,
+      "conditions": [
+        "documented subset textured humanoidGLB,+Zface,positiveheight,input_task≤300000faces",
+        "quadruped/animation_type omitted until spec/page discrepancy resolved"
+      ],
+      "parent_constraints": {},
+      "source": {
+        "page": "meshy-rigging.md",
+        "openapi": "meshy-openapi.json"
+      },
+      "schema_policy": "KAI_RESTRICTED_DOCUMENTED_SUBSET; unknown fields/null values rejected locally, not a claim of vendor-wide rejection",
+      "lifecycle": {
+        "terminal": [
+          "SUCCEEDED",
+          "FAILED",
+          "CANCELED"
+        ],
+        "asset_retention_days_non_enterprise": 3,
+        "unknown_post": "RECONCILE_NEVER_AUTORETRY",
+        "cancel_in_progress": "409_REMOTE_TASK_CONTINUES"
+      },
+      "pagination": {
+        "request": "page_num/page_size",
+        "documented_response": "ARRAY",
+        "completion": "SHORT_OR_EMPTY_PAGE_WITH_BOUNDS_AND_REPEAT_DETECTION",
+        "maximum_pages_is_engine_policy": true
+      },
+      "preflight_requirements": [
+        "textured humanoid GLB facing+Z",
+        "input_task_id model must not exceed300000faces"
+      ]
+    },
+    "animation.create": {
+      "id": "animation.create",
+      "contract_version": "2026-10-18.1",
+      "auth_family": "v1",
+      "api_version": "v1",
+      "auth_group": "standard",
+      "routes": {
+        "create": "/openapi/v1/animations",
+        "get": "/openapi/v1/animations/{task_id}",
+        "cancel": "/openapi/v1/animations/{task_id}",
+        "list": "/openapi/v1/animations",
+        "stream": "/openapi/v1/animations/{task_id}/stream"
+      },
+      "route_methods": {
+        "create": "POST",
+        "get": "GET",
+        "cancel": "DELETE",
+        "list": "GET",
+        "stream": "GET"
+      },
+      "request_schema": {
+        "type": "object",
+        "properties": {
+          "rig_task_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "action_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 32767
+          },
+          "action_ids": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 10,
+            "uniqueItems": true,
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 32767
+            }
+          },
+          "post_process": {
+            "type": "object",
+            "properties": {
+              "operation_type": {
+                "type": "string",
+                "enum": [
+                  "change_fps",
+                  "fbx2usdz",
+                  "extract_armature"
+                ]
+              },
+              "fps": {
+                "type": "integer",
+                "enum": [
+                  24,
+                  25,
+                  30,
+                  60
+                ],
+                "default": 30
+              }
+            },
+            "required": [
+              "operation_type"
+            ],
+            "additionalProperties": false
+          },
+          "motion_task_id": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "rig_task_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "list_query_schema": {
+        "type": "object",
+        "properties": {
+          "page_num": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 10
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "+created_at",
+              "-created_at"
+            ],
+            "default": "-created_at"
+          }
+        },
+        "additionalProperties": false
+      },
+      "input_fields": {
+        "rig_task_id": {
+          "kind": "task_id",
+          "many": false,
+          "allowed_parent_capabilities": [
+            "rigging.create"
+          ],
+          "required_parent_status": "SUCCEEDED",
+          "same_api_account": true,
+          "unexpired_assets": true
+        },
+        "motion_task_id": {
+          "kind": "task_id",
+          "many": false,
+          "allowed_parent_capabilities": [
+            "text_to_motion.generate"
+          ],
+          "required_parent_status": "SUCCEEDED",
+          "same_api_account": true,
+          "unexpired_assets": true
+        }
+      },
+      "price": {
+        "rule": "animation",
+        "parameters": {},
+        "status": "EXACT_WHEN_RULE_AND_CONFIGURATION_RESOLVE",
+        "source": "meshy-pricing.md",
+        "source_checked_date_utc": "2026-10-18",
+        "maximum_age_days": 7
+      },
+      "paid": true,
+      "conditions": [
+        "exactly one action_id/action_ids/motion_task_id",
+        "1–10 unique action_ids",
+        "motion_task_id needs biped+retainedsucceededmotion; retarget priceUNKNOWN",
+        "post_process.operation_type required when object supplied"
+      ],
+      "parent_constraints": {},
+      "source": {
+        "page": "meshy-animation.md",
+        "openapi": "meshy-openapi.json"
+      },
+      "schema_policy": "KAI_RESTRICTED_DOCUMENTED_SUBSET; unknown fields/null values rejected locally, not a claim of vendor-wide rejection",
+      "lifecycle": {
+        "terminal": [
+          "SUCCEEDED",
+          "FAILED",
+          "CANCELED"
+        ],
+        "asset_retention_days_non_enterprise": 3,
+        "unknown_post": "RECONCILE_NEVER_AUTORETRY",
+        "cancel_in_progress": "409_REMOTE_TASK_CONTINUES"
+      },
+      "pagination": {
+        "request": "page_num/page_size",
+        "documented_response": "ARRAY",
+        "completion": "SHORT_OR_EMPTY_PAGE_WITH_BOUNDS_AND_REPEAT_DETECTION",
+        "maximum_pages_is_engine_policy": true
+      },
+      "preflight_requirements": [
+        "motion retarget requiresbiped; sourceassets retained3days",
+        "postprocess needsFBX otherwisefailure/refund; no paidretry"
+      ]
+    },
+    "text_to_image.generate": {
+      "id": "text_to_image.generate",
+      "contract_version": "2026-10-18.1",
+      "auth_family": "v1",
+      "api_version": "v1",
+      "auth_group": "standard",
+      "routes": {
+        "create": "/openapi/v1/text-to-image",
+        "get": "/openapi/v1/text-to-image/{task_id}",
+        "cancel": "/openapi/v1/text-to-image/{task_id}",
+        "list": "/openapi/v1/text-to-image",
+        "stream": "/openapi/v1/text-to-image/{task_id}/stream"
+      },
+      "route_methods": {
+        "create": "POST",
+        "get": "GET",
+        "cancel": "DELETE",
+        "list": "GET",
+        "stream": "GET"
+      },
+      "request_schema": {
+        "type": "object",
+        "properties": {
+          "ai_model": {
+            "type": "string",
+            "enum": [
+              "nano-banana",
+              "nano-banana-pro",
+              "nano-banana-2",
+              "nano-banana-2-lite",
+              "gpt-image-2",
+              "gpt-image-2-5-flare",
+              "gpt-image-2-5-sunburst"
+            ]
+          },
+          "prompt": {
+            "type": "string",
+            "minLength": 1
+          },
+          "generate_multi_view": {
+            "type": "boolean"
+          },
+          "pose_mode": {
+            "type": "string",
+            "enum": [
+              "a-pose",
+              "t-pose"
+            ]
+          },
+          "aspect_ratio": {
+            "type": "string",
+            "enum": [
+              "1:1",
+              "16:9",
+              "9:16",
+              "4:3",
+              "3:4",
+              "3:2",
+              "2:3"
+            ],
+            "default": "1:1"
+          },
+          "remove_background": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "required": [
+          "ai_model",
+          "prompt"
+        ],
+        "additionalProperties": false,
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "list_query_schema": {
+        "type": "object",
+        "properties": {
+          "page_num": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 10
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "+created_at",
+              "-created_at"
+            ],
+            "default": "-created_at"
+          }
+        },
+        "additionalProperties": false
+      },
+      "input_fields": {},
+      "price": {
+        "rule": "image_generation",
+        "parameters": {},
+        "status": "EXACT_WHEN_RULE_AND_CONFIGURATION_RESOLVE",
+        "source": "meshy-pricing.md",
+        "source_checked_date_utc": "2026-10-18",
+        "maximum_age_days": 7
+      },
+      "paid": true,
+      "conditions": [
+        "multi_view conflicts explicit aspect_ratio",
+        "nano-banana pose promotes effective model toPro(9credits)",
+        "3:2/2:3 GPT-only"
+      ],
+      "parent_constraints": {},
+      "source": {
+        "page": "meshy-text-to-image.md",
+        "openapi": "meshy-openapi.json"
+      },
+      "schema_policy": "KAI_RESTRICTED_DOCUMENTED_SUBSET; unknown fields/null values rejected locally, not a claim of vendor-wide rejection",
+      "lifecycle": {
+        "terminal": [
+          "SUCCEEDED",
+          "FAILED",
+          "CANCELED"
+        ],
+        "asset_retention_days_non_enterprise": 3,
+        "unknown_post": "RECONCILE_NEVER_AUTORETRY",
+        "cancel_in_progress": "409_REMOTE_TASK_CONTINUES"
+      },
+      "pagination": {
+        "request": "page_num/page_size",
+        "documented_response": "ARRAY",
+        "completion": "SHORT_OR_EMPTY_PAGE_WITH_BOUNDS_AND_REPEAT_DETECTION",
+        "maximum_pages_is_engine_policy": true
+      },
+      "preflight_requirements": []
+    },
+    "image_to_image.generate": {
+      "id": "image_to_image.generate",
+      "contract_version": "2026-10-18.1",
+      "auth_family": "v1",
+      "api_version": "v1",
+      "auth_group": "standard",
+      "routes": {
+        "create": "/openapi/v1/image-to-image",
+        "get": "/openapi/v1/image-to-image/{task_id}",
+        "cancel": "/openapi/v1/image-to-image/{task_id}",
+        "list": "/openapi/v1/image-to-image",
+        "stream": "/openapi/v1/image-to-image/{task_id}/stream"
+      },
+      "route_methods": {
+        "create": "POST",
+        "get": "GET",
+        "cancel": "DELETE",
+        "list": "GET",
+        "stream": "GET"
+      },
+      "request_schema": {
+        "type": "object",
+        "properties": {
+          "ai_model": {
+            "type": "string",
+            "enum": [
+              "nano-banana",
+              "nano-banana-pro",
+              "nano-banana-2",
+              "nano-banana-2-lite",
+              "gpt-image-2",
+              "gpt-image-2-5-flare",
+              "gpt-image-2-5-sunburst"
+            ]
+          },
+          "input_task_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reference_image_urls": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 5,
+            "items": {
+              "type": "string"
+            }
+          },
+          "prompt": {
+            "type": "string",
+            "minLength": 1
+          },
+          "generate_multi_view": {
+            "type": "boolean"
+          },
+          "aspect_ratio": {
+            "type": "string",
+            "enum": [
+              "1:1",
+              "16:9",
+              "9:16",
+              "4:3",
+              "3:4",
+              "3:2",
+              "2:3"
+            ],
+            "default": "1:1"
+          },
+          "remove_background": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "required": [
+          "ai_model",
+          "prompt"
+        ],
+        "additionalProperties": false,
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "list_query_schema": {
+        "type": "object",
+        "properties": {
+          "page_num": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 10
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "+created_at",
+              "-created_at"
+            ],
+            "default": "-created_at"
+          }
+        },
+        "additionalProperties": false
+      },
+      "input_fields": {
+        "input_task_id": {
+          "kind": "task_id",
+          "many": false,
+          "allowed_parent_capabilities": [
+            "text_to_image.generate",
+            "image_to_image.generate"
+          ],
+          "required_parent_status": "SUCCEEDED",
+          "same_api_account": true,
+          "unexpired_assets": true
+        },
+        "reference_image_urls": {
+          "kind": "image",
+          "many": true,
+          "data_uri_max_bytes": 20000000,
+          "public_url_max_bytes": 20000000,
+          "data_uri_mime_types": [
+            "image/png",
+            "image/jpeg",
+            "image/webp"
+          ]
+        }
+      },
+      "price": {
+        "rule": "image_generation",
+        "parameters": {},
+        "status": "EXACT_WHEN_RULE_AND_CONFIGURATION_RESOLVE",
+        "source": "meshy-pricing.md",
+        "source_checked_date_utc": "2026-10-18",
+        "maximum_age_days": 7
+      },
+      "paid": true,
+      "conditions": [
+        "one input_task_id/reference_image_urls,1–5references",
+        "multi_view conflicts explicit aspect_ratio;3:2/2:3 GPT-only"
+      ],
+      "parent_constraints": {},
+      "source": {
+        "page": "meshy-image-to-image.md",
+        "openapi": "meshy-openapi.json"
+      },
+      "schema_policy": "KAI_RESTRICTED_DOCUMENTED_SUBSET; unknown fields/null values rejected locally, not a claim of vendor-wide rejection",
+      "lifecycle": {
+        "terminal": [
+          "SUCCEEDED",
+          "FAILED",
+          "CANCELED"
+        ],
+        "asset_retention_days_non_enterprise": 3,
+        "unknown_post": "RECONCILE_NEVER_AUTORETRY",
+        "cancel_in_progress": "409_REMOTE_TASK_CONTINUES"
+      },
+      "pagination": {
+        "request": "page_num/page_size",
+        "documented_response": "ARRAY",
+        "completion": "SHORT_OR_EMPTY_PAGE_WITH_BOUNDS_AND_REPEAT_DETECTION",
+        "maximum_pages_is_engine_policy": true
+      },
+      "preflight_requirements": [
+        "all parent output images contribute to5reference limit"
+      ]
+    },
+    "print.analyze": {
+      "id": "print.analyze",
+      "contract_version": "2026-10-18.1",
+      "auth_family": "v1",
+      "api_version": "v1",
+      "auth_group": "standard",
+      "routes": {
+        "create": "/openapi/v1/print/analyze",
+        "get": "/openapi/v1/print/analyze/{task_id}",
+        "cancel": "/openapi/v1/print/analyze/{task_id}",
+        "list": "/openapi/v1/print/analyze",
+        "stream": "/openapi/v1/print/analyze/{task_id}/stream"
+      },
+      "route_methods": {
+        "create": "POST",
+        "get": "GET",
+        "cancel": "DELETE",
+        "list": "GET",
+        "stream": "GET"
+      },
+      "request_schema": {
+        "type": "object",
+        "properties": {
+          "input_task_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "model_url": {
+            "type": "string",
+            "minLength": 1
+          },
+          "printer_type": {
+            "type": "string",
+            "enum": [
+              "fdm",
+              "sla",
+              "full_color"
+            ]
+          },
+          "intended_print_height_mm": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "intended_print_longest_side_mm": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 1000
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "list_query_schema": {
+        "type": "object",
+        "properties": {
+          "page_num": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 10
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "+created_at",
+              "-created_at"
+            ],
+            "default": "-created_at"
+          }
+        },
+        "additionalProperties": false
+      },
+      "input_fields": {
+        "input_task_id": {
+          "kind": "task_id",
+          "many": false,
+          "allowed_parent_capabilities": [
+            "image_to_3d.generate",
+            "multi_image_to_3d.generate",
+            "text_to_3d.preview",
+            "text_to_3d.refine",
+            "remesh.create",
+            "retexture.create",
+            "print.repair"
+          ],
+          "required_parent_status": "SUCCEEDED",
+          "same_api_account": true,
+          "unexpired_assets": true
+        },
+        "model_url": {
+          "kind": "model",
+          "many": false,
+          "data_uri_max_bytes": 100000000,
+          "public_url_max_bytes": 400000000,
+          "public_url_extensions": [
+            ".glb",
+            ".gltf",
+            ".obj",
+            ".fbx",
+            ".stl"
+          ],
+          "data_uri_mime_types": [
+            "model/gltf-binary",
+            "model/gltf+json"
+          ],
+          "preferred_data_uri_mime": "model/gltf-binary",
+          "over_100mb_triangle_limit": 10000000,
+          "over_100mb_header_constraints": [
+            "binaryFBX7.1ornewer",
+            "noDracoGLB/glTF"
+          ]
+        }
+      },
+      "price": {
+        "rule": "free",
+        "parameters": {},
+        "status": "EXACT_WHEN_RULE_AND_CONFIGURATION_RESOLVE",
+        "source": "meshy-pricing.md",
+        "source_checked_date_utc": "2026-10-18",
+        "maximum_age_days": 7
+      },
+      "paid": false,
+      "conditions": [
+        "one model_url/input_task_id;printsizefields mutuallyexclusive;height requiresGLB"
+      ],
+      "parent_constraints": {},
+      "source": {
+        "page": "meshy-analyze-printability.md",
+        "openapi": "meshy-openapi.json"
+      },
+      "schema_policy": "KAI_RESTRICTED_DOCUMENTED_SUBSET; unknown fields/null values rejected locally, not a claim of vendor-wide rejection",
+      "lifecycle": {
+        "terminal": [
+          "SUCCEEDED",
+          "FAILED",
+          "CANCELED"
+        ],
+        "asset_retention_days_non_enterprise": 3,
+        "unknown_post": "RECONCILE_NEVER_AUTORETRY",
+        "cancel_in_progress": "409_REMOTE_TASK_CONTINUES"
+      },
+      "pagination": {
+        "request": "page_num/page_size",
+        "documented_response": "ARRAY",
+        "completion": "SHORT_OR_EMPTY_PAGE_WITH_BOUNDS_AND_REPEAT_DETECTION",
+        "maximum_pages_is_engine_policy": true
+      },
+      "preflight_requirements": []
+    },
+    "print.repair": {
+      "id": "print.repair",
+      "contract_version": "2026-10-18.1",
+      "auth_family": "v1",
+      "api_version": "v1",
+      "auth_group": "standard",
+      "routes": {
+        "create": "/openapi/v1/print/repair",
+        "get": "/openapi/v1/print/repair/{task_id}",
+        "cancel": "/openapi/v1/print/repair/{task_id}",
+        "list": "/openapi/v1/print/repair",
+        "stream": "/openapi/v1/print/repair/{task_id}/stream"
+      },
+      "route_methods": {
+        "create": "POST",
+        "get": "GET",
+        "cancel": "DELETE",
+        "list": "GET",
+        "stream": "GET"
+      },
+      "request_schema": {
+        "type": "object",
+        "properties": {
+          "input_task_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "model_url": {
+            "type": "string",
+            "minLength": 1
+          },
+          "alpha_thumbnail": {
+            "type": "boolean",
+            "default": false
+          },
+          "printer_type": {
+            "type": "string",
+            "enum": [
+              "fdm",
+              "sla",
+              "full_color"
+            ]
+          },
+          "intended_print_height_mm": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "intended_print_longest_side_mm": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 1000
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "list_query_schema": {
+        "type": "object",
+        "properties": {
+          "page_num": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 10
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "+created_at",
+              "-created_at"
+            ],
+            "default": "-created_at"
+          }
+        },
+        "additionalProperties": false
+      },
+      "input_fields": {
+        "input_task_id": {
+          "kind": "task_id",
+          "many": false,
+          "allowed_parent_capabilities": [
+            "image_to_3d.generate",
+            "multi_image_to_3d.generate",
+            "text_to_3d.preview",
+            "text_to_3d.refine",
+            "remesh.create",
+            "retexture.create",
+            "print.analyze"
+          ],
+          "required_parent_status": "SUCCEEDED",
+          "same_api_account": true,
+          "unexpired_assets": true
+        },
+        "model_url": {
+          "kind": "model",
+          "many": false,
+          "data_uri_max_bytes": 100000000,
+          "public_url_max_bytes": 400000000,
+          "public_url_extensions": [
+            ".glb",
+            ".gltf",
+            ".obj",
+            ".fbx",
+            ".stl"
+          ],
+          "data_uri_mime_types": [
+            "model/gltf-binary",
+            "model/gltf+json"
+          ],
+          "preferred_data_uri_mime": "model/gltf-binary",
+          "over_100mb_triangle_limit": 10000000,
+          "over_100mb_header_constraints": [
+            "binaryFBX7.1ornewer",
+            "noDracoGLB/glTF"
+          ]
+        }
+      },
+      "price": {
+        "rule": "fixed",
+        "parameters": {
+          "credits": 10
+        },
+        "status": "EXACT_WHEN_RULE_AND_CONFIGURATION_RESOLVE",
+        "source": "meshy-pricing.md",
+        "source_checked_date_utc": "2026-10-18",
+        "maximum_age_days": 7
+      },
+      "paid": true,
+      "conditions": [
+        "one model_url/input_task_id;printsizefields mutuallyexclusive;height requiresGLB"
+      ],
+      "parent_constraints": {},
+      "source": {
+        "page": "meshy-repair-printability.md",
+        "openapi": "meshy-openapi.json"
+      },
+      "schema_policy": "KAI_RESTRICTED_DOCUMENTED_SUBSET; unknown fields/null values rejected locally, not a claim of vendor-wide rejection",
+      "lifecycle": {
+        "terminal": [
+          "SUCCEEDED",
+          "FAILED",
+          "CANCELED"
+        ],
+        "asset_retention_days_non_enterprise": 3,
+        "unknown_post": "RECONCILE_NEVER_AUTORETRY",
+        "cancel_in_progress": "409_REMOTE_TASK_CONTINUES"
+      },
+      "pagination": {
+        "request": "page_num/page_size",
+        "documented_response": "ARRAY",
+        "completion": "SHORT_OR_EMPTY_PAGE_WITH_BOUNDS_AND_REPEAT_DETECTION",
+        "maximum_pages_is_engine_policy": true
+      },
+      "preflight_requirements": [
+        "parent must produceGLB;analyzeparent may inheritprint settings"
+      ]
+    },
+    "print.multi_color": {
+      "id": "print.multi_color",
+      "contract_version": "2026-10-18.1",
+      "auth_family": "v1",
+      "api_version": "v1",
+      "auth_group": "standard",
+      "routes": {
+        "create": "/openapi/v1/print/multi-color",
+        "get": "/openapi/v1/print/multi-color/{task_id}",
+        "cancel": "/openapi/v1/print/multi-color/{task_id}",
+        "list": "/openapi/v1/print/multi-color",
+        "stream": "/openapi/v1/print/multi-color/{task_id}/stream"
+      },
+      "route_methods": {
+        "create": "POST",
+        "get": "GET",
+        "cancel": "DELETE",
+        "list": "GET",
+        "stream": "GET"
+      },
+      "request_schema": {
+        "type": "object",
+        "properties": {
+          "input_task_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "model_url": {
+            "type": "string",
+            "minLength": 1
+          },
+          "style": {
+            "type": "string",
+            "enum": [
+              "realistic",
+              "cartoon"
+            ],
+            "default": "realistic"
+          },
+          "max_colors": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 16,
+            "default": 4
+          },
+          "max_depth": {
+            "type": "integer",
+            "minimum": 3,
+            "maximum": 6,
+            "default": 4
+          },
+          "printer_brand": {
+            "type": "string",
+            "enum": [
+              "bambu",
+              "anycubic",
+              "creality",
+              "flashforge",
+              "snapmaker",
+              "elegoo",
+              "prusa",
+              "qidi",
+              "ankermake"
+            ],
+            "default": "bambu"
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "list_query_schema": {
+        "type": "object",
+        "properties": {
+          "page_num": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 10
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "+created_at",
+              "-created_at"
+            ],
+            "default": "-created_at"
+          }
+        },
+        "additionalProperties": false
+      },
+      "input_fields": {
+        "input_task_id": {
+          "kind": "task_id",
+          "many": false,
+          "allowed_parent_capabilities": [
+            "image_to_3d.generate",
+            "multi_image_to_3d.generate",
+            "text_to_3d.preview",
+            "text_to_3d.refine",
+            "remesh.create",
+            "retexture.create"
+          ],
+          "required_parent_status": "SUCCEEDED",
+          "same_api_account": true,
+          "unexpired_assets": true
+        },
+        "model_url": {
+          "kind": "model",
+          "many": false,
+          "data_uri_max_bytes": 100000000,
+          "public_url_max_bytes": 400000000,
+          "public_url_extensions": [
+            ".glb",
+            ".fbx"
+          ],
+          "data_uri_mime_types": [
+            "model/gltf-binary"
+          ],
+          "preferred_data_uri_mime": "model/gltf-binary",
+          "over_100mb_triangle_limit": 8000000,
+          "over_100mb_header_constraints": [
+            "binaryFBX7.1ornewer",
+            "noDracoGLB/glTF"
+          ]
+        }
+      },
+      "price": {
+        "rule": "fixed",
+        "parameters": {
+          "credits": 10
+        },
+        "status": "EXACT_WHEN_RULE_AND_CONFIGURATION_RESOLVE",
+        "source": "meshy-pricing.md",
+        "source_checked_date_utc": "2026-10-18",
+        "maximum_age_days": 7
+      },
+      "paid": true,
+      "conditions": [
+        "texturedGLB/FBX;dataURI GLB only;no directCreativeLabtaskid;cartoon acceptsvertexcolors"
+      ],
+      "parent_constraints": {},
+      "source": {
+        "page": "meshy-multi-color-print.md",
+        "openapi": "meshy-openapi.json"
+      },
+      "schema_policy": "KAI_RESTRICTED_DOCUMENTED_SUBSET; unknown fields/null values rejected locally, not a claim of vendor-wide rejection",
+      "lifecycle": {
+        "terminal": [
+          "SUCCEEDED",
+          "FAILED",
+          "CANCELED"
+        ],
+        "asset_retention_days_non_enterprise": 3,
+        "unknown_post": "RECONCILE_NEVER_AUTORETRY",
+        "cancel_in_progress": "409_REMOTE_TASK_CONTINUES"
+      },
+      "pagination": {
+        "request": "page_num/page_size",
+        "documented_response": "ARRAY",
+        "completion": "SHORT_OR_EMPTY_PAGE_WITH_BOUNDS_AND_REPEAT_DETECTION",
+        "maximum_pages_is_engine_policy": true
+      },
+      "preflight_requirements": [
+        "textured GLB or FBX;directCreativeLabtaskIDsunsupported;cartoon acceptsvertexcolors"
+      ]
+    },
+    "print.auto_split": {
+      "id": "print.auto_split",
+      "contract_version": "2026-10-18.1",
+      "auth_family": "v1",
+      "api_version": "v1",
+      "auth_group": "standard",
+      "routes": {
+        "create": "/openapi/v1/print/split",
+        "get": "/openapi/v1/print/split/{task_id}",
+        "cancel": "/openapi/v1/print/split/{task_id}",
+        "list": "/openapi/v1/print/split",
+        "stream": "/openapi/v1/print/split/{task_id}/stream"
+      },
+      "route_methods": {
+        "create": "POST",
+        "get": "GET",
+        "cancel": "DELETE",
+        "list": "GET",
+        "stream": "GET"
+      },
+      "request_schema": {
+        "type": "object",
+        "properties": {
+          "input_task_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "by_parts",
+              "by_color"
+            ],
+            "default": "auto"
+          },
+          "prompt": {
+            "type": "string",
+            "maxLength": 600,
+            "minLength": 1
+          },
+          "target_formats": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "glb",
+                "obj",
+                "fbx",
+                "stl",
+                "usdz",
+                "blend",
+                "3mf"
+              ]
+            },
+            "default": [
+              "glb"
+            ]
+          },
+          "layout": {
+            "type": "string",
+            "enum": [
+              "assembled",
+              "on_plate"
+            ],
+            "default": "assembled"
+          },
+          "connectors": {
+            "type": "boolean",
+            "default": false
+          },
+          "connector_type": {
+            "type": "string",
+            "enum": [
+              "cube",
+              "cylinder"
+            ],
+            "default": "cube"
+          },
+          "connector_size": {
+            "type": "number",
+            "minimum": 0.1,
+            "maximum": 0.8,
+            "default": 0.5
+          },
+          "connector_height": {
+            "type": "number",
+            "minimum": 0.1,
+            "maximum": 0.8,
+            "default": 0.1
+          }
+        },
+        "required": [
+          "input_task_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "list_query_schema": {
+        "type": "object",
+        "properties": {
+          "page_num": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 10
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "+created_at",
+              "-created_at"
+            ],
+            "default": "-created_at"
+          }
+        },
+        "additionalProperties": false
+      },
+      "input_fields": {
+        "input_task_id": {
+          "kind": "task_id",
+          "many": false,
+          "allowed_parent_capabilities": [
+            "image_to_3d.generate",
+            "multi_image_to_3d.generate",
+            "text_to_3d.preview",
+            "remesh.create",
+            "convert.create",
+            "resize.create"
+          ],
+          "required_parent_status": "SUCCEEDED",
+          "same_api_account": true,
+          "unexpired_assets": true
+        }
+      },
+      "price": {
+        "rule": "fixed",
+        "parameters": {
+          "credits": 10
+        },
+        "status": "EXACT_WHEN_RULE_AND_CONFIGURATION_RESOLVE",
+        "source": "meshy-pricing.md",
+        "source_checked_date_utc": "2026-10-18",
+        "maximum_age_days": 7
+      },
+      "paid": true,
+      "conditions": [
+        "by_parts/by_color require prompt; connectors fields require connectors:true",
+        "parent standardMeshy6/7 only;by_color needsimage/multi-image input;texture not preserved"
+      ],
+      "parent_constraints": {},
+      "source": {
+        "page": "meshy-auto-split.md",
+        "openapi": "meshy-openapi.json"
+      },
+      "schema_policy": "KAI_RESTRICTED_DOCUMENTED_SUBSET; unknown fields/null values rejected locally, not a claim of vendor-wide rejection",
+      "lifecycle": {
+        "terminal": [
+          "SUCCEEDED",
+          "FAILED",
+          "CANCELED"
+        ],
+        "asset_retention_days_non_enterprise": 3,
+        "unknown_post": "RECONCILE_NEVER_AUTORETRY",
+        "cancel_in_progress": "409_REMOTE_TASK_CONTINUES"
+      },
+      "pagination": {
+        "request": "page_num/page_size",
+        "documented_response": "ARRAY",
+        "completion": "SHORT_OR_EMPTY_PAGE_WITH_BOUNDS_AND_REPEAT_DETECTION",
+        "maximum_pages_is_engine_policy": true
+      },
+      "preflight_requirements": []
+    },
+    "text_to_motion.generate": {
+      "id": "text_to_motion.generate",
+      "contract_version": "2026-10-18.1",
+      "auth_family": "v1",
+      "api_version": "v1",
+      "auth_group": "standard",
+      "routes": {
+        "create": "/openapi/v1/text-to-motion",
+        "get": "/openapi/v1/text-to-motion/{task_id}",
+        "list": "/openapi/v1/text-to-motion",
+        "stream": "/openapi/v1/text-to-motion/{task_id}/stream",
+        "cancel": "/openapi/v1/text-to-motion/{task_id}"
+      },
+      "route_methods": {
+        "create": "POST",
+        "get": "GET",
+        "list": "GET",
+        "stream": "GET",
+        "cancel": "DELETE"
+      },
+      "request_schema": {
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 400
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "prime",
+              "swift"
+            ],
+            "default": "prime"
+          },
+          "duration": {
+            "type": "number",
+            "minimum": 2,
+            "maximum": 10,
+            "multipleOf": 0.5
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "prompt",
+          "duration"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "list_query_schema": {
+        "type": "object",
+        "properties": {
+          "page_num": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 10
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "+created_at",
+              "-created_at"
+            ],
+            "default": "-created_at"
+          }
+        },
+        "additionalProperties": false
+      },
+      "input_fields": {},
+      "price": {
+        "rule": "motion",
+        "parameters": {},
+        "status": "EXACT_WHEN_RULE_AND_CONFIGURATION_RESOLVE",
+        "source": "meshy-pricing.md",
+        "source_checked_date_utc": "2026-10-18",
+        "maximum_age_days": 7
+      },
+      "paid": true,
+      "conditions": [],
+      "parent_constraints": {},
+      "source": {
+        "page": "meshy-text-to-motion.md",
+        "openapi": null
+      },
+      "schema_policy": "KAI_RESTRICTED_DOCUMENTED_SUBSET; unknown fields/null values rejected locally, not a claim of vendor-wide rejection",
+      "lifecycle": {
+        "terminal": [
+          "SUCCEEDED",
+          "FAILED",
+          "CANCELED"
+        ],
+        "asset_retention_days_non_enterprise": 3,
+        "unknown_post": "RECONCILE_NEVER_AUTORETRY",
+        "cancel_in_progress": "409_REMOTE_TASK_CONTINUES"
+      },
+      "pagination": {
+        "request": "page_num/page_size",
+        "documented_response": "ARRAY",
+        "completion": "SHORT_OR_EMPTY_PAGE_WITH_BOUNDS_AND_REPEAT_DETECTION",
+        "maximum_pages_is_engine_policy": true
+      },
+      "preflight_requirements": []
+    },
+    "creative_lab.keychain.prototype": {
+      "id": "creative_lab.keychain.prototype",
+      "contract_version": "2026-10-18.1",
+      "auth_family": "creative-lab",
+      "api_version": "creative-lab",
+      "auth_group": "creative-lab",
+      "routes": {
+        "create": "/openapi/creative-lab/keychain/v1/prototype",
+        "get": "/openapi/creative-lab/keychain/v1/prototype/{task_id}",
+        "cancel": "/openapi/creative-lab/keychain/v1/prototype/{task_id}",
+        "stream": "/openapi/creative-lab/keychain/v1/prototype/{task_id}/stream",
+        "list": "/openapi/creative-lab/keychain/v1/prototype"
+      },
+      "route_methods": {
+        "create": "POST",
+        "get": "GET",
+        "cancel": "DELETE",
+        "stream": "GET",
+        "list": "GET"
+      },
+      "request_schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "image_url": {
+            "type": "string",
+            "minLength": 1
+          },
+          "remove_background": {
+            "type": "boolean",
+            "default": false
+          },
+          "name_text": {
+            "type": "string",
+            "maxLength": 10
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "image_url"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "list_query_schema": {
+        "type": "object",
+        "properties": {
+          "page_num": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 10
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "+created_at",
+              "-created_at"
+            ],
+            "default": "-created_at"
+          }
+        },
+        "additionalProperties": false
+      },
+      "input_fields": {
+        "image_url": {
+          "kind": "image",
+          "many": false,
+          "data_uri_max_bytes": 20000000,
+          "public_url_max_bytes": 20000000,
+          "data_uri_mime_types": [
+            "image/png",
+            "image/jpeg",
+            "image/webp"
+          ]
+        }
+      },
+      "price": {
+        "rule": "fixed",
+        "parameters": {
+          "credits": 6
+        },
+        "status": "EXACT_WHEN_RULE_AND_CONFIGURATION_RESOLVE",
+        "source": "meshy-pricing.md",
+        "source_checked_date_utc": "2026-10-18",
+        "maximum_age_days": 7
+      },
+      "paid": true,
+      "conditions": [],
+      "parent_constraints": {},
+      "source": {
+        "page": "meshy-creative-lab-keychain.md",
+        "openapi": null
+      },
+      "schema_policy": "KAI_RESTRICTED_DOCUMENTED_SUBSET; unknown fields/null values rejected locally, not a claim of vendor-wide rejection",
+      "lifecycle": {
+        "terminal": [
+          "SUCCEEDED",
+          "FAILED",
+          "CANCELED"
+        ],
+        "asset_retention_days_non_enterprise": 3,
+        "unknown_post": "RECONCILE_NEVER_AUTORETRY",
+        "cancel_in_progress": "409_REMOTE_TASK_CONTINUES"
+      },
+      "pagination": {
+        "request": "page_num/page_size",
+        "documented_response": "ARRAY",
+        "completion": "SHORT_OR_EMPTY_PAGE_WITH_BOUNDS_AND_REPEAT_DETECTION",
+        "maximum_pages_is_engine_policy": true
+      },
+      "preflight_requirements": []
+    },
+    "creative_lab.keychain.build": {
+      "id": "creative_lab.keychain.build",
+      "contract_version": "2026-10-18.1",
+      "auth_family": "creative-lab",
+      "api_version": "creative-lab",
+      "auth_group": "creative-lab",
+      "routes": {
+        "create": "/openapi/creative-lab/keychain/v1/build",
+        "get": "/openapi/creative-lab/keychain/v1/build/{task_id}",
+        "cancel": "/openapi/creative-lab/keychain/v1/build/{task_id}",
+        "stream": "/openapi/creative-lab/keychain/v1/build/{task_id}/stream",
+        "list": "/openapi/creative-lab/keychain/v1/build"
+      },
+      "route_methods": {
+        "create": "POST",
+        "get": "GET",
+        "cancel": "DELETE",
+        "stream": "GET",
+        "list": "GET"
+      },
+      "request_schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "input_task_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "options": {
+            "type": "object",
+            "properties": {
+              "badge_shape": {
+                "type": "string",
+                "enum": [
+                  "circle",
+                  "rounded-rect",
+                  "hexagon",
+                  "shield",
+                  "star"
+                ],
+                "default": "circle"
+              },
+              "size_mm": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 400,
+                "default": 40
+              },
+              "relief_height_mm": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 20,
+                "default": 2.2
+              },
+              "relief_offset_mm": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 20,
+                "default": 0
+              },
+              "base_thickness_mm": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 20,
+                "default": 0.1
+              },
+              "has_closed_back": {
+                "type": "boolean",
+                "default": true
+              },
+              "relief_curve": {
+                "type": "string",
+                "enum": [
+                  "linear",
+                  "gamma",
+                  "s-curve"
+                ],
+                "default": "linear"
+              },
+              "curve_param": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 10,
+                "default": 1
+              },
+              "invert_depth": {
+                "type": "boolean",
+                "default": false
+              },
+              "smoothing": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 10,
+                "default": 0.24
+              },
+              "relief_scale": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 10,
+                "default": 1
+              },
+              "depth_threshold": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1,
+                "default": 0.1
+              },
+              "remove_background": {
+                "type": "boolean",
+                "default": true
+              },
+              "export_resolution": {
+                "type": "integer",
+                "minimum": 64,
+                "maximum": 2048,
+                "default": 512
+              }
+            },
+            "additionalProperties": false
+          },
+          "output": {
+            "type": "object",
+            "properties": {
+              "format": {
+                "type": "string",
+                "enum": [
+                  "glb",
+                  "obj",
+                  "zip"
+                ],
+                "default": "glb"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "input_task_id"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "list_query_schema": {
+        "type": "object",
+        "properties": {
+          "page_num": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 10
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "+created_at",
+              "-created_at"
+            ],
+            "default": "-created_at"
+          }
+        },
+        "additionalProperties": false
+      },
+      "input_fields": {
+        "input_task_id": {
+          "kind": "task_id",
+          "many": false,
+          "allowed_parent_capabilities": [
+            "creative_lab.keychain.prototype"
+          ],
+          "required_parent_status": "SUCCEEDED",
+          "same_api_account": true,
+          "unexpired_assets": true
+        }
+      },
+      "price": {
+        "rule": "fixed",
+        "parameters": {
+          "credits": 30
+        },
+        "status": "EXACT_WHEN_RULE_AND_CONFIGURATION_RESOLVE",
+        "source": "meshy-pricing.md",
+        "source_checked_date_utc": "2026-10-18",
+        "maximum_age_days": 7
+      },
+      "paid": true,
+      "conditions": [],
+      "parent_constraints": {
+        "operation_id": "creative_lab.keychain.prototype",
+        "status": "SUCCEEDED",
+        "source": "SAME_API_PRODUCT_AND_ACCOUNT",
+        "human_visual_gate": true
+      },
+      "source": {
+        "page": "meshy-creative-lab-keychain.md",
+        "openapi": null
+      },
+      "schema_policy": "KAI_RESTRICTED_DOCUMENTED_SUBSET; unknown fields/null values rejected locally, not a claim of vendor-wide rejection",
+      "lifecycle": {
+        "terminal": [
+          "SUCCEEDED",
+          "FAILED",
+          "CANCELED"
+        ],
+        "asset_retention_days_non_enterprise": 3,
+        "unknown_post": "RECONCILE_NEVER_AUTORETRY",
+        "cancel_in_progress": "409_REMOTE_TASK_CONTINUES"
+      },
+      "pagination": {
+        "request": "page_num/page_size",
+        "documented_response": "ARRAY",
+        "completion": "SHORT_OR_EMPTY_PAGE_WITH_BOUNDS_AND_REPEAT_DETECTION",
+        "maximum_pages_is_engine_policy": true
+      },
+      "preflight_requirements": []
+    },
+    "creative_lab.fridge_magnet.prototype": {
+      "id": "creative_lab.fridge_magnet.prototype",
+      "contract_version": "2026-10-18.1",
+      "auth_family": "creative-lab",
+      "api_version": "creative-lab",
+      "auth_group": "creative-lab",
+      "routes": {
+        "create": "/openapi/creative-lab/fridge-magnet/v1/prototype",
+        "get": "/openapi/creative-lab/fridge-magnet/v1/prototype/{task_id}",
+        "cancel": "/openapi/creative-lab/fridge-magnet/v1/prototype/{task_id}",
+        "stream": "/openapi/creative-lab/fridge-magnet/v1/prototype/{task_id}/stream",
+        "list": "/openapi/creative-lab/fridge-magnet/v1/prototype"
+      },
+      "route_methods": {
+        "create": "POST",
+        "get": "GET",
+        "cancel": "DELETE",
+        "stream": "GET",
+        "list": "GET"
+      },
+      "request_schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "image_url": {
+            "type": "string",
+            "minLength": 1
+          },
+          "remove_background": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "image_url"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "list_query_schema": {
+        "type": "object",
+        "properties": {
+          "page_num": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 10
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "+created_at",
+              "-created_at"
+            ],
+            "default": "-created_at"
+          }
+        },
+        "additionalProperties": false
+      },
+      "input_fields": {
+        "image_url": {
+          "kind": "image",
+          "many": false,
+          "data_uri_max_bytes": 20000000,
+          "public_url_max_bytes": 20000000,
+          "data_uri_mime_types": [
+            "image/png",
+            "image/jpeg",
+            "image/webp"
+          ]
+        }
+      },
+      "price": {
+        "rule": "fixed",
+        "parameters": {
+          "credits": 6
+        },
+        "status": "EXACT_WHEN_RULE_AND_CONFIGURATION_RESOLVE",
+        "source": "meshy-pricing.md",
+        "source_checked_date_utc": "2026-10-18",
+        "maximum_age_days": 7
+      },
+      "paid": true,
+      "conditions": [],
+      "parent_constraints": {},
+      "source": {
+        "page": "meshy-creative-lab-fridge-magnet.md",
+        "openapi": null
+      },
+      "schema_policy": "KAI_RESTRICTED_DOCUMENTED_SUBSET; unknown fields/null values rejected locally, not a claim of vendor-wide rejection",
+      "lifecycle": {
+        "terminal": [
+          "SUCCEEDED",
+          "FAILED",
+          "CANCELED"
+        ],
+        "asset_retention_days_non_enterprise": 3,
+        "unknown_post": "RECONCILE_NEVER_AUTORETRY",
+        "cancel_in_progress": "409_REMOTE_TASK_CONTINUES"
+      },
+      "pagination": {
+        "request": "page_num/page_size",
+        "documented_response": "ARRAY",
+        "completion": "SHORT_OR_EMPTY_PAGE_WITH_BOUNDS_AND_REPEAT_DETECTION",
+        "maximum_pages_is_engine_policy": true
+      },
+      "preflight_requirements": []
+    },
+    "creative_lab.fridge_magnet.build": {
+      "id": "creative_lab.fridge_magnet.build",
+      "contract_version": "2026-10-18.1",
+      "auth_family": "creative-lab",
+      "api_version": "creative-lab",
+      "auth_group": "creative-lab",
+      "routes": {
+        "create": "/openapi/creative-lab/fridge-magnet/v1/build",
+        "get": "/openapi/creative-lab/fridge-magnet/v1/build/{task_id}",
+        "cancel": "/openapi/creative-lab/fridge-magnet/v1/build/{task_id}",
+        "stream": "/openapi/creative-lab/fridge-magnet/v1/build/{task_id}/stream",
+        "list": "/openapi/creative-lab/fridge-magnet/v1/build"
+      },
+      "route_methods": {
+        "create": "POST",
+        "get": "GET",
+        "cancel": "DELETE",
+        "stream": "GET",
+        "list": "GET"
+      },
+      "request_schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "input_task_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "options": {
+            "type": "object",
+            "properties": {
+              "badge_shape": {
+                "type": "string",
+                "enum": [
+                  "circle",
+                  "rounded-rect",
+                  "hexagon",
+                  "shield",
+                  "star"
+                ],
+                "default": "rounded-rect"
+              },
+              "size_mm": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 400,
+                "default": 60
+              },
+              "relief_height_mm": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 20,
+                "default": 3.3
+              },
+              "relief_offset_mm": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 20,
+                "default": 0
+              },
+              "base_thickness_mm": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 20,
+                "default": 2.0
+              },
+              "has_closed_back": {
+                "type": "boolean",
+                "default": true
+              },
+              "relief_curve": {
+                "type": "string",
+                "enum": [
+                  "linear",
+                  "gamma",
+                  "s-curve"
+                ],
+                "default": "linear"
+              },
+              "curve_param": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 10,
+                "default": 1
+              },
+              "invert_depth": {
+                "type": "boolean",
+                "default": false
+              },
+              "smoothing": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 10,
+                "default": 0.24
+              },
+              "relief_scale": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 10,
+                "default": 1
+              },
+              "depth_threshold": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1,
+                "default": 0.1
+              },
+              "remove_background": {
+                "type": "boolean",
+                "default": true
+              },
+              "export_resolution": {
+                "type": "integer",
+                "minimum": 64,
+                "maximum": 2048,
+                "default": 512
+              }
+            },
+            "additionalProperties": false
+          },
+          "output": {
+            "type": "object",
+            "properties": {
+              "format": {
+                "type": "string",
+                "enum": [
+                  "glb",
+                  "obj",
+                  "zip"
+                ],
+                "default": "glb"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "input_task_id"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "list_query_schema": {
+        "type": "object",
+        "properties": {
+          "page_num": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 10
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "+created_at",
+              "-created_at"
+            ],
+            "default": "-created_at"
+          }
+        },
+        "additionalProperties": false
+      },
+      "input_fields": {
+        "input_task_id": {
+          "kind": "task_id",
+          "many": false,
+          "allowed_parent_capabilities": [
+            "creative_lab.fridge_magnet.prototype"
+          ],
+          "required_parent_status": "SUCCEEDED",
+          "same_api_account": true,
+          "unexpired_assets": true
+        }
+      },
+      "price": {
+        "rule": "fixed",
+        "parameters": {
+          "credits": 30
+        },
+        "status": "EXACT_WHEN_RULE_AND_CONFIGURATION_RESOLVE",
+        "source": "meshy-pricing.md",
+        "source_checked_date_utc": "2026-10-18",
+        "maximum_age_days": 7
+      },
+      "paid": true,
+      "conditions": [],
+      "parent_constraints": {
+        "operation_id": "creative_lab.fridge_magnet.prototype",
+        "status": "SUCCEEDED",
+        "source": "SAME_API_PRODUCT_AND_ACCOUNT",
+        "human_visual_gate": true
+      },
+      "source": {
+        "page": "meshy-creative-lab-fridge-magnet.md",
+        "openapi": null
+      },
+      "schema_policy": "KAI_RESTRICTED_DOCUMENTED_SUBSET; unknown fields/null values rejected locally, not a claim of vendor-wide rejection",
+      "lifecycle": {
+        "terminal": [
+          "SUCCEEDED",
+          "FAILED",
+          "CANCELED"
+        ],
+        "asset_retention_days_non_enterprise": 3,
+        "unknown_post": "RECONCILE_NEVER_AUTORETRY",
+        "cancel_in_progress": "409_REMOTE_TASK_CONTINUES"
+      },
+      "pagination": {
+        "request": "page_num/page_size",
+        "documented_response": "ARRAY",
+        "completion": "SHORT_OR_EMPTY_PAGE_WITH_BOUNDS_AND_REPEAT_DETECTION",
+        "maximum_pages_is_engine_policy": true
+      },
+      "preflight_requirements": []
+    },
+    "creative_lab.figure.prototype": {
+      "id": "creative_lab.figure.prototype",
+      "contract_version": "2026-10-18.1",
+      "auth_family": "creative-lab",
+      "api_version": "creative-lab",
+      "auth_group": "creative-lab",
+      "routes": {
+        "create": "/openapi/creative-lab/figure/v1/prototype",
+        "get": "/openapi/creative-lab/figure/v1/prototype/{task_id}",
+        "cancel": "/openapi/creative-lab/figure/v1/prototype/{task_id}",
+        "stream": "/openapi/creative-lab/figure/v1/prototype/{task_id}/stream",
+        "list": "/openapi/creative-lab/figure/v1/prototype"
+      },
+      "route_methods": {
+        "create": "POST",
+        "get": "GET",
+        "cancel": "DELETE",
+        "stream": "GET",
+        "list": "GET"
+      },
+      "request_schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "image_url": {
+            "type": "string",
+            "minLength": 1
+          },
+          "remove_background": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "image_url"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "list_query_schema": {
+        "type": "object",
+        "properties": {
+          "page_num": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 10
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "+created_at",
+              "-created_at"
+            ],
+            "default": "-created_at"
+          }
+        },
+        "additionalProperties": false
+      },
+      "input_fields": {
+        "image_url": {
+          "kind": "image",
+          "many": false,
+          "data_uri_max_bytes": 20000000,
+          "public_url_max_bytes": 20000000,
+          "data_uri_mime_types": [
+            "image/png",
+            "image/jpeg",
+            "image/webp"
+          ]
+        }
+      },
+      "price": {
+        "rule": "fixed",
+        "parameters": {
+          "credits": 6
+        },
+        "status": "EXACT_WHEN_RULE_AND_CONFIGURATION_RESOLVE",
+        "source": "meshy-pricing.md",
+        "source_checked_date_utc": "2026-10-18",
+        "maximum_age_days": 7
+      },
+      "paid": true,
+      "conditions": [],
+      "parent_constraints": {},
+      "source": {
+        "page": "meshy-creative-lab-figure.md",
+        "openapi": null
+      },
+      "schema_policy": "KAI_RESTRICTED_DOCUMENTED_SUBSET; unknown fields/null values rejected locally, not a claim of vendor-wide rejection",
+      "lifecycle": {
+        "terminal": [
+          "SUCCEEDED",
+          "FAILED",
+          "CANCELED"
+        ],
+        "asset_retention_days_non_enterprise": 3,
+        "unknown_post": "RECONCILE_NEVER_AUTORETRY",
+        "cancel_in_progress": "409_REMOTE_TASK_CONTINUES"
+      },
+      "pagination": {
+        "request": "page_num/page_size",
+        "documented_response": "ARRAY",
+        "completion": "SHORT_OR_EMPTY_PAGE_WITH_BOUNDS_AND_REPEAT_DETECTION",
+        "maximum_pages_is_engine_policy": true
+      },
+      "preflight_requirements": []
+    },
+    "creative_lab.figure.build": {
+      "id": "creative_lab.figure.build",
+      "contract_version": "2026-10-18.1",
+      "auth_family": "creative-lab",
+      "api_version": "creative-lab",
+      "auth_group": "creative-lab",
+      "routes": {
+        "create": "/openapi/creative-lab/figure/v1/build",
+        "get": "/openapi/creative-lab/figure/v1/build/{task_id}",
+        "cancel": "/openapi/creative-lab/figure/v1/build/{task_id}",
+        "stream": "/openapi/creative-lab/figure/v1/build/{task_id}/stream",
+        "list": "/openapi/creative-lab/figure/v1/build"
+      },
+      "route_methods": {
+        "create": "POST",
+        "get": "GET",
+        "cancel": "DELETE",
+        "stream": "GET",
+        "list": "GET"
+      },
+      "request_schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "input_task_id": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "input_task_id"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "list_query_schema": {
+        "type": "object",
+        "properties": {
+          "page_num": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 10
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "+created_at",
+              "-created_at"
+            ],
+            "default": "-created_at"
+          }
+        },
+        "additionalProperties": false
+      },
+      "input_fields": {
+        "input_task_id": {
+          "kind": "task_id",
+          "many": false,
+          "allowed_parent_capabilities": [
+            "creative_lab.figure.prototype"
+          ],
+          "required_parent_status": "SUCCEEDED",
+          "same_api_account": true,
+          "unexpired_assets": true
+        }
+      },
+      "price": {
+        "rule": "fixed",
+        "parameters": {
+          "credits": 30
+        },
+        "status": "EXACT_WHEN_RULE_AND_CONFIGURATION_RESOLVE",
+        "source": "meshy-pricing.md",
+        "source_checked_date_utc": "2026-10-18",
+        "maximum_age_days": 7
+      },
+      "paid": true,
+      "conditions": [],
+      "parent_constraints": {
+        "operation_id": "creative_lab.figure.prototype",
+        "status": "SUCCEEDED",
+        "source": "SAME_API_PRODUCT_AND_ACCOUNT",
+        "human_visual_gate": true
+      },
+      "source": {
+        "page": "meshy-creative-lab-figure.md",
+        "openapi": null
+      },
+      "schema_policy": "KAI_RESTRICTED_DOCUMENTED_SUBSET; unknown fields/null values rejected locally, not a claim of vendor-wide rejection",
+      "lifecycle": {
+        "terminal": [
+          "SUCCEEDED",
+          "FAILED",
+          "CANCELED"
+        ],
+        "asset_retention_days_non_enterprise": 3,
+        "unknown_post": "RECONCILE_NEVER_AUTORETRY",
+        "cancel_in_progress": "409_REMOTE_TASK_CONTINUES"
+      },
+      "pagination": {
+        "request": "page_num/page_size",
+        "documented_response": "ARRAY",
+        "completion": "SHORT_OR_EMPTY_PAGE_WITH_BOUNDS_AND_REPEAT_DETECTION",
+        "maximum_pages_is_engine_policy": true
+      },
+      "preflight_requirements": []
+    },
+    "creative_lab.vinyl_figure.prototype": {
+      "id": "creative_lab.vinyl_figure.prototype",
+      "contract_version": "2026-10-18.1",
+      "auth_family": "creative-lab",
+      "api_version": "creative-lab",
+      "auth_group": "creative-lab",
+      "routes": {
+        "create": "/openapi/creative-lab/vinyl-figure/v1/prototype",
+        "get": "/openapi/creative-lab/vinyl-figure/v1/prototype/{task_id}",
+        "cancel": "/openapi/creative-lab/vinyl-figure/v1/prototype/{task_id}",
+        "stream": "/openapi/creative-lab/vinyl-figure/v1/prototype/{task_id}/stream",
+        "list": "/openapi/creative-lab/vinyl-figure/v1/prototype"
+      },
+      "route_methods": {
+        "create": "POST",
+        "get": "GET",
+        "cancel": "DELETE",
+        "stream": "GET",
+        "list": "GET"
+      },
+      "request_schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "image_url": {
+            "type": "string",
+            "minLength": 1
+          },
+          "remove_background": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "image_url"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "list_query_schema": {
+        "type": "object",
+        "properties": {
+          "page_num": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 10
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "+created_at",
+              "-created_at"
+            ],
+            "default": "-created_at"
+          }
+        },
+        "additionalProperties": false
+      },
+      "input_fields": {
+        "image_url": {
+          "kind": "image",
+          "many": false,
+          "data_uri_max_bytes": 20000000,
+          "public_url_max_bytes": 20000000,
+          "data_uri_mime_types": [
+            "image/png",
+            "image/jpeg",
+            "image/webp"
+          ]
+        }
+      },
+      "price": {
+        "rule": "fixed",
+        "parameters": {
+          "credits": 6
+        },
+        "status": "EXACT_WHEN_RULE_AND_CONFIGURATION_RESOLVE",
+        "source": "meshy-pricing.md",
+        "source_checked_date_utc": "2026-10-18",
+        "maximum_age_days": 7
+      },
+      "paid": true,
+      "conditions": [],
+      "parent_constraints": {},
+      "source": {
+        "page": "meshy-creative-lab-vinyl-figure.md",
+        "openapi": null
+      },
+      "schema_policy": "KAI_RESTRICTED_DOCUMENTED_SUBSET; unknown fields/null values rejected locally, not a claim of vendor-wide rejection",
+      "lifecycle": {
+        "terminal": [
+          "SUCCEEDED",
+          "FAILED",
+          "CANCELED"
+        ],
+        "asset_retention_days_non_enterprise": 3,
+        "unknown_post": "RECONCILE_NEVER_AUTORETRY",
+        "cancel_in_progress": "409_REMOTE_TASK_CONTINUES"
+      },
+      "pagination": {
+        "request": "page_num/page_size",
+        "documented_response": "ARRAY",
+        "completion": "SHORT_OR_EMPTY_PAGE_WITH_BOUNDS_AND_REPEAT_DETECTION",
+        "maximum_pages_is_engine_policy": true
+      },
+      "preflight_requirements": []
+    },
+    "creative_lab.vinyl_figure.build": {
+      "id": "creative_lab.vinyl_figure.build",
+      "contract_version": "2026-10-18.1",
+      "auth_family": "creative-lab",
+      "api_version": "creative-lab",
+      "auth_group": "creative-lab",
+      "routes": {
+        "create": "/openapi/creative-lab/vinyl-figure/v1/build",
+        "get": "/openapi/creative-lab/vinyl-figure/v1/build/{task_id}",
+        "cancel": "/openapi/creative-lab/vinyl-figure/v1/build/{task_id}",
+        "stream": "/openapi/creative-lab/vinyl-figure/v1/build/{task_id}/stream",
+        "list": "/openapi/creative-lab/vinyl-figure/v1/build"
+      },
+      "route_methods": {
+        "create": "POST",
+        "get": "GET",
+        "cancel": "DELETE",
+        "stream": "GET",
+        "list": "GET"
+      },
+      "request_schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "input_task_id": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "input_task_id"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "list_query_schema": {
+        "type": "object",
+        "properties": {
+          "page_num": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 10
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "+created_at",
+              "-created_at"
+            ],
+            "default": "-created_at"
+          }
+        },
+        "additionalProperties": false
+      },
+      "input_fields": {
+        "input_task_id": {
+          "kind": "task_id",
+          "many": false,
+          "allowed_parent_capabilities": [
+            "creative_lab.vinyl_figure.prototype"
+          ],
+          "required_parent_status": "SUCCEEDED",
+          "same_api_account": true,
+          "unexpired_assets": true
+        }
+      },
+      "price": {
+        "rule": "fixed",
+        "parameters": {
+          "credits": 30
+        },
+        "status": "EXACT_WHEN_RULE_AND_CONFIGURATION_RESOLVE",
+        "source": "meshy-pricing.md",
+        "source_checked_date_utc": "2026-10-18",
+        "maximum_age_days": 7
+      },
+      "paid": true,
+      "conditions": [],
+      "parent_constraints": {
+        "operation_id": "creative_lab.vinyl_figure.prototype",
+        "status": "SUCCEEDED",
+        "source": "SAME_API_PRODUCT_AND_ACCOUNT",
+        "human_visual_gate": true
+      },
+      "source": {
+        "page": "meshy-creative-lab-vinyl-figure.md",
+        "openapi": null
+      },
+      "schema_policy": "KAI_RESTRICTED_DOCUMENTED_SUBSET; unknown fields/null values rejected locally, not a claim of vendor-wide rejection",
+      "lifecycle": {
+        "terminal": [
+          "SUCCEEDED",
+          "FAILED",
+          "CANCELED"
+        ],
+        "asset_retention_days_non_enterprise": 3,
+        "unknown_post": "RECONCILE_NEVER_AUTORETRY",
+        "cancel_in_progress": "409_REMOTE_TASK_CONTINUES"
+      },
+      "pagination": {
+        "request": "page_num/page_size",
+        "documented_response": "ARRAY",
+        "completion": "SHORT_OR_EMPTY_PAGE_WITH_BOUNDS_AND_REPEAT_DETECTION",
+        "maximum_pages_is_engine_policy": true
+      },
+      "preflight_requirements": []
+    },
+    "creative_lab.brick_figure.prototype": {
+      "id": "creative_lab.brick_figure.prototype",
+      "contract_version": "2026-10-18.1",
+      "auth_family": "creative-lab",
+      "api_version": "creative-lab",
+      "auth_group": "creative-lab",
+      "routes": {
+        "create": "/openapi/creative-lab/brick-figure/v1/prototype",
+        "get": "/openapi/creative-lab/brick-figure/v1/prototype/{task_id}",
+        "cancel": "/openapi/creative-lab/brick-figure/v1/prototype/{task_id}",
+        "stream": "/openapi/creative-lab/brick-figure/v1/prototype/{task_id}/stream",
+        "list": "/openapi/creative-lab/brick-figure/v1/prototype"
+      },
+      "route_methods": {
+        "create": "POST",
+        "get": "GET",
+        "cancel": "DELETE",
+        "stream": "GET",
+        "list": "GET"
+      },
+      "request_schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "image_url": {
+            "type": "string",
+            "minLength": 1
+          },
+          "remove_background": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "image_url"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "list_query_schema": {
+        "type": "object",
+        "properties": {
+          "page_num": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 10
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "+created_at",
+              "-created_at"
+            ],
+            "default": "-created_at"
+          }
+        },
+        "additionalProperties": false
+      },
+      "input_fields": {
+        "image_url": {
+          "kind": "image",
+          "many": false,
+          "data_uri_max_bytes": 20000000,
+          "public_url_max_bytes": 20000000,
+          "data_uri_mime_types": [
+            "image/png",
+            "image/jpeg",
+            "image/webp"
+          ]
+        }
+      },
+      "price": {
+        "rule": "fixed",
+        "parameters": {
+          "credits": 6
+        },
+        "status": "EXACT_WHEN_RULE_AND_CONFIGURATION_RESOLVE",
+        "source": "meshy-pricing.md",
+        "source_checked_date_utc": "2026-10-18",
+        "maximum_age_days": 7
+      },
+      "paid": true,
+      "conditions": [],
+      "parent_constraints": {},
+      "source": {
+        "page": "meshy-brick.md",
+        "openapi": null
+      },
+      "schema_policy": "KAI_RESTRICTED_DOCUMENTED_SUBSET; unknown fields/null values rejected locally, not a claim of vendor-wide rejection",
+      "lifecycle": {
+        "terminal": [
+          "SUCCEEDED",
+          "FAILED",
+          "CANCELED"
+        ],
+        "asset_retention_days_non_enterprise": 3,
+        "unknown_post": "RECONCILE_NEVER_AUTORETRY",
+        "cancel_in_progress": "409_REMOTE_TASK_CONTINUES"
+      },
+      "pagination": {
+        "request": "page_num/page_size",
+        "documented_response": "ARRAY",
+        "completion": "SHORT_OR_EMPTY_PAGE_WITH_BOUNDS_AND_REPEAT_DETECTION",
+        "maximum_pages_is_engine_policy": true
+      },
+      "preflight_requirements": []
+    },
+    "creative_lab.brick_figure.build": {
+      "id": "creative_lab.brick_figure.build",
+      "contract_version": "2026-10-18.1",
+      "auth_family": "creative-lab",
+      "api_version": "creative-lab",
+      "auth_group": "creative-lab",
+      "routes": {
+        "create": "/openapi/creative-lab/brick-figure/v1/build",
+        "get": "/openapi/creative-lab/brick-figure/v1/build/{task_id}",
+        "cancel": "/openapi/creative-lab/brick-figure/v1/build/{task_id}",
+        "stream": "/openapi/creative-lab/brick-figure/v1/build/{task_id}/stream",
+        "list": "/openapi/creative-lab/brick-figure/v1/build"
+      },
+      "route_methods": {
+        "create": "POST",
+        "get": "GET",
+        "cancel": "DELETE",
+        "stream": "GET",
+        "list": "GET"
+      },
+      "request_schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "input_task_id": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "input_task_id"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "list_query_schema": {
+        "type": "object",
+        "properties": {
+          "page_num": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 10
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "+created_at",
+              "-created_at"
+            ],
+            "default": "-created_at"
+          }
+        },
+        "additionalProperties": false
+      },
+      "input_fields": {
+        "input_task_id": {
+          "kind": "task_id",
+          "many": false,
+          "allowed_parent_capabilities": [
+            "creative_lab.brick_figure.prototype"
+          ],
+          "required_parent_status": "SUCCEEDED",
+          "same_api_account": true,
+          "unexpired_assets": true
+        }
+      },
+      "price": {
+        "rule": "fixed",
+        "parameters": {
+          "credits": 30
+        },
+        "status": "EXACT_WHEN_RULE_AND_CONFIGURATION_RESOLVE",
+        "source": "meshy-pricing.md",
+        "source_checked_date_utc": "2026-10-18",
+        "maximum_age_days": 7
+      },
+      "paid": true,
+      "conditions": [],
+      "parent_constraints": {
+        "operation_id": "creative_lab.brick_figure.prototype",
+        "status": "SUCCEEDED",
+        "source": "SAME_API_PRODUCT_AND_ACCOUNT",
+        "human_visual_gate": true
+      },
+      "source": {
+        "page": "meshy-brick.md",
+        "openapi": null
+      },
+      "schema_policy": "KAI_RESTRICTED_DOCUMENTED_SUBSET; unknown fields/null values rejected locally, not a claim of vendor-wide rejection",
+      "lifecycle": {
+        "terminal": [
+          "SUCCEEDED",
+          "FAILED",
+          "CANCELED"
+        ],
+        "asset_retention_days_non_enterprise": 3,
+        "unknown_post": "RECONCILE_NEVER_AUTORETRY",
+        "cancel_in_progress": "409_REMOTE_TASK_CONTINUES"
+      },
+      "pagination": {
+        "request": "page_num/page_size",
+        "documented_response": "ARRAY",
+        "completion": "SHORT_OR_EMPTY_PAGE_WITH_BOUNDS_AND_REPEAT_DETECTION",
+        "maximum_pages_is_engine_policy": true
+      },
+      "preflight_requirements": []
+    },
+    "creative_lab.lamp.prototype": {
+      "id": "creative_lab.lamp.prototype",
+      "contract_version": "2026-10-18.1",
+      "auth_family": "creative-lab",
+      "api_version": "creative-lab",
+      "auth_group": "creative-lab",
+      "routes": {
+        "create": "/openapi/creative-lab/lamp/v1/prototype",
+        "get": "/openapi/creative-lab/lamp/v1/prototype/{task_id}",
+        "cancel": "/openapi/creative-lab/lamp/v1/prototype/{task_id}",
+        "stream": "/openapi/creative-lab/lamp/v1/prototype/{task_id}/stream",
+        "list": "/openapi/creative-lab/lamp/v1/prototype"
+      },
+      "route_methods": {
+        "create": "POST",
+        "get": "GET",
+        "cancel": "DELETE",
+        "stream": "GET",
+        "list": "GET"
+      },
+      "request_schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "image_url": {
+            "type": "string",
+            "minLength": 1
+          },
+          "remove_background": {
+            "type": "boolean",
+            "default": false
+          },
+          "image_subject": {
+            "type": "string",
+            "enum": [
+              "character",
+              "landscape"
+            ],
+            "default": "character"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "image_url"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "list_query_schema": {
+        "type": "object",
+        "properties": {
+          "page_num": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 10
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "+created_at",
+              "-created_at"
+            ],
+            "default": "-created_at"
+          }
+        },
+        "additionalProperties": false
+      },
+      "input_fields": {
+        "image_url": {
+          "kind": "image",
+          "many": false,
+          "data_uri_max_bytes": 20000000,
+          "public_url_max_bytes": 20000000,
+          "data_uri_mime_types": [
+            "image/png",
+            "image/jpeg",
+            "image/webp"
+          ]
+        }
+      },
+      "price": {
+        "rule": "fixed",
+        "parameters": {
+          "credits": 30
+        },
+        "status": "EXACT_WHEN_RULE_AND_CONFIGURATION_RESOLVE",
+        "source": "meshy-pricing.md",
+        "source_checked_date_utc": "2026-10-18",
+        "maximum_age_days": 7
+      },
+      "paid": true,
+      "conditions": [],
+      "parent_constraints": {},
+      "source": {
+        "page": "meshy-creative-lab-lamp.md",
+        "openapi": null
+      },
+      "schema_policy": "KAI_RESTRICTED_DOCUMENTED_SUBSET; unknown fields/null values rejected locally, not a claim of vendor-wide rejection",
+      "lifecycle": {
+        "terminal": [
+          "SUCCEEDED",
+          "FAILED",
+          "CANCELED"
+        ],
+        "asset_retention_days_non_enterprise": 3,
+        "unknown_post": "RECONCILE_NEVER_AUTORETRY",
+        "cancel_in_progress": "409_REMOTE_TASK_CONTINUES"
+      },
+      "pagination": {
+        "request": "page_num/page_size",
+        "documented_response": "ARRAY",
+        "completion": "SHORT_OR_EMPTY_PAGE_WITH_BOUNDS_AND_REPEAT_DETECTION",
+        "maximum_pages_is_engine_policy": true
+      },
+      "preflight_requirements": []
+    },
+    "creative_lab.lamp.build": {
+      "id": "creative_lab.lamp.build",
+      "contract_version": "2026-10-18.1",
+      "auth_family": "creative-lab",
+      "api_version": "creative-lab",
+      "auth_group": "creative-lab",
+      "routes": {
+        "create": "/openapi/creative-lab/lamp/v1/build",
+        "get": "/openapi/creative-lab/lamp/v1/build/{task_id}",
+        "cancel": "/openapi/creative-lab/lamp/v1/build/{task_id}",
+        "stream": "/openapi/creative-lab/lamp/v1/build/{task_id}/stream",
+        "list": "/openapi/creative-lab/lamp/v1/build"
+      },
+      "route_methods": {
+        "create": "POST",
+        "get": "GET",
+        "cancel": "DELETE",
+        "stream": "GET",
+        "list": "GET"
+      },
+      "request_schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "input_task_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "options": {
+            "type": "object",
+            "properties": {
+              "diameter_mm": {
+                "type": "number",
+                "minimum": 50,
+                "maximum": 400,
+                "default": 150
+              },
+              "thickness_mm": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 10,
+                "default": 1
+              },
+              "cut_amount_percent": {
+                "type": "number",
+                "minimum": 1,
+                "maximum": 100,
+                "default": 1
+              },
+              "light_source_preset": {
+                "type": "string",
+                "enum": [
+                  "bambu_mh001_60mm",
+                  "none"
+                ],
+                "default": "bambu_mh001_60mm"
+              },
+              "fixture_offset_x_mm": {
+                "type": "number",
+                "minimum": -80,
+                "maximum": 80,
+                "default": 0
+              },
+              "fixture_offset_z_mm": {
+                "type": "number",
+                "minimum": -80,
+                "maximum": 80,
+                "default": 0
+              },
+              "rotate_x_deg": {
+                "type": "number",
+                "minimum": -360,
+                "maximum": 360,
+                "default": 0
+              },
+              "rotate_y_deg": {
+                "type": "number",
+                "minimum": -360,
+                "maximum": 360,
+                "default": 0
+              },
+              "rotate_z_deg": {
+                "type": "number",
+                "minimum": -360,
+                "maximum": 360,
+                "default": 0
+              },
+              "include_result_json": {
+                "type": "boolean",
+                "default": false
+              }
+            },
+            "additionalProperties": false
+          },
+          "output": {
+            "type": "object",
+            "properties": {
+              "format": {
+                "type": "string",
+                "enum": [
+                  "stl",
+                  "zip"
+                ],
+                "default": "stl"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "input_task_id"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "list_query_schema": {
+        "type": "object",
+        "properties": {
+          "page_num": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 10
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "+created_at",
+              "-created_at"
+            ],
+            "default": "-created_at"
+          }
+        },
+        "additionalProperties": false
+      },
+      "input_fields": {
+        "input_task_id": {
+          "kind": "task_id",
+          "many": false,
+          "allowed_parent_capabilities": [
+            "creative_lab.lamp.prototype"
+          ],
+          "required_parent_status": "SUCCEEDED",
+          "same_api_account": true,
+          "unexpired_assets": true
+        }
+      },
+      "price": {
+        "rule": "fixed",
+        "parameters": {
+          "credits": 6
+        },
+        "status": "EXACT_WHEN_RULE_AND_CONFIGURATION_RESOLVE",
+        "source": "meshy-pricing.md",
+        "source_checked_date_utc": "2026-10-18",
+        "maximum_age_days": 7
+      },
+      "paid": true,
+      "conditions": [],
+      "parent_constraints": {
+        "operation_id": "creative_lab.lamp.prototype",
+        "status": "SUCCEEDED",
+        "source": "SAME_API_PRODUCT_AND_ACCOUNT",
+        "human_visual_gate": true
+      },
+      "source": {
+        "page": "meshy-creative-lab-lamp.md",
+        "openapi": null
+      },
+      "schema_policy": "KAI_RESTRICTED_DOCUMENTED_SUBSET; unknown fields/null values rejected locally, not a claim of vendor-wide rejection",
+      "lifecycle": {
+        "terminal": [
+          "SUCCEEDED",
+          "FAILED",
+          "CANCELED"
+        ],
+        "asset_retention_days_non_enterprise": 3,
+        "unknown_post": "RECONCILE_NEVER_AUTORETRY",
+        "cancel_in_progress": "409_REMOTE_TASK_CONTINUES"
+      },
+      "pagination": {
+        "request": "page_num/page_size",
+        "documented_response": "ARRAY",
+        "completion": "SHORT_OR_EMPTY_PAGE_WITH_BOUNDS_AND_REPEAT_DETECTION",
+        "maximum_pages_is_engine_policy": true
+      },
+      "preflight_requirements": []
+    },
+    "creative_lab.keycap.prototype": {
+      "id": "creative_lab.keycap.prototype",
+      "contract_version": "2026-10-18.1",
+      "auth_family": "creative-lab",
+      "api_version": "creative-lab",
+      "auth_group": "creative-lab",
+      "routes": {
+        "create": "/openapi/creative-lab/keycap/v1/prototype",
+        "get": "/openapi/creative-lab/keycap/v1/prototype/{task_id}",
+        "cancel": "/openapi/creative-lab/keycap/v1/prototype/{task_id}",
+        "stream": "/openapi/creative-lab/keycap/v1/prototype/{task_id}/stream",
+        "list": "/openapi/creative-lab/keycap/v1/prototype"
+      },
+      "route_methods": {
+        "create": "POST",
+        "get": "GET",
+        "cancel": "DELETE",
+        "stream": "GET",
+        "list": "GET"
+      },
+      "request_schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "image_url": {
+            "type": "string",
+            "minLength": 1
+          },
+          "remove_background": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "image_url"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "list_query_schema": {
+        "type": "object",
+        "properties": {
+          "page_num": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 10
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "+created_at",
+              "-created_at"
+            ],
+            "default": "-created_at"
+          }
+        },
+        "additionalProperties": false
+      },
+      "input_fields": {
+        "image_url": {
+          "kind": "image",
+          "many": false,
+          "data_uri_max_bytes": 20000000,
+          "public_url_max_bytes": 20000000,
+          "data_uri_mime_types": [
+            "image/png",
+            "image/jpeg",
+            "image/webp"
+          ]
+        }
+      },
+      "price": {
+        "rule": "fixed",
+        "parameters": {
+          "credits": 12
+        },
+        "status": "EXACT_WHEN_RULE_AND_CONFIGURATION_RESOLVE",
+        "source": "meshy-pricing.md",
+        "source_checked_date_utc": "2026-10-18",
+        "maximum_age_days": 7
+      },
+      "paid": true,
+      "conditions": [],
+      "parent_constraints": {},
+      "source": {
+        "page": "meshy-creative-lab-keycap.md",
+        "openapi": null
+      },
+      "schema_policy": "KAI_RESTRICTED_DOCUMENTED_SUBSET; unknown fields/null values rejected locally, not a claim of vendor-wide rejection",
+      "lifecycle": {
+        "terminal": [
+          "SUCCEEDED",
+          "FAILED",
+          "CANCELED"
+        ],
+        "asset_retention_days_non_enterprise": 3,
+        "unknown_post": "RECONCILE_NEVER_AUTORETRY",
+        "cancel_in_progress": "409_REMOTE_TASK_CONTINUES"
+      },
+      "pagination": {
+        "request": "page_num/page_size",
+        "documented_response": "ARRAY",
+        "completion": "SHORT_OR_EMPTY_PAGE_WITH_BOUNDS_AND_REPEAT_DETECTION",
+        "maximum_pages_is_engine_policy": true
+      },
+      "preflight_requirements": []
+    },
+    "creative_lab.keycap.build": {
+      "id": "creative_lab.keycap.build",
+      "contract_version": "2026-10-18.1",
+      "auth_family": "creative-lab",
+      "api_version": "creative-lab",
+      "auth_group": "creative-lab",
+      "routes": {
+        "create": "/openapi/creative-lab/keycap/v1/build",
+        "get": "/openapi/creative-lab/keycap/v1/build/{task_id}",
+        "cancel": "/openapi/creative-lab/keycap/v1/build/{task_id}",
+        "stream": "/openapi/creative-lab/keycap/v1/build/{task_id}/stream",
+        "list": "/openapi/creative-lab/keycap/v1/build"
+      },
+      "route_methods": {
+        "create": "POST",
+        "get": "GET",
+        "cancel": "DELETE",
+        "stream": "GET",
+        "list": "GET"
+      },
+      "request_schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "input_task_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "candidate_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "options": {
+            "type": "object",
+            "properties": {
+              "base_model": {
+                "type": "string",
+                "enum": [
+                  "cherry-mx-1x1-r1"
+                ],
+                "default": "cherry-mx-1x1-r1"
+              },
+              "head_size_mm": {
+                "type": "number",
+                "minimum": 10,
+                "maximum": 40,
+                "default": 23
+              },
+              "vertical_offset_mm": {
+                "type": "number",
+                "minimum": -5,
+                "maximum": 5,
+                "default": 0
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "input_task_id",
+          "candidate_id"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "list_query_schema": {
+        "type": "object",
+        "properties": {
+          "page_num": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 10
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "+created_at",
+              "-created_at"
+            ],
+            "default": "-created_at"
+          }
+        },
+        "additionalProperties": false
+      },
+      "input_fields": {
+        "input_task_id": {
+          "kind": "task_id",
+          "many": false,
+          "allowed_parent_capabilities": [
+            "creative_lab.keycap.prototype"
+          ],
+          "required_parent_status": "SUCCEEDED",
+          "same_api_account": true,
+          "unexpired_assets": true
+        },
+        "candidate_id": {
+          "kind": "candidate_id",
+          "many": false
+        }
+      },
+      "price": {
+        "rule": "fixed",
+        "parameters": {
+          "credits": 50
+        },
+        "status": "EXACT_WHEN_RULE_AND_CONFIGURATION_RESOLVE",
+        "source": "meshy-pricing.md",
+        "source_checked_date_utc": "2026-10-18",
+        "maximum_age_days": 7
+      },
+      "paid": true,
+      "conditions": [],
+      "parent_constraints": {
+        "operation_id": "creative_lab.keycap.prototype",
+        "status": "SUCCEEDED",
+        "source": "SAME_API_PRODUCT_AND_ACCOUNT",
+        "human_visual_gate": true
+      },
+      "source": {
+        "page": "meshy-creative-lab-keycap.md",
+        "openapi": null
+      },
+      "schema_policy": "KAI_RESTRICTED_DOCUMENTED_SUBSET; unknown fields/null values rejected locally, not a claim of vendor-wide rejection",
+      "lifecycle": {
+        "terminal": [
+          "SUCCEEDED",
+          "FAILED",
+          "CANCELED"
+        ],
+        "asset_retention_days_non_enterprise": 3,
+        "unknown_post": "RECONCILE_NEVER_AUTORETRY",
+        "cancel_in_progress": "409_REMOTE_TASK_CONTINUES"
+      },
+      "pagination": {
+        "request": "page_num/page_size",
+        "documented_response": "ARRAY",
+        "completion": "SHORT_OR_EMPTY_PAGE_WITH_BOUNDS_AND_REPEAT_DETECTION",
+        "maximum_pages_is_engine_policy": true
+      },
+      "preflight_requirements": []
+    },
+    "creative_lab.fidget_pixel.prototype": {
+      "id": "creative_lab.fidget_pixel.prototype",
+      "contract_version": "2026-10-18.1",
+      "auth_family": "creative-lab",
+      "api_version": "creative-lab",
+      "auth_group": "creative-lab",
+      "routes": {
+        "create": "/openapi/creative-lab/fidget-pixel/v1/prototype",
+        "get": "/openapi/creative-lab/fidget-pixel/v1/prototype/{task_id}",
+        "cancel": "/openapi/creative-lab/fidget-pixel/v1/prototype/{task_id}",
+        "stream": "/openapi/creative-lab/fidget-pixel/v1/prototype/{task_id}/stream",
+        "list": "/openapi/creative-lab/fidget-pixel/v1/prototype"
+      },
+      "route_methods": {
+        "create": "POST",
+        "get": "GET",
+        "cancel": "DELETE",
+        "stream": "GET",
+        "list": "GET"
+      },
+      "request_schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "image_url": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "person",
+              "other"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "image_url",
+          "type"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "list_query_schema": {
+        "type": "object",
+        "properties": {
+          "page_num": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 10
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "+created_at",
+              "-created_at"
+            ],
+            "default": "-created_at"
+          }
+        },
+        "additionalProperties": false
+      },
+      "input_fields": {
+        "image_url": {
+          "kind": "image",
+          "many": false,
+          "data_uri_max_bytes": 20000000,
+          "public_url_max_bytes": 20000000,
+          "data_uri_mime_types": [
+            "image/png",
+            "image/jpeg",
+            "image/webp"
+          ]
+        }
+      },
+      "price": {
+        "rule": "fixed",
+        "parameters": {
+          "credits": 6
+        },
+        "status": "EXACT_WHEN_RULE_AND_CONFIGURATION_RESOLVE",
+        "source": "meshy-pricing.md",
+        "source_checked_date_utc": "2026-10-18",
+        "maximum_age_days": 7
+      },
+      "paid": true,
+      "conditions": [],
+      "parent_constraints": {},
+      "source": {
+        "page": "meshy-creative-lab-fidget-pixel.md",
+        "openapi": null
+      },
+      "schema_policy": "KAI_RESTRICTED_DOCUMENTED_SUBSET; unknown fields/null values rejected locally, not a claim of vendor-wide rejection",
+      "lifecycle": {
+        "terminal": [
+          "SUCCEEDED",
+          "FAILED",
+          "CANCELED"
+        ],
+        "asset_retention_days_non_enterprise": 3,
+        "unknown_post": "RECONCILE_NEVER_AUTORETRY",
+        "cancel_in_progress": "409_REMOTE_TASK_CONTINUES"
+      },
+      "pagination": {
+        "request": "page_num/page_size",
+        "documented_response": "ARRAY",
+        "completion": "SHORT_OR_EMPTY_PAGE_WITH_BOUNDS_AND_REPEAT_DETECTION",
+        "maximum_pages_is_engine_policy": true
+      },
+      "preflight_requirements": []
+    },
+    "creative_lab.fidget_pixel.build": {
+      "id": "creative_lab.fidget_pixel.build",
+      "contract_version": "2026-10-18.1",
+      "auth_family": "creative-lab",
+      "api_version": "creative-lab",
+      "auth_group": "creative-lab",
+      "routes": {
+        "create": "/openapi/creative-lab/fidget-pixel/v1/build",
+        "get": "/openapi/creative-lab/fidget-pixel/v1/build/{task_id}",
+        "cancel": "/openapi/creative-lab/fidget-pixel/v1/build/{task_id}",
+        "stream": "/openapi/creative-lab/fidget-pixel/v1/build/{task_id}/stream",
+        "list": "/openapi/creative-lab/fidget-pixel/v1/build"
+      },
+      "route_methods": {
+        "create": "POST",
+        "get": "GET",
+        "cancel": "DELETE",
+        "stream": "GET",
+        "list": "GET"
+      },
+      "request_schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "input_task_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "options": {
+            "type": "object",
+            "properties": {
+              "shape": {
+                "type": "string",
+                "enum": [
+                  "square",
+                  "hex"
+                ],
+                "default": "square"
+              },
+              "grid_size": {
+                "type": "integer",
+                "enum": [
+                  16,
+                  32
+                ],
+                "default": 32
+              },
+              "piece_size_mm": {
+                "type": "integer",
+                "enum": [
+                  6,
+                  8,
+                  10
+                ],
+                "default": 8
+              },
+              "color_count": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8,
+                "default": 8
+              },
+              "piece_height_mm": {
+                "type": "integer",
+                "minimum": 10,
+                "maximum": 80,
+                "default": 15
+              }
+            },
+            "additionalProperties": false
+          },
+          "output": {
+            "type": "object",
+            "properties": {
+              "format": {
+                "type": "string",
+                "enum": [
+                  "3mf"
+                ],
+                "default": "3mf"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "input_task_id"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "list_query_schema": {
+        "type": "object",
+        "properties": {
+          "page_num": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 10
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "+created_at",
+              "-created_at"
+            ],
+            "default": "-created_at"
+          }
+        },
+        "additionalProperties": false
+      },
+      "input_fields": {
+        "input_task_id": {
+          "kind": "task_id",
+          "many": false,
+          "allowed_parent_capabilities": [
+            "creative_lab.fidget_pixel.prototype"
+          ],
+          "required_parent_status": "SUCCEEDED",
+          "same_api_account": true,
+          "unexpired_assets": true
+        }
+      },
+      "price": {
+        "rule": "fixed",
+        "parameters": {
+          "credits": 30
+        },
+        "status": "EXACT_WHEN_RULE_AND_CONFIGURATION_RESOLVE",
+        "source": "meshy-pricing.md",
+        "source_checked_date_utc": "2026-10-18",
+        "maximum_age_days": 7
+      },
+      "paid": true,
+      "conditions": [],
+      "parent_constraints": {
+        "operation_id": "creative_lab.fidget_pixel.prototype",
+        "status": "SUCCEEDED",
+        "source": "SAME_API_PRODUCT_AND_ACCOUNT",
+        "human_visual_gate": true
+      },
+      "source": {
+        "page": "meshy-creative-lab-fidget-pixel.md",
+        "openapi": null
+      },
+      "schema_policy": "KAI_RESTRICTED_DOCUMENTED_SUBSET; unknown fields/null values rejected locally, not a claim of vendor-wide rejection",
+      "lifecycle": {
+        "terminal": [
+          "SUCCEEDED",
+          "FAILED",
+          "CANCELED"
+        ],
+        "asset_retention_days_non_enterprise": 3,
+        "unknown_post": "RECONCILE_NEVER_AUTORETRY",
+        "cancel_in_progress": "409_REMOTE_TASK_CONTINUES"
+      },
+      "pagination": {
+        "request": "page_num/page_size",
+        "documented_response": "ARRAY",
+        "completion": "SHORT_OR_EMPTY_PAGE_WITH_BOUNDS_AND_REPEAT_DETECTION",
+        "maximum_pages_is_engine_policy": true
+      },
+      "preflight_requirements": []
+    },
+    "creative_lab.fidget_collapsible.create": {
+      "id": "creative_lab.fidget_collapsible.create",
+      "contract_version": "2026-10-18.1",
+      "auth_family": "creative-lab",
+      "api_version": "creative-lab",
+      "auth_group": "creative-lab",
+      "routes": {
+        "create": "/openapi/creative-lab/fidget-collapsible/v1",
+        "get": "/openapi/creative-lab/fidget-collapsible/v1/{task_id}",
+        "cancel": "/openapi/creative-lab/fidget-collapsible/v1/{task_id}",
+        "stream": "/openapi/creative-lab/fidget-collapsible/v1/{task_id}/stream",
+        "list": "/openapi/creative-lab/fidget-collapsible/v1"
+      },
+      "route_methods": {
+        "create": "POST",
+        "get": "GET",
+        "cancel": "DELETE",
+        "stream": "GET",
+        "list": "GET"
+      },
+      "request_schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "image_url": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "image_url"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "list_query_schema": {
+        "type": "object",
+        "properties": {
+          "page_num": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 10
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "+created_at",
+              "-created_at"
+            ],
+            "default": "-created_at"
+          }
+        },
+        "additionalProperties": false
+      },
+      "input_fields": {
+        "image_url": {
+          "kind": "image",
+          "many": false,
+          "data_uri_max_bytes": 20000000,
+          "public_url_max_bytes": 20000000,
+          "data_uri_mime_types": [
+            "image/png",
+            "image/jpeg",
+            "image/webp"
+          ]
+        }
+      },
+      "price": {
+        "rule": "fixed",
+        "parameters": {
+          "credits": 6
+        },
+        "status": "EXACT_WHEN_RULE_AND_CONFIGURATION_RESOLVE",
+        "source": "meshy-pricing.md",
+        "source_checked_date_utc": "2026-10-18",
+        "maximum_age_days": 7
+      },
+      "paid": true,
+      "conditions": [],
+      "parent_constraints": {},
+      "source": {
+        "page": "meshy-creative-lab-fidget-collapsible.md",
+        "openapi": null
+      },
+      "schema_policy": "KAI_RESTRICTED_DOCUMENTED_SUBSET; unknown fields/null values rejected locally, not a claim of vendor-wide rejection",
+      "lifecycle": {
+        "terminal": [
+          "SUCCEEDED",
+          "FAILED",
+          "CANCELED"
+        ],
+        "asset_retention_days_non_enterprise": 3,
+        "unknown_post": "RECONCILE_NEVER_AUTORETRY",
+        "cancel_in_progress": "409_REMOTE_TASK_CONTINUES"
+      },
+      "pagination": {
+        "request": "page_num/page_size",
+        "documented_response": "ARRAY",
+        "completion": "SHORT_OR_EMPTY_PAGE_WITH_BOUNDS_AND_REPEAT_DETECTION",
+        "maximum_pages_is_engine_policy": true
+      },
+      "preflight_requirements": []
+    }
+  },
+  "sources": {
+    "meshy-text-to-3d.md": {
+      "url": "https://docs.meshy.ai/en/api/text-to-3d.md",
+      "resolved_url": "https://docs.meshy.ai/en/api/text-to-3d.md",
+      "sha256": "bb602e76fc2417f399cbab1ab4b057600f7cf540f037210021cb55993abcdea6",
+      "bytes": 39846,
+      "retrieved_utc": "2026-10-18T20:51:07.441758+00:00",
+      "retrieved_date": "2026-10-18",
+      "license": "UNKNOWN_DOCUMENTATION_COPYRIGHT_NO_IMPLEMENTATION_LICENSE_INFERRED"
+    },
+    "meshy-image-to-3d.md": {
+      "url": "https://docs.meshy.ai/en/api/image-to-3d.md",
+      "resolved_url": "https://docs.meshy.ai/en/api/image-to-3d.md",
+      "sha256": "2e9c11cf3a6a289a04cd8767e405125058be3dbb87c877c3070b78fc0717080c",
+      "bytes": 39215,
+      "retrieved_utc": "2026-10-18T20:51:07.433055+00:00",
+      "retrieved_date": "2026-10-18",
+      "license": "UNKNOWN_DOCUMENTATION_COPYRIGHT_NO_IMPLEMENTATION_LICENSE_INFERRED"
+    },
+    "meshy-multi-image-to-3d.md": {
+      "url": "https://docs.meshy.ai/en/api/multi-image-to-3d.md",
+      "resolved_url": "https://docs.meshy.ai/en/api/multi-image-to-3d.md",
+      "sha256": "ca8d40204411f823b233473cdf97e1ec1052f986511a2fdbdc3af38b9c897ab3",
+      "bytes": 38537,
+      "retrieved_utc": "2026-10-18T20:51:07.439486+00:00",
+      "retrieved_date": "2026-10-18",
+      "license": "UNKNOWN_DOCUMENTATION_COPYRIGHT_NO_IMPLEMENTATION_LICENSE_INFERRED"
+    },
+    "meshy-remesh.md": {
+      "url": "https://docs.meshy.ai/en/api/remesh.md",
+      "resolved_url": "https://docs.meshy.ai/en/api/remesh.md",
+      "sha256": "755f485d370ecc12568a9a200eb1ca597eaf0d0a42e8627c99d00c804ab3f7f8",
+      "bytes": 23467,
+      "retrieved_utc": "2026-10-18T20:51:07.435462+00:00",
+      "retrieved_date": "2026-10-18",
+      "license": "UNKNOWN_DOCUMENTATION_COPYRIGHT_NO_IMPLEMENTATION_LICENSE_INFERRED"
+    },
+    "meshy-convert.md": {
+      "url": "https://docs.meshy.ai/en/api/convert.md",
+      "resolved_url": "https://docs.meshy.ai/en/api/convert.md",
+      "sha256": "7d462eed36c20b0a64e20ad5ad9b9a858d65e72ac303316f080526d19187e323",
+      "bytes": 13580,
+      "retrieved_utc": "2026-10-18T20:51:07.443607+00:00",
+      "retrieved_date": "2026-10-18",
+      "license": "UNKNOWN_DOCUMENTATION_COPYRIGHT_NO_IMPLEMENTATION_LICENSE_INFERRED"
+    },
+    "meshy-resize.md": {
+      "url": "https://docs.meshy.ai/en/api/resize.md",
+      "resolved_url": "https://docs.meshy.ai/en/api/resize.md",
+      "sha256": "65c0318086ca18ce8d3b6943529955f53fa622cfc65c21dd6d8234e6ffe7f500",
+      "bytes": 15505,
+      "retrieved_utc": "2026-10-18T20:51:07.445542+00:00",
+      "retrieved_date": "2026-10-18",
+      "license": "UNKNOWN_DOCUMENTATION_COPYRIGHT_NO_IMPLEMENTATION_LICENSE_INFERRED"
+    },
+    "meshy-uv-unwrap.md": {
+      "url": "https://docs.meshy.ai/en/api/uv-unwrap.md",
+      "resolved_url": "https://docs.meshy.ai/en/api/uv-unwrap.md",
+      "sha256": "c1b08d51e401b71ddeb61702d6e1be22f76578792cb48763affdf909d64992ed",
+      "bytes": 10518,
+      "retrieved_utc": "2026-10-18T20:51:07.938625+00:00",
+      "retrieved_date": "2026-10-18",
+      "license": "UNKNOWN_DOCUMENTATION_COPYRIGHT_NO_IMPLEMENTATION_LICENSE_INFERRED"
+    },
+    "meshy-retexture.md": {
+      "url": "https://docs.meshy.ai/en/api/retexture.md",
+      "resolved_url": "https://docs.meshy.ai/en/api/retexture.md",
+      "sha256": "6b7c3a20630d5440fb34ccdc23134a21a9aa05b08447e856503e152cc1058214",
+      "bytes": 30259,
+      "retrieved_utc": "2026-10-18T20:51:07.949975+00:00",
+      "retrieved_date": "2026-10-18",
+      "license": "UNKNOWN_DOCUMENTATION_COPYRIGHT_NO_IMPLEMENTATION_LICENSE_INFERRED"
+    },
+    "meshy-rigging.md": {
+      "url": "https://docs.meshy.ai/en/api/rigging.md",
+      "resolved_url": "https://docs.meshy.ai/en/api/rigging.md",
+      "sha256": "1f225baf922d22a760df95675aae30575b5be0daae145111691bd2dfbda43616",
+      "bytes": 20481,
+      "retrieved_utc": "2026-10-18T20:51:07.934075+00:00",
+      "retrieved_date": "2026-10-18",
+      "license": "UNKNOWN_DOCUMENTATION_COPYRIGHT_NO_IMPLEMENTATION_LICENSE_INFERRED"
+    },
+    "meshy-animation.md": {
+      "url": "https://docs.meshy.ai/en/api/animation.md",
+      "resolved_url": "https://docs.meshy.ai/en/api/animation.md",
+      "sha256": "e79a4f3aa993de448835a0998448b2400e4e3accbe8851df2ba5af05db47f663",
+      "bytes": 27130,
+      "retrieved_utc": "2026-10-18T20:51:07.947984+00:00",
+      "retrieved_date": "2026-10-18",
+      "license": "UNKNOWN_DOCUMENTATION_COPYRIGHT_NO_IMPLEMENTATION_LICENSE_INFERRED"
+    },
+    "meshy-text-to-image.md": {
+      "url": "https://docs.meshy.ai/en/api/text-to-image.md",
+      "resolved_url": "https://docs.meshy.ai/en/api/text-to-image.md",
+      "sha256": "0da2edfdf258168530c4d72ae1d0b8bcecbe1fed931361cb4ec80e22444e35c7",
+      "bytes": 18891,
+      "retrieved_utc": "2026-10-18T20:51:07.955138+00:00",
+      "retrieved_date": "2026-10-18",
+      "license": "UNKNOWN_DOCUMENTATION_COPYRIGHT_NO_IMPLEMENTATION_LICENSE_INFERRED"
+    },
+    "meshy-image-to-image.md": {
+      "url": "https://docs.meshy.ai/en/api/image-to-image.md",
+      "resolved_url": "https://docs.meshy.ai/en/api/image-to-image.md",
+      "sha256": "b1b4f1979f3bb50f21c28e7c3c2598265bc79a612825ea3dde968f15ce5520af",
+      "bytes": 21337,
+      "retrieved_utc": "2026-10-18T20:51:08.421036+00:00",
+      "retrieved_date": "2026-10-18",
+      "license": "UNKNOWN_DOCUMENTATION_COPYRIGHT_NO_IMPLEMENTATION_LICENSE_INFERRED"
+    },
+    "meshy-analyze-printability.md": {
+      "url": "https://docs.meshy.ai/en/api/analyze-printability.md",
+      "resolved_url": "https://docs.meshy.ai/en/api/analyze-printability.md",
+      "sha256": "c36a4ca8fe352af33deadf2478ee21e8c56873960be8c3792364f4ae7cc740fe",
+      "bytes": 27120,
+      "retrieved_utc": "2026-10-18T20:51:08.440482+00:00",
+      "retrieved_date": "2026-10-18",
+      "license": "UNKNOWN_DOCUMENTATION_COPYRIGHT_NO_IMPLEMENTATION_LICENSE_INFERRED"
+    },
+    "meshy-repair-printability.md": {
+      "url": "https://docs.meshy.ai/en/api/repair-printability.md",
+      "resolved_url": "https://docs.meshy.ai/en/api/repair-printability.md",
+      "sha256": "32cdfe28c733dccc6797461989db3217ce48900e5e6e7ad110721ea546e31103",
+      "bytes": 28991,
+      "retrieved_utc": "2026-10-18T20:51:08.468121+00:00",
+      "retrieved_date": "2026-10-18",
+      "license": "UNKNOWN_DOCUMENTATION_COPYRIGHT_NO_IMPLEMENTATION_LICENSE_INFERRED"
+    },
+    "meshy-multi-color-print.md": {
+      "url": "https://docs.meshy.ai/en/api/multi-color-print.md",
+      "resolved_url": "https://docs.meshy.ai/en/api/multi-color-print.md",
+      "sha256": "720f1b2c938335168d9876cb6923f44e3dd032bdc9e548ac2b85d2fd4e74e714",
+      "bytes": 18047,
+      "retrieved_utc": "2026-10-18T20:51:08.438130+00:00",
+      "retrieved_date": "2026-10-18",
+      "license": "UNKNOWN_DOCUMENTATION_COPYRIGHT_NO_IMPLEMENTATION_LICENSE_INFERRED"
+    },
+    "meshy-auto-split.md": {
+      "url": "https://docs.meshy.ai/en/api/auto-split.md",
+      "resolved_url": "https://docs.meshy.ai/en/api/auto-split.md",
+      "sha256": "39e622cde67cf0f18fe001bdd0b1ebc276f3534288558ed068eded61991b1b23",
+      "bytes": 23896,
+      "retrieved_utc": "2026-10-18T20:51:08.464457+00:00",
+      "retrieved_date": "2026-10-18",
+      "license": "UNKNOWN_DOCUMENTATION_COPYRIGHT_NO_IMPLEMENTATION_LICENSE_INFERRED"
+    },
+    "meshy-text-to-motion.md": {
+      "url": "https://docs.meshy.ai/en/api/text-to-motion.md",
+      "resolved_url": "https://docs.meshy.ai/en/api/text-to-motion.md",
+      "sha256": "6efbb2a9636f2ebb71bb3bd69b862ea3e0b5b11c4318091ddadd56fbc9bfc931",
+      "bytes": 16648,
+      "retrieved_utc": "2026-10-18T20:51:07.929366+00:00",
+      "retrieved_date": "2026-10-18",
+      "license": "UNKNOWN_DOCUMENTATION_COPYRIGHT_NO_IMPLEMENTATION_LICENSE_INFERRED"
+    },
+    "meshy-creative-lab-keychain.md": {
+      "url": "https://docs.meshy.ai/en/api/creative-lab-keychain.md",
+      "resolved_url": "https://docs.meshy.ai/en/api/creative-lab-keychain.md",
+      "sha256": "a9923a1f79f2dba602a4fd10bff961434175596b8b629109eaaabd6ce0b12ed1",
+      "bytes": 31765,
+      "retrieved_utc": "2026-10-18T20:51:08.943815+00:00",
+      "retrieved_date": "2026-10-18",
+      "license": "UNKNOWN_DOCUMENTATION_COPYRIGHT_NO_IMPLEMENTATION_LICENSE_INFERRED"
+    },
+    "meshy-creative-lab-fridge-magnet.md": {
+      "url": "https://docs.meshy.ai/en/api/creative-lab-fridge-magnet.md",
+      "resolved_url": "https://docs.meshy.ai/en/api/creative-lab-fridge-magnet.md",
+      "sha256": "e889f0d3b2507ba13493b3474f2c9d626c29ae0a9a61a7161e2592590c8a41fc",
+      "bytes": 30444,
+      "retrieved_utc": "2026-10-18T20:51:08.944573+00:00",
+      "retrieved_date": "2026-10-18",
+      "license": "UNKNOWN_DOCUMENTATION_COPYRIGHT_NO_IMPLEMENTATION_LICENSE_INFERRED"
+    },
+    "meshy-creative-lab-figure.md": {
+      "url": "https://docs.meshy.ai/en/api/creative-lab-figure.md",
+      "resolved_url": "https://docs.meshy.ai/en/api/creative-lab-figure.md",
+      "sha256": "63f47ffd9f03fce48a142ab49505ec06f279394d6e1c34fa441ed13e161a27d5",
+      "bytes": 28736,
+      "retrieved_utc": "2026-10-18T20:51:08.940769+00:00",
+      "retrieved_date": "2026-10-18",
+      "license": "UNKNOWN_DOCUMENTATION_COPYRIGHT_NO_IMPLEMENTATION_LICENSE_INFERRED"
+    },
+    "meshy-creative-lab-vinyl-figure.md": {
+      "url": "https://docs.meshy.ai/en/api/creative-lab-vinyl-figure.md",
+      "resolved_url": "https://docs.meshy.ai/en/api/creative-lab-vinyl-figure.md",
+      "sha256": "bbaac75fc35ac987e784eeb9930becb3740ec3d4250b448ad21ce5cd298a777d",
+      "bytes": 29044,
+      "retrieved_utc": "2026-10-18T20:51:08.966626+00:00",
+      "retrieved_date": "2026-10-18",
+      "license": "UNKNOWN_DOCUMENTATION_COPYRIGHT_NO_IMPLEMENTATION_LICENSE_INFERRED"
+    },
+    "meshy-brick.md": {
+      "url": "https://docs.meshy.ai/en/api/creative-lab-brick-figure.md",
+      "resolved_url": "https://docs.meshy.ai/en/api/creative-lab-brick-figure.md",
+      "sha256": "0bd7ab1ffe07ff0a13581c5858143b3f7cb303f0a745f9199317cca03c5ca1bd",
+      "bytes": 28540,
+      "retrieved_utc": "2026-10-18T20:50:19.748579+00:00",
+      "retrieved_date": "2026-10-18",
+      "license": "UNKNOWN_DOCUMENTATION_COPYRIGHT_NO_IMPLEMENTATION_LICENSE_INFERRED"
+    },
+    "meshy-creative-lab-lamp.md": {
+      "url": "https://docs.meshy.ai/en/api/creative-lab-lamp.md",
+      "resolved_url": "https://docs.meshy.ai/en/api/creative-lab-lamp.md",
+      "sha256": "9bd6e35be7dfb432526f2dc66687c886be0aa0795de72d4c8d4bdb7ea4bcf5e0",
+      "bytes": 32398,
+      "retrieved_utc": "2026-10-18T20:51:08.978753+00:00",
+      "retrieved_date": "2026-10-18",
+      "license": "UNKNOWN_DOCUMENTATION_COPYRIGHT_NO_IMPLEMENTATION_LICENSE_INFERRED"
+    },
+    "meshy-creative-lab-keycap.md": {
+      "url": "https://docs.meshy.ai/en/api/creative-lab-keycap.md",
+      "resolved_url": "https://docs.meshy.ai/en/api/creative-lab-keycap.md",
+      "sha256": "75e875824887c03bc5f818ed83bed220033e6d2c18dc66ed44a5a9bd72111c8b",
+      "bytes": 41234,
+      "retrieved_utc": "2026-10-18T20:51:09.418993+00:00",
+      "retrieved_date": "2026-10-18",
+      "license": "UNKNOWN_DOCUMENTATION_COPYRIGHT_NO_IMPLEMENTATION_LICENSE_INFERRED"
+    },
+    "meshy-creative-lab-fidget-pixel.md": {
+      "url": "https://docs.meshy.ai/en/api/creative-lab-fidget-pixel.md",
+      "resolved_url": "https://docs.meshy.ai/en/api/creative-lab-fidget-pixel.md",
+      "sha256": "034f54e1434bd21d0887add0a52aaabca2c3ed1e7cadea7a801b22a1eded9ce4",
+      "bytes": 41683,
+      "retrieved_utc": "2026-10-18T20:51:09.469487+00:00",
+      "retrieved_date": "2026-10-18",
+      "license": "UNKNOWN_DOCUMENTATION_COPYRIGHT_NO_IMPLEMENTATION_LICENSE_INFERRED"
+    },
+    "meshy-creative-lab-fidget-collapsible.md": {
+      "url": "https://docs.meshy.ai/en/api/creative-lab-fidget-collapsible.md",
+      "resolved_url": "https://docs.meshy.ai/en/api/creative-lab-fidget-collapsible.md",
+      "sha256": "e932c0d7e9afae27c783ca8aa6c35acb1e20a7ccca37d1e887d4ff62c32b3f21",
+      "bytes": 18500,
+      "retrieved_utc": "2026-10-18T20:51:09.457798+00:00",
+      "retrieved_date": "2026-10-18",
+      "license": "UNKNOWN_DOCUMENTATION_COPYRIGHT_NO_IMPLEMENTATION_LICENSE_INFERRED"
+    },
+    "meshy-openapi.json": {
+      "url": "https://docs.meshy.ai/openapi.json",
+      "resolved_url": "https://docs.meshy.ai/openapi.json",
+      "sha256": "a61a2b406646089b83242132b7d1246f096b6bd764020dcd7b484937e950bd22",
+      "bytes": 176594,
+      "retrieved_utc": "2026-10-18T20:50:40.208493+00:00",
+      "retrieved_date": "2026-10-18",
+      "license": "UNKNOWN_DOCUMENTATION_COPYRIGHT_NO_IMPLEMENTATION_LICENSE_INFERRED"
+    },
+    "meshy-pricing.md": {
+      "url": "https://docs.meshy.ai/en/api/pricing.md",
+      "resolved_url": "https://docs.meshy.ai/en/api/pricing.md",
+      "sha256": "1c4ddf7a16e7ca8cc95f69c42aba52141995c6e34f72168c963c4db854190b0b",
+      "bytes": 4410,
+      "retrieved_utc": "2026-10-18T20:50:19.251981+00:00",
+      "retrieved_date": "2026-10-18",
+      "license": "UNKNOWN_DOCUMENTATION_COPYRIGHT_NO_IMPLEMENTATION_LICENSE_INFERRED"
+    },
+    "meshy-changelog.md": {
+      "url": "https://docs.meshy.ai/en/api/changelog.md",
+      "resolved_url": "https://docs.meshy.ai/en/api/changelog.md",
+      "sha256": "9b6d77d24ffb564742f494bab2ce63deb7b3ab3e8f0743ef66ba180618701286",
+      "bytes": 46722,
+      "retrieved_utc": "2026-10-18T20:50:41.233656+00:00",
+      "retrieved_date": "2026-10-18",
+      "license": "UNKNOWN_DOCUMENTATION_COPYRIGHT_NO_IMPLEMENTATION_LICENSE_INFERRED"
+    },
+    "meshy-lifecycle.md": {
+      "url": "https://docs.meshy.ai/en/api/task-lifecycle.md",
+      "resolved_url": "https://docs.meshy.ai/en/api/task-lifecycle.md",
+      "sha256": "802afaf0b37381c6773839c90c6ac396b8317da171897bb01a677fc18dbd0abb",
+      "bytes": 6905,
+      "retrieved_utc": "2026-10-18T20:50:41.718535+00:00",
+      "retrieved_date": "2026-10-18",
+      "license": "UNKNOWN_DOCUMENTATION_COPYRIGHT_NO_IMPLEMENTATION_LICENSE_INFERRED"
+    },
+    "meshy-retention.md": {
+      "url": "https://docs.meshy.ai/en/api/asset-retention.md",
+      "resolved_url": "https://docs.meshy.ai/en/api/asset-retention.md",
+      "sha256": "5391054f8480bc8e3c5385d69621d363becc54077c1068db9b526d6e8a85c8f5",
+      "bytes": 1716,
+      "retrieved_utc": "2026-10-18T20:50:42.709969+00:00",
+      "retrieved_date": "2026-10-18",
+      "license": "UNKNOWN_DOCUMENTATION_COPYRIGHT_NO_IMPLEMENTATION_LICENSE_INFERRED"
+    }
+  },
+  "discrepancies": [
+    {
+      "id": "OPENAPI_SCOPE_OMISSIONS",
+      "resolution": "CreativeLab and TextToMotion schemas independently authored from their individually hashed pages"
+    },
+    {
+      "id": "ANIMATION_MOTION_FIELD_MISSING",
+      "resolution": "motion_task_id added from Animation page; retarget cost UNKNOWN and submission pricing gate denied"
+    },
+    {
+      "id": "RIGGING_QUADRUPED_CONFLICT",
+      "resolution": "only humanoid page-confirmed subset; no animation_type field in this version"
+    },
+    {
+      "id": "PAGINATION_LIMIT_CONFLICT",
+      "resolution": "endpoint pages document page_size100/default10; broad OpenAPI PageSize saysmax10/default3; page facts used"
+    },
+    {
+      "id": "SMART_TOPOLOGY_DEFAULT_DRIFT",
+      "resolution": "pin meshy-t2.5 for unspecified smart model using15Octchangelog; no inheritedMCPdefaultT2"
+    },
+    {
+      "id": "UNDOCUMENTED_OPENAPI_FIELDS",
+      "resolution": "fused/count/experimental/seed/negative_prompt omitted fromrestrictedsubset; no unpricedmulti-candidatecreation"
+    },
+    {
+      "id": "REMESH_PARENT_SCOPE",
+      "resolution": "Remesh and Retexture individually enumerate parent types; do not infer MultiImage support from other endpoints"
+    }
+  ],
+  "owner_authorization": "NO_SPEND_AUTHORIZATION_GRANTED_BY_CATALOGUE"
+}

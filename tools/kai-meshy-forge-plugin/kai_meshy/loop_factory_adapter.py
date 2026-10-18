@@ -18,8 +18,11 @@ MODEL_SHA256 = 'f882fd7446387022dd1ecd7d5ef60a93e8e634585e84016ff22cdbf26fe13540
 JOB_ID = re.compile(r'^[a-zA-Z0-9_-]{1,70}$')
 SHA256 = re.compile(r'^[a-f0-9]{64}$')
 TASK_ID = re.compile(r'^[a-zA-Z0-9-]{8,100}$')
+OPERATION_STAGE = re.compile(r'^op:[a-zA-Z0-9_-]{1,70}$')
 AUTHORITY_REF = re.compile(r'^(?:drive:[a-zA-Z0-9_-]+|git:[a-f0-9]{7,40}|doc:[a-zA-Z0-9_.-]+)$')
 DOMAIN_STATUSES = {'SUBMISSION_UNKNOWN','PENDING','IN_PROGRESS','SUCCEEDED','FAILED','CANCELED'}
+MAX_OBSERVATION_STAGES = 64
+MAX_PROJECTION_BYTES = 30000
 
 
 class LoopManifest(Protocol):
@@ -60,28 +63,37 @@ def observation_projection(snapshot: Mapping[str, Any]) -> dict[str, object]:
     if type(budget) is not int or not 1 <= budget <= 500:
         raise ForgeError('LOOP_FORGE_BUDGET_INVALID')
     stages = snapshot.get('stages', [])
-    if not isinstance(stages,list) or len(stages)>2:
+    if not isinstance(stages,list) or len(stages)>MAX_OBSERVATION_STAGES:
         raise ForgeError('LOOP_FORGE_STAGES_INVALID')
-    result_stages=[]; seen=set()
+    result_stages=[]; seen=set(); generic=False
     for stage in stages:
         if not isinstance(stage, Mapping):
             raise ForgeError('LOOP_FORGE_STAGE_INVALID')
         name=stage.get('stage'); status=stage.get('status'); task_id=stage.get('task_id')
-        if name not in {'prototype','build'} or name in seen or status not in DOMAIN_STATUSES:
+        operation=isinstance(name,str) and OPERATION_STAGE.fullmatch(name) is not None
+        if (not operation and name not in {'prototype','build'}) or name in seen or status not in (DOMAIN_STATUSES | ({'PLANNED'} if operation else set())):
             raise ForgeError('LOOP_FORGE_STAGE_INVALID')
         if task_id is not None and (not isinstance(task_id,str) or not TASK_ID.fullmatch(task_id)):
             raise ForgeError('LOOP_FORGE_TASK_ID_INVALID')
+        reserved=_credit(stage.get('reservation',0)); actual=_credit(stage.get('actual'),optional=True)
+        if status=='PLANNED' and (task_id is not None or reserved!=0 or actual not in (None,0)):
+            raise ForgeError('LOOP_FORGE_PLANNED_FACT_INVALID')
+        generic=generic or operation
         seen.add(name)
         result_stages.append({'stage':name,'status':status,'task_id':task_id,
-                              'reserved_meshy_credits':_credit(stage.get('reservation',0)),
-                              'actual_meshy_credits':_credit(stage.get('actual'),optional=True)})
-    return {'schema':'kai.meshy.loop-observation/1','forge_job_id':job_id,'source_sha256':source_sha,
+                              'reserved_meshy_credits':reserved,
+                              'actual_meshy_credits':actual})
+    result={'schema':'kai.meshy.loop-observation/2' if generic else 'kai.meshy.loop-observation/1',
+            'forge_job_id':job_id,'source_sha256':source_sha,
             'meshy_job_budget_credits':budget,
             'preview_approved':_flag(job.get('preview_approved',0)),
             'local_cancelled':_flag(job.get('local_cancelled',0)),
             'rejected':_flag(job.get('rejected',0)),
             'stages':sorted(result_stages,key=lambda stage:stage['stage']),
             'scope':'READ_ONLY_OBSERVATION; NOT_A_VENDOR_OR_LOOP_FACTORY_RECEIPT'}
+    if len(json.dumps(result,sort_keys=True,separators=(',',':')).encode())>MAX_PROJECTION_BYTES:
+        raise ForgeError('LOOP_FORGE_PROJECTION_TOO_LARGE')
+    return result
 
 
 def make_observation_manifest(snapshot: Mapping[str, Any], *, lf_model: LoopFactoryModel,

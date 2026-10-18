@@ -1,17 +1,28 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "kai-meshy-forge-plugin",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "KAI Meshy Forge Omega: governed Meshy jobs, immutable assets and recovery using the existing Meshy CLI.",
-  "author": {"name": "KAI"},
+  "author": {
+    "name": "KAI"
+  },
   "repository": "https://github.com/Bashull/Kai",
-  "keywords": ["meshy", "3d", "kai", "mcp"],
-  "extensions": {"com.openai": {"interface": {
-    "displayName": "KAI Meshy Forge Omega",
-    "shortDescription": "3D con control y recuperación",
-    "longDescription": "Control local de trabajos Meshy, referencias y assets con presupuesto, linaje y recuperación. La conexión remota necesita permisos y transporte verificados.",
-    "developerName": "KAI",
-    "category": "Productivity",
-    "defaultPrompt": "Consulta el estado de KAI Meshy Forge y recupera el último trabajo sin repetir generaciones."
-  }}}
+  "keywords": [
+    "meshy",
+    "3d",
+    "kai",
+    "mcp"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "KAI Meshy Forge Omega",
+        "shortDescription": "3D con control y recuperación",
+        "longDescription": "Control local de trabajos Meshy, referencias y assets con presupuesto, linaje y recuperación. La conexión remota necesita permisos y transporte verificados.",
+        "developerName": "KAI",
+        "category": "Productivity",
+        "defaultPrompt": "Consulta el estado de KAI Meshy Forge y recupera el último trabajo sin repetir generaciones."
+      }
+    }
+  }
 }

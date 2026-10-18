@@ -56,12 +56,12 @@ class Policy:
             raise ForgeError("MCP_HUMAN_APPROVAL_CONTEXT_REQUIRED")
 
 
-def _result(value: Any = None, *, error: str | None = None):
+def _result(value: Any = None, *, error: str | None = None, trusted_catalogue: bool = False):
     body = {"schema": "kai.meshy.mcp/v1", "ok": error is None}
     if error:
         body["error"] = error
     else:
-        body["result"] = public_json(value)
+        body["result"] = value if trusted_catalogue else public_json(value)
     return types.CallToolResult(
         content=[types.TextContent(text=json.dumps(body, ensure_ascii=False, sort_keys=True))],
         structuredContent=body,
@@ -69,9 +69,12 @@ def _result(value: Any = None, *, error: str | None = None):
     )
 
 
-def _call(fn, *args, **kwargs):
+def _call(fn, *args, _trusted_catalogue=False, **kwargs):
     try:
-        return _result(fn(*args, **kwargs))
+        value = fn(*args, **kwargs)
+        if _trusted_catalogue and len(json.dumps(value, ensure_ascii=False).encode()) > 2 * 1024 * 1024:
+            raise ForgeError('CATALOGUE_METADATA_SIZE_EXCEEDED')
+        return _result(value, trusted_catalogue=_trusted_catalogue)
     except ForgeError as exc:
         # Core errors are machine codes; never expose arbitrary exception text.
         message = str(exc)
@@ -85,7 +88,7 @@ def create_server(forge: Forge, policy: Policy | None = None) -> MCPServer:
     policy = policy or Policy.from_env()
     registry = AssetRegistry(forge)
     server = MCPServer(
-        name="kai-meshy-mcp", version="0.2.0-staging",
+        name="kai-meshy-mcp", version="0.3.0-staging",
         instructions=(
             "KAI Meshy Forge: same local Forge/ledger for stdio and HTTP. "
             "Only advertised operations are installed. Meshy Brick Figure prototype/build "
@@ -105,6 +108,9 @@ def create_server(forge: Forge, policy: Policy | None = None) -> MCPServer:
         return _result({
             "adapter": "kai-meshy-mcp", "sdk": "mcp-python-2",
             "implemented_generation": ["creative-lab.brick-figure.prototype", "creative-lab.brick-figure.build"],
+            "capability_operation_engine": "INSTALLED_STAGING",
+            "catalogue_contract_count": len(capability_engine.list_capabilities()),
+            "catalogue_is_spend_authorization": False,
             "writes_enabled": policy.allow_writes,
             "spend_enabled": policy.allow_writes and policy.allow_spend and forge.spending_enabled and bool(forge.spending_job_ids),
             "human_approval_enabled": policy.allow_writes and policy.allow_approvals and bool(policy.approval_actor),
@@ -277,6 +283,13 @@ def create_server(forge: Forge, policy: Policy | None = None) -> MCPServer:
                 return forge.reconcile(job_id, stage, task_id, request_sha256)
             return _call(run)
 
+    from .capability_tools import register_capability_tools
+    # Only metadata from the bundled, code-reviewed catalogue uses this path.
+    # Remote task data and all caller-provided payloads keep strict redaction.
+    def catalogue_call(fn, *args):
+        return _call(fn, *args, _trusted_catalogue=True)
+    capability_engine = register_capability_tools(server, forge, policy, call=_call,
+        catalogue_call=catalogue_call, read=read, write=write, paid=paid)
     return server
 
 

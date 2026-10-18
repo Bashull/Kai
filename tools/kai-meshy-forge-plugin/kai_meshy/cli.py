@@ -43,6 +43,29 @@ def main():
     p = sub.add_parser('refresh'); p.add_argument('job_id'); p.add_argument('stage', choices=('prototype', 'build'))
     p = sub.add_parser('download'); p.add_argument('job_id'); p.add_argument('stage', choices=('prototype', 'build')); p.add_argument('format', choices=('preview', 'glb', 'obj', 'mtl', 'fbx'))
     p = sub.add_parser('approve'); p.add_argument('job_id'); p.add_argument('sha256'); p.add_argument('--actor', required=True)
+    sub.add_parser('capabilities')
+    p = sub.add_parser('describe'); p.add_argument('capability_id')
+    for name in ('validate', 'quote'):
+        p = sub.add_parser(name); p.add_argument('capability_id'); p.add_argument('--parameters-json', required=True)
+    p = sub.add_parser('tasks'); p.add_argument('capability_id'); p.add_argument('--cursor'); p.add_argument('--page-size', type=int, default=10)
+    p = sub.add_parser('remote-task'); p.add_argument('capability_id'); p.add_argument('task_id')
+    for name in ('operations', 'operation-cycle'):
+        p = sub.add_parser(name); p.add_argument('job_id')
+    for name in ('operation', 'operation-submit', 'operation-refresh', 'operation-poll', 'operation-download', 'operation-checkpoint', 'operation-reconcile'):
+        p = sub.add_parser(name); p.add_argument('job_id'); p.add_argument('operation_id')
+        if name == 'operation-download':
+            from .capability_engine import OUTPUT_VARIANTS
+            p.add_argument('format', choices=('glb', 'gltf', 'obj', 'mtl', 'fbx', 'stl', '3mf', 'usdz', 'blend', 'image', 'thumbnail', 'base_color', 'metallic', 'normal', 'roughness'))
+            p.add_argument('--texture-index', type=int, default=0)
+            p.add_argument('--variant', choices=sorted(OUTPUT_VARIANTS))
+        if name == 'operation-checkpoint':
+            p.add_argument('label'); p.add_argument('--asset-id', action='append', default=[])
+        if name == 'operation-reconcile':
+            p.add_argument('task_id'); p.add_argument('request_sha256'); p.add_argument('--receipt-asset-id', required=True)
+    p = sub.add_parser('plan'); p.add_argument('job_id'); p.add_argument('capability_id')
+    p.add_argument('--operation-id', default='main'); p.add_argument('--parameters-json', required=True)
+    p.add_argument('--budget', type=int, default=500); p.add_argument('--dependency', action='append', default=[])
+    p.add_argument('--parent-asset-id', action='append', default=[])
     args = parser.parse_args()
     try:
         f = make_forge()
@@ -50,10 +73,24 @@ def main():
             from .sdk_server import serve
             serve(f, transport=args.command)
             return
-        if args.command in ('create', 'submit', 'cancel', 'download', 'cycle', 'refresh', 'approve') and os.environ.get('KAI_MESHY_ALLOW_WRITES') != '1':
+        writes = {'create', 'submit', 'cancel', 'download', 'cycle', 'refresh', 'approve', 'plan',
+                  'operation-submit', 'operation-refresh', 'operation-poll', 'operation-download',
+                  'operation-cycle', 'operation-checkpoint', 'operation-reconcile'}
+        if args.command in writes and os.environ.get('KAI_MESHY_ALLOW_WRITES') != '1':
             raise ForgeError('WRITE_SCOPE_NOT_ENABLED')
-        if args.command == 'approve' and os.environ.get('KAI_MESHY_ALLOW_APPROVALS') != '1':
+        if args.command in ('approve', 'operation-reconcile') and os.environ.get('KAI_MESHY_ALLOW_APPROVALS') != '1':
             raise ForgeError('HUMAN_APPROVAL_SCOPE_NOT_ENABLED')
+        extended = {'capabilities', 'describe', 'validate', 'quote', 'tasks', 'remote-task', 'plan',
+                    'operations', 'operation', 'operation-submit', 'operation-refresh', 'operation-poll',
+                    'operation-download', 'operation-cycle', 'operation-checkpoint', 'operation-reconcile'}
+        if args.command in extended:
+            from .capability_engine import CapabilityEngine
+            engine = CapabilityEngine(f)
+            if hasattr(args, 'parameters_json'):
+                if len(args.parameters_json) > 1024 * 1024:
+                    raise ForgeError('OPERATION_PARAMETERS_TOO_LARGE')
+                parameters = json.loads(args.parameters_json)
+                engine._safe_parameters(parameters)
         if args.command == 'doctor':
             value = {'auth': f.cli.auth(), 'workspace': str(f.root), 'cli': f.cli.executable,
                      'spending_enabled': f.spending_enabled, 'max_authorized_credits': f.max_credits,
@@ -71,7 +108,40 @@ def main():
         elif args.command == 'cycle':
             from .pipeline import cycle
             value = cycle(f, args.job_id, timeout=30)
-        print(json.dumps(public_json(value), ensure_ascii=False, indent=2))
+        elif args.command == 'capabilities': value = engine.list_capabilities()
+        elif args.command == 'describe': value = engine.describe(args.capability_id)
+        elif args.command == 'validate': value = engine.catalog.validation_report(args.capability_id, parameters)
+        elif args.command == 'quote':
+            value = engine.catalog.quote(args.capability_id, parameters)
+            value['permission'] = value.pop('authorization', 'NOT_GRANTED_BY_CATALOGUE')
+            value['request_sha256'] = value.pop('payload_fingerprint', None)
+            value['pricing_gate_passed'] = value.pop('spend_allowed', False)
+            value['current_spend_authorized'] = False
+        elif args.command == 'tasks': value = engine.list_remote(args.capability_id, cursor=args.cursor, page_size=args.page_size)
+        elif args.command == 'remote-task': value = engine.get_remote(args.capability_id, args.task_id, timeout=30)
+        elif args.command == 'plan': value = engine.create_operation(args.job_id, args.capability_id, parameters,
+            budget=args.budget, operation_id=args.operation_id, dependencies=args.dependency, parent_asset_ids=args.parent_asset_id)
+        elif args.command == 'operations': value = engine.list_operations(args.job_id)
+        elif args.command == 'operation': value = engine.get_operation(args.job_id, args.operation_id)
+        elif args.command == 'operation-submit': value = engine.submit_operation(args.job_id, args.operation_id)
+        elif args.command == 'operation-refresh': value = engine.refresh_operation(args.job_id, args.operation_id, timeout=30)
+        elif args.command == 'operation-poll': value = engine.poll_operation(args.job_id, args.operation_id, timeout=30, max_attempts=6, max_stalled=3)
+        elif args.command == 'operation-download': value = engine.download_operation(args.job_id, args.operation_id, args.format, texture_index=args.texture_index, variant=args.variant)
+        elif args.command == 'operation-cycle':
+            from .operation_loop import cycle_operations
+            value = cycle_operations(engine, args.job_id, timeout=30)
+        elif args.command == 'operation-checkpoint': value = engine.checkpoint(args.job_id, args.operation_id, args.label, asset_ids=args.asset_id)
+        elif args.command == 'operation-reconcile':
+            actor = os.environ.get('KAI_MESHY_APPROVAL_ACTOR')
+            if not actor: raise ForgeError('HUMAN_APPROVAL_CONTEXT_REQUIRED')
+            value = engine.reconcile_operation(args.job_id, args.operation_id, args.task_id, args.request_sha256,
+                receipt_asset_id=args.receipt_asset_id, actor=actor)
+        # Only immutable catalogue metadata bypasses runtime-data redaction;
+        # otherwise real schema names such as image_url would disappear.
+        trusted_catalogue = args.command in ('capabilities', 'describe')
+        if trusted_catalogue and len(json.dumps(value, ensure_ascii=False).encode()) > 2 * 1024 * 1024:
+            raise ForgeError('CATALOGUE_METADATA_SIZE_EXCEEDED')
+        print(json.dumps(value if trusted_catalogue else public_json(value), ensure_ascii=False, indent=2))
     except (ForgeError, ValueError, OSError) as exc:
         print(json.dumps({'error': type(exc).__name__, 'message': public_json(str(exc))}, ensure_ascii=False))
         raise SystemExit(2)

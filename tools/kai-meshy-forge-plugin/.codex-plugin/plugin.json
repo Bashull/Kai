@@ -1,8 +1,10 @@
 {
   "name": "kai-meshy-forge-plugin",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "KAI Meshy Forge Omega governed local 3D jobs.",
-  "author": {"name": "KAI"},
+  "author": {
+    "name": "KAI"
+  },
   "skills": "./skills",
   "mcpServers": "./.mcp.json"
 }
