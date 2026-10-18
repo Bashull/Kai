@@ -23,6 +23,7 @@ from kai_meshy.sdk_server import Policy, create_http_app, create_server
 PACKAGE = Path(__file__).resolve().parents[1]
 READ_NAMES = {
     "kai_meshy_connection_status", "kai_meshy_auth_status", "kai_meshy_balance",
+    "kai_meshy_animation_library",
     "kai_meshy_budget", "kai_meshy_list_jobs", "kai_meshy_get_job",
     "kai_meshy_list_assets", "kai_meshy_get_asset", "kai_meshy_inspect_reference", "kai_meshy_inspect_model",
     "kai_meshy_capabilities", "kai_meshy_describe_capability", "kai_meshy_validate_request", "kai_meshy_quote",
@@ -71,6 +72,48 @@ class SDKCanaries(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(balance["balance"], 71)
                 denied = await client.call_tool("kai_meshy_create_job", {"job_id": "attempt", "source": "private"})
                 self.assertTrue(denied.is_error)
+        self.assertEqual(self.forge.list_jobs(), [])
+
+    async def test_animation_library_fixed_free_get_filtering_and_input_limits(self):
+        rows = json.loads((PACKAGE / 'tests/fixtures/animation_library_20261018_safe.json').read_text())
+        if isinstance(rows, dict):
+            rows = rows['items']
+        calls = []
+
+        def fixed_get(contract, action, **kwargs):
+            calls.append((contract, action, kwargs))
+            self.assertEqual(action, 'get')
+            self.assertEqual(contract['routes'], {'get': '/openapi/v1/animations/library'})
+            self.assertEqual(contract['route_methods'], {'get': 'GET'})
+            return {'http_status': 200, 'method': 'GET', 'api': 'v1',
+                    'path': '/animations/library', 'body': rows}
+
+        self.forge.cli.request = fixed_get
+        async with Client(create_server(self.forge, Policy())) as client:
+            reply = await client.call_tool('kai_meshy_animation_library', {'limit': 2})
+            self.assertFalse(reply.is_error)
+            result = body(reply)['result']
+            self.assertEqual(result['provider_count'], 678)
+            self.assertEqual(len(result['items']), 2)
+            self.assertEqual(result['items'][0]['action_id'], 0)
+            self.assertEqual(result['next_offset'], 2)
+            self.assertNotIn('preview_url', reply.content[0].text)
+            self.assertNotIn('https://', reply.content[0].text)
+            self.assertEqual(len(calls), 1)
+            invalid = await client.call_tool('kai_meshy_animation_library', {'limit': 101})
+            self.assertTrue(invalid.is_error)
+            self.assertEqual(len(calls), 1)
+            self.assertEqual(self.forge.budget_status()['committed_or_actual_credits'], 0)
+
+    async def test_animation_library_transport_error_is_sanitized(self):
+        def failed_get(*args, **kwargs):
+            raise OSError('Bearer private-test-canary https://invalid/?Signature=secret')
+        self.forge.cli.request = failed_get
+        async with Client(create_server(self.forge, Policy())) as client:
+            reply = await client.call_tool('kai_meshy_animation_library', {})
+            self.assertTrue(reply.is_error)
+            self.assertEqual(body(reply)['error'], 'ANIMATION_LIBRARY_FETCH_FAILED')
+            self.assertNotIn('private-test-canary', reply.content[0].text)
         self.assertEqual(self.forge.list_jobs(), [])
 
     async def test_write_confirmation_and_schema_are_enforced(self):

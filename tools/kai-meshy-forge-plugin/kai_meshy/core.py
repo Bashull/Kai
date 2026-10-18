@@ -427,6 +427,25 @@ class Forge:
             raise ForgeError('GLOBAL_BUDGET_EXCEEDED')
         return job
 
+    @staticmethod
+    def _legacy_current_price_quote(stage, payload):
+        # Legacy routing stays intact, but its fixed reservation must still
+        # agree with a fresh exact catalogue quote. No historic-price fallback.
+        try:
+            from .contracts import CapabilityCatalog
+            quote = CapabilityCatalog().quote('creative_lab.brick_figure.' + stage, payload)
+            if (quote.get('price_status') != 'EXACT' or quote.get('spend_allowed') is not True or
+                    isinstance(quote.get('credits'), bool) or quote.get('credits') != PRICES[stage]):
+                raise ForgeError('LEGACY_PRICE_REVALIDATION_REQUIRED')
+            safe_quote = public_json(quote)
+            return {'quote': safe_quote,
+                    'quote_sha256': hashlib.sha256(json.dumps(safe_quote, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()).hexdigest(),
+                    'contract_version': quote['contract_version'],
+                    'catalogue_sha256': quote['catalogue_sha256'],
+                    'request_fingerprint_sha256': quote['payload_fingerprint']}
+        except Exception:
+            raise ForgeError('LEGACY_PRICE_REVALIDATION_REQUIRED') from None
+
     def submit(self, job_id, stage):
         if stage not in STAGES:
             raise ForgeError('INVALID_STAGE')
@@ -454,6 +473,7 @@ class Forge:
         remote_name = 'KAI-' + fingerprint[:48]
         payload['name'] = remote_name
         request_sha = hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+        self._legacy_current_price_quote(stage, payload)
         auth = self.cli.auth()
         if auth.get('authenticated') is not True or auth.get('verified') is not True:
             raise ForgeError('ACCOUNT_NOT_VERIFIED')
@@ -465,9 +485,11 @@ class Forge:
             self._job_gate(c, job_id, stage)
             if digest(source) != job['source_sha']:
                 raise ForgeError('SOURCE_CHANGED')
+            price_quote = self._legacy_current_price_quote(stage, payload)
             c.execute('INSERT INTO stages(job_id,stage,status,reservation,intent_at,updated,request_sha,source_sha,remote_name) VALUES(?,?,?,?,?,?,?,?,?)',
                       (job_id, stage, 'SUBMISSION_UNKNOWN', PRICES[stage], time.time(), time.time(), request_sha, job['source_sha'], remote_name))
-            self._event(c, job_id, 'SUBMISSION_INTENT', {'stage': stage, 'request_sha': request_sha, 'reserved': PRICES[stage]})
+            self._event(c, job_id, 'SUBMISSION_INTENT', {'stage': stage, 'request_sha': request_sha,
+                        'reserved': PRICES[stage], 'current_price_quote': price_quote})
         try:
             value = unwrap(self.cli.api('POST', '/brick-figure/v1/' + stage, payload))
             task_id = value if isinstance(value, str) else value.get('id') if isinstance(value, dict) else None

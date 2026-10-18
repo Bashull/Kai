@@ -44,6 +44,9 @@ def main():
     p = sub.add_parser('download'); p.add_argument('job_id'); p.add_argument('stage', choices=('prototype', 'build')); p.add_argument('format', choices=('preview', 'glb', 'obj', 'mtl', 'fbx'))
     p = sub.add_parser('approve'); p.add_argument('job_id'); p.add_argument('sha256'); p.add_argument('--actor', required=True)
     sub.add_parser('capabilities')
+    p = sub.add_parser('animation-library')
+    p.add_argument('--category'); p.add_argument('--search')
+    p.add_argument('--offset', type=int, default=0); p.add_argument('--limit', type=int, default=25)
     p = sub.add_parser('describe'); p.add_argument('capability_id')
     for name in ('validate', 'quote'):
         p = sub.add_parser(name); p.add_argument('capability_id'); p.add_argument('--parameters-json', required=True)
@@ -96,6 +99,10 @@ def main():
                      'spending_enabled': f.spending_enabled, 'max_authorized_credits': f.max_credits,
                      'codex_transport': 'stdio', 'chatgpt': 'NOT_CONNECTED'}
         elif args.command == 'balance': value = f.cli.balance()
+        elif args.command == 'animation-library':
+            from .animation_library import AnimationLibrary
+            value = AnimationLibrary.fetch(f.cli, timeout=30).query(
+                category=args.category, search=args.search, offset=args.offset, limit=args.limit)
         elif args.command == 'jobs':
             with f._db() as db: value = [dict(r) for r in db.execute('SELECT id,source_sha,budget FROM jobs ORDER BY created')]
         elif args.command == 'job': value = f.get_job(args.job_id)

@@ -88,7 +88,7 @@ def create_server(forge: Forge, policy: Policy | None = None) -> MCPServer:
     policy = policy or Policy.from_env()
     registry = AssetRegistry(forge)
     server = MCPServer(
-        name="kai-meshy-mcp", version="0.3.0-staging",
+        name="kai-meshy-mcp", version="0.3.1-staging",
         instructions=(
             "KAI Meshy Forge: same local Forge/ledger for stdio and HTTP. "
             "Only advertised operations are installed. Meshy Brick Figure prototype/build "
@@ -129,6 +129,21 @@ def create_server(forge: Forge, policy: Policy | None = None) -> MCPServer:
         return _call(forge.cli.balance)
 
     @server.tool(annotations=read, structured_output=False)
+    def kai_meshy_animation_library(
+        category: Annotated[str | None, Field(max_length=512)] = None,
+        search: Annotated[str | None, Field(max_length=128)] = None,
+        offset: Annotated[int, Field(ge=0, le=5000)] = 0,
+        limit: Annotated[int, Field(ge=1, le=100)] = 25,
+    ) -> types.CallToolResult:
+        """Fetch the free official animation library once and filter safe metadata locally. IDs have gaps; this read grants no spending permission. No preview resources are fetched."""
+        def run():
+            from .animation_library import AnimationLibrary
+            return AnimationLibrary.fetch(forge.cli, timeout=30).query(
+                category=category, search=search, offset=offset, limit=limit,
+            )
+        return _call(run)
+
+    @server.tool(annotations=read, structured_output=False)
     def kai_meshy_budget() -> types.CallToolResult:
         """Read reservations, actual costs and uncertain submissions from the shared ledger."""
         return _call(forge.budget_status)
@@ -160,7 +175,7 @@ def create_server(forge: Forge, policy: Policy | None = None) -> MCPServer:
 
     @server.tool(annotations=read, structured_output=False)
     def kai_meshy_inspect_model(path: str) -> types.CallToolResult:
-        """Inspect a workspace OBJ/STL/GLB deterministically. This is the installed structural inspector; Blender is not implied."""
+        """Inspect a workspace GLB/OBJ/FBX deterministically. This is the installed structural inspector; Blender is not implied."""
         def run():
             from .assets import inspect_model
             target = forge._workspace_path(path)

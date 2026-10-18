@@ -547,6 +547,16 @@ class CapabilityEngine:
         else:
             remote_name = None
         request_sha = _sha(payload)
+        animation_library = None
+        animation_actions = None
+        if row['capability_id'] == 'animation.create' and ('action_id' in payload or 'action_ids' in payload):
+            # A numeric schema range does not prove membership in Meshy's
+            # current preset library. This fixed free GET is a preflight only;
+            # library metadata never becomes an invented REST parameter.
+            from .animation_library import AnimationLibrary
+            animation_actions = payload.get('action_ids', [payload.get('action_id')])
+            animation_library = AnimationLibrary.fetch(self.forge.cli, timeout=30)
+            animation_library.require_actions(animation_actions)
         auth = self.forge.cli.auth()
         if auth.get('authenticated') is not True or auth.get('verified') is not True:
             raise ForgeError('ACCOUNT_NOT_VERIFIED')
@@ -557,10 +567,30 @@ class CapabilityEngine:
             latest = self._row(job_id, operation_id, c)
             self._ready(c, latest, price, payload, contract)
             self._read_manifest(latest)
+            # The source's pricing validity can expire during auth/balance or
+            # other preflight reads. Revalidate locally at the reservation
+            # boundary as well; a stale quote never becomes a paid intent.
+            current_payload, current_quote = self._validate_quote(row['capability_id'], payload, context=context)
+            if (current_payload != payload or current_quote.get('price_status') != 'EXACT' or
+                    current_quote.get('spend_allowed') is not True or current_quote.get('credits') != price):
+                raise ForgeError('OPERATION_QUOTE_CHANGED_DURING_PREFLIGHT')
+            quote = current_quote
+            library_receipt = None
+            if animation_library is not None:
+                # Auth/balance can take time. Recheck snapshot freshness inside
+                # the same transaction that reserves and records the intent.
+                animation_library.require_actions(animation_actions)
+                library_receipt = animation_library.to_receipt(action_ids=animation_actions)
+                quote = {**quote, 'animation_library': library_receipt}
             model = {k:v for k,v in payload.items() if k in {'ai_model','model_type','geometry_resolution','texture_resolution','hd_texture','ultra_mode'}}
             c.execute('UPDATE stages SET status="SUBMISSION_UNKNOWN",reservation=?,request_sha=?,remote_name=?,quote_json=?,model_json=?,intent_at=?,updated=? WHERE job_id=? AND stage=?',
                       (price, request_sha, remote_name, json.dumps(public_json(quote)), json.dumps(model), time.time(), time.time(), job_id, row['stage']))
-            self.forge._event(c, job_id, 'OPERATION_SUBMISSION_INTENT', {'operation_id': operation_id, 'request_sha': request_sha, 'reserved': price})
+            intent = {'operation_id': operation_id, 'request_sha': request_sha, 'reserved': price}
+            if library_receipt is not None:
+                intent['animation_library_fingerprint'] = library_receipt['fingerprint_sha256']
+                intent['animation_library_verified_utc'] = library_receipt['fetched_at_utc']
+                intent['animation_action_ids'] = list(animation_actions)
+            self.forge._event(c, job_id, 'OPERATION_SUBMISSION_INTENT', intent)
         try:
             result = unwrap(self.forge.cli.request(contract, 'create', payload=payload))
             task_id = result if isinstance(result, str) else result.get('id') if isinstance(result, dict) else None

@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "kai-meshy-forge-plugin",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "KAI Meshy Forge Omega: governed Meshy jobs, immutable assets and recovery using the existing Meshy CLI.",
   "author": {
     "name": "KAI"
