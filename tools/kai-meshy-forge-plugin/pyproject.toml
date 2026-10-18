@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kai-meshy-forge"
+version = "0.2.0"
+description = "Governed Meshy adapter and recoverable KAI 3D jobs"
+requires-python = ">=3.11"
+dependencies = ["mcp==2.0.0", "jsonschema==4.26.0", "Pillow==12.3.0"]
+
+[project.scripts]
+kai-meshy-job-engine = "kai_meshy.cli:main"
+kai-meshy-mcp = "kai_meshy.sdk_server:main"
+
+[tool.setuptools.packages.find]
+include = ["kai_meshy*"]

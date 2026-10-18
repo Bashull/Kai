@@ -1,0 +1,1 @@
+{"mcpServers":{"kai-meshy-mcp":{"command":"python","args":["${CLAUDE_PLUGIN_ROOT}/launch.py","stdio"],"env":{"KAI_MESHY_ALLOW_WRITES":"0","KAI_MESHY_ALLOW_SPEND":"0","KAI_MESHY_ALLOW_APPROVALS":"0"}}}}
