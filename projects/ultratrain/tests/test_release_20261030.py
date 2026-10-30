@@ -32,6 +32,15 @@ class Release1030Candidate(unittest.TestCase):
         p = {"packages": {"sglang": "0.5.22"}, "runtime": {"provider": "sglang"},
              "sampling": {"min_new_tokens": 8}}
         self.assertIn("sglang.1030.retraction_sampling_history_reset", rules(p))
+    def test_older_version_not_assumed_affected(self):
+        p = {"packages": {"sglang": "0.5.21"}, "runtime": {"provider": "sglang"},
+             "sampling": {"frequency_penalty": 2}}
+        self.assertNotIn("sglang.1030.retraction_sampling_history_reset", rules(p))
+        self.assertIn("sglang.1030.retraction_penalty_parity", rules(p))
+    def test_neutral_repetition_penalty(self):
+        p = {"packages": {"sglang": "0.5.22"}, "runtime": {"provider": "sglang"},
+             "sampling": {"repetition_penalty": 1.0}}
+        self.assertNotIn("sglang.1030.retraction_sampling_history_reset", rules(p))
     def test_sglang_pd_gap(self):
         p = {"runtime": {"provider": "sglang", "pd_disaggregation": True},
              "sampling": {"penalties_enabled": True}}
