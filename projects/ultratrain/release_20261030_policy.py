@@ -62,7 +62,10 @@ def findings_release_20261030(profile: Any) -> list[dict[str, str]]:
         if sv is None:
             add("NEEDS_CANARY", "sglang.1030.version_unknown", "package_container_digest_and_commit")
         penalties = any(sampling.get(k) not in (None, 0, 0.0, False) for k in
-                        ("frequency_penalty", "presence_penalty", "repetition_penalty"))
+                        ("frequency_penalty", "presence_penalty"))
+        repetition = sampling.get("repetition_penalty")
+        if repetition is not None and repetition not in (1, 1.0, False):
+            penalties = True
         min_tokens = sampling.get("min_new_tokens")
         if type(min_tokens) is int and min_tokens > 0:
             penalties = True
@@ -70,7 +73,7 @@ def findings_release_20261030(profile: Any) -> list[dict[str, str]]:
             penalties = True
         if penalties:
             if runtime.get("retraction_possible") is not False:
-                if sv is not None and sv <= (0, 5, 22) and runtime.get("retraction_history_patch_verified") is not True:
+                if sv == (0, 5, 22) and runtime.get("retraction_history_patch_verified") is not True:
                     add("UNSUPPORTED", "sglang.1030.retraction_sampling_history_reset", "uninterrupted_vs_retracted_output_ids")
                 else:
                     add("NEEDS_CANARY", "sglang.1030.retraction_penalty_parity", "frequency_presence_repetition_min_tokens_replay")
